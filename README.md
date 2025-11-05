@@ -463,6 +463,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
 - **[GIT_LFS_GUIDE.md](./GIT_LFS_GUIDE.md)** - Git LFS for large model files
 - **[SUMMARY.md](./SUMMARY.md)** - Summary of all optimizations
+- **[NATIVE_BUILD_COMPARISON.md](./NATIVE_BUILD_COMPARISON.md)** - ℹ️ EAS vs native builds explained
 
 ### Technical
 - **[VIBECODE_REQUIRED_PACKAGES.md](./VIBECODE_REQUIRED_PACKAGES.md)** - Package requirements for Vibecode
