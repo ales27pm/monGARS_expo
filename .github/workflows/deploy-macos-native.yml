@@ -258,35 +258,32 @@ Models included:
             const model = '${{ inputs.model_name }}';
             const submitted = '${{ inputs.submit_to_app_store }}' === 'true';
 
-            const comment = `## 🎉 macOS Native Build Complete
+            let comment = '## 🎉 macOS Native Build Complete\n\n';
+            comment += '**Status:** ✅ Build finished on macOS runner\n';
+            comment += '**Model:** ' + model + '\n';
+            comment += '**Build ID:** ' + buildId + '\n';
+            comment += '**Submitted to App Store:** ' + (submitted ? '✅ Yes' : '❌ No') + '\n\n';
+            comment += '### 🏗️ Build Details\n';
+            comment += '- Built on: macOS-14 GitHub Runner\n';
+            comment += '- Xcode: Latest\n';
+            comment += '- Native compilation: All native modules compiled on macOS\n\n';
 
-            **Status:** ✅ Build finished on macOS runner
-            **Model:** ${model}
-            **Build ID:** ${buildId}
-            **Submitted to App Store:** ${submitted ? '✅ Yes' : '❌ No'}
-
-            ### 🏗️ Build Details
-            - Built on: macOS-14 GitHub Runner
-            - Xcode: Latest
-            - Native compilation: All native modules compiled on macOS
-
-            ${submitted ?
-              `### ✅ Submitted to App Store
-              Check status at [App Store Connect](https://appstoreconnect.apple.com)`
-              :
-              `### 📱 Submit to App Store
-              \`\`\`bash
-              eas submit --platform ios --id ${buildId}
-              \`\`\``
+            if (submitted) {
+              comment += '### ✅ Submitted to App Store\n';
+              comment += 'Check status at [App Store Connect](https://appstoreconnect.apple.com)\n';
+            } else {
+              comment += '### 📱 Submit to App Store\n';
+              comment += '```bash\n';
+              comment += 'eas submit --platform ios --id ' + buildId + '\n';
+              comment += '```\n';
             }
 
-            ### 🔗 Links
-            - [View Build Details](${buildUrl || 'Check EAS dashboard'})
-            - [EAS Dashboard](https://expo.dev)
-            - [App Store Connect](https://appstoreconnect.apple.com)
-
-            ---
-            *Full automated deployment on macOS runner*`;
+            comment += '\n### 🔗 Links\n';
+            comment += '- [View Build Details](' + (buildUrl || 'Check EAS dashboard') + ')\n';
+            comment += '- [EAS Dashboard](https://expo.dev)\n';
+            comment += '- [App Store Connect](https://appstoreconnect.apple.com)\n\n';
+            comment += '---\n';
+            comment += '*Full automated deployment on macOS runner*';
 
             github.rest.repos.createCommitComment({
               owner: context.repo.owner,

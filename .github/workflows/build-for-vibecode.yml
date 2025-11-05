@@ -228,32 +228,25 @@ To deploy from Vibecode:
             const model = '${{ inputs.model_name }}';
             const profile = '${{ inputs.profile }}';
 
-            const comment = `## 🚀 Build Complete - Ready for Vibecode Deployment
-
-            **Status:** ✅ Build finished successfully
-            **Model:** ${model}
-            **Profile:** ${profile}
-            **Build ID:** ${buildId}
-
-            ### 📥 Deploy from Vibecode
-
-            \`\`\`bash
-            # 1. Pull the latest code (includes models)
-            git pull origin main
-
-            # 2. Submit to App Store
-            eas submit --platform ios --latest
-
-            # Or submit specific build:
-            eas submit --platform ios --id ${buildId}
-            \`\`\`
-
-            ### 🔗 Links
-            - [View Build Details](${buildUrl || 'Check EAS dashboard'})
-            - [EAS Dashboard](https://expo.dev)
-
-            ---
-            *Build triggered by workflow: ${context.workflow}*`;
+            let comment = '## 🚀 Build Complete - Ready for Vibecode Deployment\n\n';
+            comment += '**Status:** ✅ Build finished successfully\n';
+            comment += '**Model:** ' + model + '\n';
+            comment += '**Profile:** ' + profile + '\n';
+            comment += '**Build ID:** ' + buildId + '\n\n';
+            comment += '### 📥 Deploy from Vibecode\n\n';
+            comment += '```bash\n';
+            comment += '# 1. Pull the latest code (includes models)\n';
+            comment += 'git pull origin main\n\n';
+            comment += '# 2. Submit to App Store\n';
+            comment += 'eas submit --platform ios --latest\n\n';
+            comment += '# Or submit specific build:\n';
+            comment += 'eas submit --platform ios --id ' + buildId + '\n';
+            comment += '```\n\n';
+            comment += '### 🔗 Links\n';
+            comment += '- [View Build Details](' + (buildUrl || 'Check EAS dashboard') + ')\n';
+            comment += '- [EAS Dashboard](https://expo.dev)\n\n';
+            comment += '---\n';
+            comment += '*Build triggered by workflow: ' + context.workflow + '*';
 
             github.rest.repos.createCommitComment({
               owner: context.repo.owner,
