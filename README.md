@@ -144,38 +144,39 @@ The app requires API keys for cloud-based LLM features. Set these in the Vibecod
 
 ### Download Models
 
-**Option A: GitHub Actions (Recommended for Vibecode)**
+**Option A: GitHub Actions (Recommended)**
 
-Two workflows available:
+Choose one of two workflows:
 
-1. **Download Models Only** (New, Recommended)
-   - Downloads models via GitHub Actions
-   - Commits them to your repository
-   - Pull in Vibecode and build locally
-   - See [WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md) for details
+#### Workflow 1: Build & Prepare for Vibecode (Recommended)
+   - Downloads models + builds iOS app
+   - Commits everything to repository
+   - Pull in Vibecode and submit to App Store
+   - Most cost-effective and flexible
 
 ```bash
-# 1. Run "Download ML Models (No Build)" workflow on GitHub
-# 2. Pull in Vibecode
+# 1. Run "Build & Prepare for Vibecode Deployment" on GitHub
+# 2. Wait for build to complete (~35 min)
+# 3. Pull in Vibecode
 git pull origin main
 
-# 3. Build from Vibecode
-eas build --platform ios --profile production
-
-# 4. Submit from Vibecode
+# 4. Submit to App Store
 eas submit --platform ios --latest
 ```
 
-2. **Full Build Pipeline** (Original)
-   - Downloads models AND builds iOS app
-   - Fully automated in GitHub Actions
-   - Takes longer but requires less manual steps
+#### Workflow 2: Full Automated macOS Deployment
+   - Downloads models + builds on macOS runner
+   - Optionally submits directly to App Store
+   - Fully automated, no manual steps
+   - Uses macOS GitHub runner
 
 ```bash
-# Run "Download ML Models and Build iOS App" workflow on GitHub
-# Select model: qwen2-0.5b (fastest) or llama-3.2-1b (best)
-# Wait for completion, then download from EAS dashboard
+# 1. Run "Full Automated iOS Deployment" on GitHub
+# 2. Select "submit_to_app_store: true"
+# 3. Done! Check App Store Connect for review status
 ```
+
+**See [WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md) for detailed instructions**
 
 **Option B: Direct Download in Vibecode**
 ```bash
@@ -457,13 +458,14 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
 ## 📚 Documentation
 
 ### Deployment & Workflow
-- **[CHECKLIST.md](./CHECKLIST.md)** - 📋 Step-by-step deployment checklist (START HERE!)
-- **[WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md)** - ⭐ GitHub Actions + Vibecode workflow
+- **[WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md)** - 🎯 Complete guide to both workflows (START HERE!)
+- **[CHECKLIST.md](./CHECKLIST.md)** - 📋 Step-by-step deployment checklist
 - **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - ⚡ Fast command reference
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
 - **[GIT_LFS_GUIDE.md](./GIT_LFS_GUIDE.md)** - Git LFS for large model files
 - **[SUMMARY.md](./SUMMARY.md)** - Summary of all optimizations
 - **[NATIVE_BUILD_COMPARISON.md](./NATIVE_BUILD_COMPARISON.md)** - ℹ️ EAS vs native builds explained
+- **[FAQ_NATIVE_BUILDS.md](./FAQ_NATIVE_BUILDS.md)** - ❓ Native module compilation FAQ
 
 ### Technical
 - **[VIBECODE_REQUIRED_PACKAGES.md](./VIBECODE_REQUIRED_PACKAGES.md)** - Package requirements for Vibecode
