@@ -133,18 +133,11 @@ jobs:
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit"
           else
-            git commit -m "Add ML models: ${{ inputs.model_name }} for ${{ inputs.profile }} build
+            git commit -m "Add ML models for build
 
-Models included:
-- Model(s): ${{ inputs.model_name }}
-- Build profile: ${{ inputs.profile }}
-- Downloaded: $(date)
-- Ready for Vibecode deployment
-
-To deploy from Vibecode:
-- git pull origin main
-- eas build --platform ios --profile ${{ inputs.profile }}
-- eas submit --platform ios --latest"
+Model: ${{ inputs.model_name }}
+Profile: ${{ inputs.profile }}
+Ready for Vibecode deployment"
             git push
             echo "✅ Models committed and pushed"
           fi

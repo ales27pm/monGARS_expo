@@ -146,13 +146,11 @@ jobs:
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit"
           else
-            git commit -m "Add ML models: ${{ inputs.model_name }} for macOS native build
+            git commit -m "Add ML models for macOS native build
 
-Models included:
-- Model(s): ${{ inputs.model_name }}
-- Build type: macOS native (GitHub Actions)
-- Downloaded: $(date)
-- Built with Xcode on macOS-14"
+Model: ${{ inputs.model_name }}
+Build type: macOS native GitHub Actions
+Built with Xcode on macOS-14"
             git push
             echo "✅ Models committed and pushed"
           fi
