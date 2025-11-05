@@ -144,17 +144,54 @@ The app requires API keys for cloud-based LLM features. Set these in the Vibecod
 
 ### Download Models
 
-**Option A: GitHub Actions (Recommended)**
-```bash
-# Push to GitHub
-git push origin main
+**Option A: GitHub Actions (Recommended for Vibecode)**
 
-# Go to GitHub → Actions → "Download ML Models and Build iOS App"
-# Click "Run workflow"
-# Select model: qwen2-0.5b (fastest) or llama-3.2-1b (best)
+Two workflows available:
+
+1. **Download Models Only** (New, Recommended)
+   - Downloads models via GitHub Actions
+   - Commits them to your repository
+   - Pull in Vibecode and build locally
+   - See [WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md) for details
+
+```bash
+# 1. Run "Download ML Models (No Build)" workflow on GitHub
+# 2. Pull in Vibecode
+git pull origin main
+
+# 3. Build from Vibecode
+eas build --platform ios --profile production
+
+# 4. Submit from Vibecode
+eas submit --platform ios --latest
 ```
 
-**Option B: In-App Download** (requires implementation)
+2. **Full Build Pipeline** (Original)
+   - Downloads models AND builds iOS app
+   - Fully automated in GitHub Actions
+   - Takes longer but requires less manual steps
+
+```bash
+# Run "Download ML Models and Build iOS App" workflow on GitHub
+# Select model: qwen2-0.5b (fastest) or llama-3.2-1b (best)
+# Wait for completion, then download from EAS dashboard
+```
+
+**Option B: Direct Download in Vibecode**
+```bash
+pip3 install huggingface-hub
+python3 -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id='Qwen/Qwen2-0.5B-Instruct-GGUF',
+    filename='qwen2-0_5b-instruct-q4_k_m.gguf',
+    local_dir='./assets/models',
+    local_dir_use_symlinks=False
+)
+"
+```
+
+**Option C: In-App Download** (requires implementation)
 ```typescript
 // Tap "Download" button in the app
 // Models download from HuggingFace to device
@@ -419,7 +456,15 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
 
 ## 📚 Documentation
 
+### Deployment & Workflow
+- **[CHECKLIST.md](./CHECKLIST.md)** - 📋 Step-by-step deployment checklist (START HERE!)
+- **[WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md)** - ⭐ GitHub Actions + Vibecode workflow
+- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - ⚡ Fast command reference
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
+- **[GIT_LFS_GUIDE.md](./GIT_LFS_GUIDE.md)** - Git LFS for large model files
+- **[SUMMARY.md](./SUMMARY.md)** - Summary of all optimizations
+
+### Technical
 - **[VIBECODE_REQUIRED_PACKAGES.md](./VIBECODE_REQUIRED_PACKAGES.md)** - Package requirements for Vibecode
 
 ### Code Documentation

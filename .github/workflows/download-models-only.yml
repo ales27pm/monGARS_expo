@@ -1,0 +1,154 @@
+name: Download ML Models (No Build)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_name:
+        description: 'Model to download (llama-3.2-1b, qwen2-0.5b, smollm2-1.7b, phi-3-mini, all)'
+        required: true
+        default: 'qwen2-0.5b'
+        type: choice
+        options:
+          - llama-3.2-1b
+          - qwen2-0.5b
+          - smollm2-1.7b
+          - phi-3-mini
+          - all
+      commit_to_repo:
+        description: 'Commit downloaded models back to repository'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  MODELS_DIR: ./assets/models
+
+jobs:
+  download-and-commit:
+    name: Download ML Models and Commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install huggingface-hub requests tqdm
+
+      - name: Create models directory
+        run: |
+          mkdir -p ${{ env.MODELS_DIR }}
+
+      - name: Download Llama 3.2 1B Instruct
+        if: ${{ inputs.model_name == 'llama-3.2-1b' || inputs.model_name == 'all' }}
+        run: |
+          python - <<EOF
+          from huggingface_hub import hf_hub_download
+          import os
+
+          print("Downloading Llama 3.2 1B Instruct Q4_K_M...")
+          file_path = hf_hub_download(
+              repo_id="ggml-org/Llama-3.2-1B-Instruct-GGUF",
+              filename="Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+              local_dir="${{ env.MODELS_DIR }}",
+              local_dir_use_symlinks=False
+          )
+          print(f"Downloaded to: {file_path}")
+          print(f"Size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
+          EOF
+
+      - name: Download Qwen2 0.5B Instruct
+        if: ${{ inputs.model_name == 'qwen2-0.5b' || inputs.model_name == 'all' }}
+        run: |
+          python - <<EOF
+          from huggingface_hub import hf_hub_download
+          import os
+
+          print("Downloading Qwen2 0.5B Instruct Q4_K_M...")
+          file_path = hf_hub_download(
+              repo_id="Qwen/Qwen2-0.5B-Instruct-GGUF",
+              filename="qwen2-0_5b-instruct-q4_k_m.gguf",
+              local_dir="${{ env.MODELS_DIR }}",
+              local_dir_use_symlinks=False
+          )
+          print(f"Downloaded to: {file_path}")
+          print(f"Size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
+          EOF
+
+      - name: Download SmolLM2 1.7B Instruct
+        if: ${{ inputs.model_name == 'smollm2-1.7b' || inputs.model_name == 'all' }}
+        run: |
+          python - <<EOF
+          from huggingface_hub import hf_hub_download
+          import os
+
+          print("Downloading SmolLM2 1.7B Instruct Q4_K_M...")
+          file_path = hf_hub_download(
+              repo_id="HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF",
+              filename="smollm2-1.7b-instruct-q4_k_m.gguf",
+              local_dir="${{ env.MODELS_DIR }}",
+              local_dir_use_symlinks=False
+          )
+          print(f"Downloaded to: {file_path}")
+          print(f"Size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
+          EOF
+
+      - name: Download Phi-3 Mini 3.8B
+        if: ${{ inputs.model_name == 'phi-3-mini' || inputs.model_name == 'all' }}
+        run: |
+          python - <<EOF
+          from huggingface_hub import hf_hub_download
+          import os
+
+          print("Downloading Phi-3 Mini 4K Instruct Q4...")
+          file_path = hf_hub_download(
+              repo_id="microsoft/Phi-3-mini-4k-instruct-gguf",
+              filename="Phi-3-mini-4k-instruct-q4.gguf",
+              local_dir="${{ env.MODELS_DIR }}",
+              local_dir_use_symlinks=False
+          )
+          print(f"Downloaded to: {file_path}")
+          print(f"Size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
+          EOF
+
+      - name: List downloaded models
+        run: |
+          echo "Downloaded models:"
+          ls -lh ${{ env.MODELS_DIR }}
+          du -sh ${{ env.MODELS_DIR }}
+
+      - name: Commit models to repository
+        if: ${{ inputs.commit_to_repo }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ${{ env.MODELS_DIR }}
+          git status
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add ML models: ${{ inputs.model_name }}"
+            git push
+            echo "Models committed and pushed to repository"
+          fi
+
+      - name: Summary
+        run: |
+          echo "✅ Model download complete: ${{ inputs.model_name }}"
+          echo "📁 Location: ${{ env.MODELS_DIR }}"
+          if [ "${{ inputs.commit_to_repo }}" == "true" ]; then
+            echo "✅ Models committed to repository"
+            echo ""
+            echo "Next steps:"
+            echo "1. Pull the repository in Vibecode: git pull origin main"
+            echo "2. Run EAS build from Vibecode: eas build --platform ios --profile production"
+            echo "3. Submit to App Store: eas submit --platform ios --latest"
+          else
+            echo "ℹ️ Models NOT committed to repository (use artifact instead)"
+          fi
