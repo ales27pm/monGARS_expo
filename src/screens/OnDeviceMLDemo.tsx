@@ -28,7 +28,7 @@ import {
   RECOMMENDED_MODELS,
   ModelConfig,
   ModelDownloadProgress as DownloadProgress,
-} from "../utils/on-device-llm";
+} from "../types/models";
 
 import { vectorStore } from "../utils/vector-store";
 
