@@ -11,6 +11,39 @@ This guide shows you how to use GitHub Actions to download ML models and then bu
 - ✅ Smaller uploads: Models downloaded on GitHub, not uploaded
 - ✅ Same result: Final .ipa file for App Store submission
 
+**Note:** Native iOS modules (llama.rn, MMKV, etc.) are compiled on **EAS's macOS runners**, not GitHub Actions. The GitHub Actions runner (ubuntu) only downloads models and commits them to your repo. The actual iOS build with Xcode happens when you run `eas build` from Vibecode, which triggers EAS's cloud infrastructure.
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  GitHub Actions (ubuntu-latest) - CHEAP                 │
+│  ├─ Download models from HuggingFace (5 min)           │
+│  ├─ Commit to repository                                │
+│  └─ Total cost: ~$0.04 per run                         │
+└─────────────────────────────────────────────────────────┘
+                         ↓ git push
+┌─────────────────────────────────────────────────────────┐
+│  Vibecode (Your Terminal)                               │
+│  ├─ git pull (get models)                               │
+│  ├─ eas build (trigger EAS)                             │
+│  └─ eas submit (submit to App Store)                    │
+└─────────────────────────────────────────────────────────┘
+                         ↓ eas build
+┌─────────────────────────────────────────────────────────┐
+│  EAS Build Cloud (macOS with Xcode) - HANDLES NATIVE   │
+│  ├─ Receive code from Vibecode                          │
+│  ├─ Install dependencies (bun install)                  │
+│  ├─ Install CocoaPods (pod install)                     │
+│  ├─ Compile native modules (llama.rn, MMKV, etc.)      │
+│  ├─ Build iOS app with Xcode (25 min)                  │
+│  ├─ Sign with Apple certificates                        │
+│  └─ Upload .ipa to EAS servers                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+This architecture ensures native modules are compiled properly on macOS while keeping GitHub Actions costs low.
+
 ## Complete Workflow
 
 ### Step 1: Download Models via GitHub Actions
@@ -48,6 +81,14 @@ eas build --platform ios --profile production --non-interactive
 # Wait for build to complete (20-30 minutes)
 # You'll get a build URL - save this
 ```
+
+**Important:** This triggers EAS Build cloud service, which:
+- Uses macOS runners with Xcode installed
+- Compiles all native modules (llama.rn, MMKV, etc.)
+- Handles code signing automatically
+- Creates the final .ipa file
+
+The `eas build` command just uploads your code to EAS - the actual iOS compilation happens on EAS's macOS infrastructure, not your local machine.
 
 ### Step 4: Submit to App Store from Vibecode
 
