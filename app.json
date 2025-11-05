@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "offLLM App Store Fixer",
+    "slug": "offllm-app-store-fixer",
+    "scheme": "vibecode",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vibecode.offllmappstorefixer-iz6sup",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "offLLM App Store Fixer uses speech recognition to turn your spoken words into text inside the app.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.vibecode.app"
+    },
+    "icon": "./icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "f90e5e7c-1263-4959-8c90-12d08249de06"
+      }
+    }
+  }
+}
