@@ -9,16 +9,14 @@
       "distribution": "internal",
       "ios": {
         "simulator": true,
-        "resourceClass": "m-medium",
-        "bundler": "metro"
+        "resourceClass": "m-medium"
       },
       "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium",
-        "bundler": "metro"
+        "resourceClass": "m-medium"
       },
       "channel": "preview"
     },
@@ -26,12 +24,11 @@
       "ios": {
         "distribution": "store",
         "resourceClass": "m-large",
-        "bundler": "metro",
         "buildConfiguration": "Release"
       },
       "android": {
         "distribution": "store",
-        "resourceClass": "m-large"
+        "resourceClass": "large"
       },
       "channel": "production",
       "autoIncrement": true
