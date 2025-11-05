@@ -142,9 +142,9 @@ Models included:
 - Ready for Vibecode deployment
 
 To deploy from Vibecode:
-1. git pull origin main
-2. eas build --platform ios --profile ${{ inputs.profile }}
-3. eas submit --platform ios --latest"
+- git pull origin main
+- eas build --platform ios --profile ${{ inputs.profile }}
+- eas submit --platform ios --latest"
             git push
             echo "✅ Models committed and pushed"
           fi
