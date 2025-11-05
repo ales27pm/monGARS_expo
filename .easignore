@@ -1,0 +1,40 @@
+# EAS Build ignore file
+# Exclude large directories that will be reinstalled during build
+
+# Dependencies (will be reinstalled during build)
+node_modules/
+
+# Development and debug files
+.expo/
+expo.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.metro-health-check*
+
+# Platform-specific build outputs
+ios/
+android/
+dist/
+web-build/
+
+# Cache and temporary files
+.DS_Store
+*.log
+*.tsbuildinfo
+
+# Environment files (use EAS Secrets instead)
+.env
+.env.local
+.env.production
+
+# Git files
+.git/
+.gitignore
+
+# Documentation (not needed for build)
+*.md
+!README.md
+
+# Scripts
+*.sh

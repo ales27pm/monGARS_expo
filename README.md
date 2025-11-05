@@ -130,6 +130,18 @@ A fully-featured AI application that runs entirely on your device with semantic 
 3. App displays with all UI components
 4. Models not yet downloaded (requires GitHub Actions or manual download)
 
+### Required API Keys
+
+The app requires API keys for cloud-based LLM features. Set these in the Vibecode app ENV tab:
+
+**Required Keys** (for cloud LLM features):
+- `EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY` - OpenAI API (GPT models, transcription, image generation)
+- `EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY` - Anthropic API (Claude models)
+- `EXPO_PUBLIC_VIBECODE_GROK_API_KEY` - Grok API (xAI models)
+- `EXPO_PUBLIC_VIBECODE_PROJECT_ID` - Vibecode internal project identifier
+
+**Note**: On-device ML features work without API keys. Cloud features require authentication.
+
 ### Download Models
 
 **Option A: GitHub Actions (Recommended)**
@@ -196,6 +208,12 @@ git push origin main
 # 3. Submit to App Store
 eas submit --platform ios --latest
 ```
+
+### EAS Build Archive Size Fix
+
+If you get "Project archive is too big" error:
+
+The `.easignore` file excludes unnecessary files (node_modules, logs, etc.) from the build upload. EAS Build will reinstall dependencies during the build process. This reduces archive size from 2.2GB to under 100MB.
 
 ---
 
