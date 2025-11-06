@@ -427,6 +427,20 @@ const fittedMessages = contextManager.fitMessages(messages);
 
 ### Common Issues
 
+**Build Error: "onGeometryChange" not available** *(Fixed)*
+```
+The build was failing with "value of type 'some View' has no member 'onGeometryChange'"
+
+✅ SOLUTION:
+- Updated eas.json to use Xcode 16.2 with macOS Sequoia (iOS 18 SDK)
+- Fixed expo-modules-core to require iOS 18+ for onGeometryChange API
+- Workflows now use correct Xcode version
+
+Note: The SwiftUI onGeometryChange API requires iOS 18.0+, but was incorrectly
+marked as available in iOS 16.0 in expo-modules-core. The fix adds proper version
+checking and fallback behavior.
+```
+
 **"Model not initialized"**
 ```typescript
 // Download and initialize model first
@@ -449,6 +463,16 @@ await llm.initializeModel(model, {
 memory.setEmbeddingFunction(async (text) => {
   return await llm.embed(text);
 });
+```
+
+**Xcode Version Mismatch in Local Builds**
+```bash
+# If building locally with --local flag, ensure you have Xcode 16.2+ installed
+xcode-select --print-path
+# Should point to Xcode 16.2 or later
+
+# If not, switch to correct Xcode:
+sudo xcode-select -s /Applications/Xcode_16.2.app
 ```
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
