@@ -52,7 +52,6 @@ jobs:
         with:
           ref: main  # Pull latest with models
           fetch-depth: 0
-          lfs: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4

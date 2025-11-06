@@ -36,14 +36,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true
-
-      - name: 🗂️ Setup Git LFS
-        run: |
-          git lfs install
-          git lfs track "*.gguf"
-          git add .gitattributes
-          echo "✅ Git LFS configured"
 
       - name: 🍎 System Information
         run: |
@@ -152,20 +144,14 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-
-          # Ensure LFS tracking
-          git lfs track "*.gguf"
-          git add .gitattributes
-
           git add ${{ env.MODELS_DIR }}
           git add -A
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit"
           else
-            git commit -m "Add ML models for macOS native build - Model: ${{ inputs.model_name }}, Build type: macOS native GitHub Actions [LFS]"
-            git lfs push --all origin main
+            git commit -m "Add ML models for macOS native build - Model: ${{ inputs.model_name }}, Build type: macOS native GitHub Actions"
             git push
-            echo "✅ Models committed and pushed with LFS"
+            echo "✅ Models committed and pushed"
           fi
 
       - name: 📦 Setup Node.js
