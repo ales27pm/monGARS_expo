@@ -25,13 +25,13 @@
     "production": {
       "ios": {
         "distribution": "store",
-        "resourceClass": "m-large",
+        "resourceClass": "m-medium",
         "buildConfiguration": "Release",
         "image": "macos-sequoia-15.1-xcode-16.1"
       },
       "android": {
         "distribution": "store",
-        "resourceClass": "large"
+        "resourceClass": "medium"
       },
       "channel": "production",
       "autoIncrement": true
@@ -39,11 +39,11 @@
     "production-with-models": {
       "extends": "production",
       "ios": {
-        "resourceClass": "large",
+        "resourceClass": "m-medium",
         "image": "macos-sequoia-15.1-xcode-16.1"
       },
       "android": {
-        "resourceClass": "large"
+        "resourceClass": "medium"
       }
     }
   },
