@@ -35,7 +35,6 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: 🍎 System Information
@@ -285,8 +284,9 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
+          name: build-logs-macos
           path: |
-            ~/.expo/
-            *.log
+            **/*.log
+            .expo/
+          if-no-files-found: warn
           retention-days: 7
