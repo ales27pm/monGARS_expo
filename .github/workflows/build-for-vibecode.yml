@@ -133,11 +133,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit"
           else
-            git commit -m "Add ML models for build
-
-Model: ${{ inputs.model_name }}
-Profile: ${{ inputs.profile }}
-Ready for Vibecode deployment"
+            git commit -m "Add ML models for build - Model: ${{ inputs.model_name }}, Profile: ${{ inputs.profile }}"
             git push
             echo "✅ Models committed and pushed"
           fi
