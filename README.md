@@ -124,6 +124,17 @@ A fully-featured AI application that runs entirely on your device with semantic 
 
 ## 🚀 Quick Start
 
+### ⚠️ Important: Xcode Requirements
+
+**This app requires Xcode 16.2+ (iOS 18 SDK) to build.**
+
+If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FIX.md](./BUILD_FIX.md)** for detailed solutions.
+
+**Quick Solutions:**
+- ✅ **Recommended**: Use EAS cloud builds → `eas build --platform ios --profile production`
+- ⚠️ For local builds: Install Xcode 16.2+ → `sudo xcode-select -s /Applications/Xcode_16.2.app`
+- 🤖 **Easiest**: Use GitHub Actions workflows (handles everything automatically)
+
 ### Current Setup (Vibecode)
 1. Open Vibecode app
 2. View app automatically (already running on port 8081)
