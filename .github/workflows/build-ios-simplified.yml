@@ -28,7 +28,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS App
-    runs-on: ${{ inputs.platform == 'macos-local' && 'macos-13' || 'ubuntu-latest' }}
+    runs-on: macos-latest
     permissions:
       contents: read
 
