@@ -42,7 +42,7 @@ jobs:
   build-ios:
     name: Build iOS App
     needs: download-models
-    runs-on: ${{ inputs.platform == 'macos-local' && 'macos-14' || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.platform == 'macos-local' && 'macos-13' || 'ubuntu-latest' }}
     permissions:
       contents: read
 

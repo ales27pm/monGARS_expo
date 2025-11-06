@@ -28,7 +28,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS App
-    runs-on: ${{ inputs.platform == 'macos-local' && 'macos-14' || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.platform == 'macos-local' && 'macos-13' || 'ubuntu-latest' }}
     permissions:
       contents: read
 
@@ -47,6 +47,14 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: 📦 Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
