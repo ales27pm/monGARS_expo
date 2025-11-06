@@ -27,11 +27,15 @@ jobs:
   build-and-deploy-macos:
     name: Build & Deploy on macOS Runner
     runs-on: macos-14  # Latest macOS with Apple Silicon (M1)
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: 🍎 System Information
@@ -242,49 +246,40 @@ jobs:
           echo ""
           echo "================================================"
 
-      - name: 💬 Create deployment comment
-        uses: actions/github-script@v7
+      - name: 💬 Create deployment summary
         if: always()
-        with:
-          script: |
-            const buildId = '${{ steps.build_info.outputs.build_id }}';
-            const buildUrl = '${{ steps.build_info.outputs.build_url }}';
-            const model = '${{ inputs.model_name }}';
-            const submitted = '${{ inputs.submit_to_app_store }}' === 'true';
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## 🎉 macOS Native Build Complete
 
-            let comment = '## 🎉 macOS Native Build Complete\n\n';
-            comment += '**Status:** ✅ Build finished on macOS runner\n';
-            comment += '**Model:** ' + model + '\n';
-            comment += '**Build ID:** ' + buildId + '\n';
-            comment += '**Submitted to App Store:** ' + (submitted ? '✅ Yes' : '❌ No') + '\n\n';
-            comment += '### 🏗️ Build Details\n';
-            comment += '- Built on: macOS-14 GitHub Runner\n';
-            comment += '- Xcode: Latest\n';
-            comment += '- Native compilation: All native modules compiled on macOS\n\n';
+          **Status:** ✅ Build finished on macOS runner
+          **Model:** ${{ inputs.model_name }}
+          **Build ID:** ${{ steps.build_info.outputs.build_id }}
+          **Submitted to App Store:** ${{ inputs.submit_to_app_store == 'true' && '✅ Yes' || '❌ No' }}
 
-            if (submitted) {
-              comment += '### ✅ Submitted to App Store\n';
-              comment += 'Check status at [App Store Connect](https://appstoreconnect.apple.com)\n';
-            } else {
-              comment += '### 📱 Submit to App Store\n';
-              comment += '```bash\n';
-              comment += 'eas submit --platform ios --id ' + buildId + '\n';
-              comment += '```\n';
-            }
+          ### 🏗️ Build Details
+          - Built on: macOS-14 GitHub Runner
+          - Xcode: Latest
+          - Native compilation: All native modules compiled on macOS
 
-            comment += '\n### 🔗 Links\n';
-            comment += '- [View Build Details](' + (buildUrl || 'Check EAS dashboard') + ')\n';
-            comment += '- [EAS Dashboard](https://expo.dev)\n';
-            comment += '- [App Store Connect](https://appstoreconnect.apple.com)\n\n';
-            comment += '---\n';
-            comment += '*Full automated deployment on macOS runner*';
+          $(if [ "${{ inputs.submit_to_app_store }}" == "true" ]; then
+            echo "### ✅ Submitted to App Store"
+            echo "Check status at [App Store Connect](https://appstoreconnect.apple.com)"
+          else
+            echo "### 📱 Submit to App Store"
+            echo "\`\`\`bash"
+            echo "eas submit --platform ios --id ${{ steps.build_info.outputs.build_id }}"
+            echo "\`\`\`"
+          fi)
 
-            github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: comment
-            });
+          ### 🔗 Links
+          - [View Build Details](${{ steps.build_info.outputs.build_url }})
+          - [EAS Dashboard](https://expo.dev)
+          - [App Store Connect](https://appstoreconnect.apple.com)
+
+          ---
+          *Full automated deployment on macOS runner*
+          EOF
 
       - name: 📤 Upload build artifacts
         if: failure()
