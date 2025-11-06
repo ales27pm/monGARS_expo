@@ -127,13 +127,29 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
+      - name: 📦 Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: 🔧 Run postinstall scripts
+        run: bun run postinstall
 
       - name: 🔧 Setup EAS CLI
         uses: expo/expo-github-action@v8
