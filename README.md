@@ -452,6 +452,20 @@ marked as available in iOS 16.0 in expo-modules-core. The fix adds proper versio
 checking and fallback behavior.
 ```
 
+**GitHub Actions: "build:list command failed"** *(Fixed)*
+```
+The EAS build:list command was failing when trying to retrieve build information.
+
+✅ SOLUTION:
+- Added 10-second wait period after build completes for EAS metadata processing
+- Improved error handling with detailed diagnostic output
+- Added proper exit code checking and JSON validation
+- Workflows now properly handle cases where build info cannot be retrieved
+- Build ID falls back to "unknown" if retrieval fails (workflow continues)
+
+This is a non-critical error - builds still succeed and can be submitted manually.
+```
+
 **"Model not initialized"**
 ```typescript
 // Download and initialize model first
@@ -484,6 +498,15 @@ xcode-select --print-path
 
 # If not, switch to correct Xcode:
 sudo xcode-select -s /Applications/Xcode_16.2.app
+```
+
+**EXPO_TOKEN Authentication Issues**
+```bash
+# If workflows fail with authentication errors:
+# 1. Check that EXPO_TOKEN is set in GitHub Secrets
+# 2. Verify token is valid: https://expo.dev/accounts/[your-account]/settings/access-tokens
+# 3. Generate new token if expired
+# 4. Update GitHub repository secret: Settings → Secrets → EXPO_TOKEN
 ```
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.

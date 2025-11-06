@@ -180,20 +180,47 @@ jobs:
         id: build_info
         run: |
           set +e
-          BUILD_LIST=$(eas build:list --platform ios --limit 1 --json)
-          if [ $? -eq 0 ] && [ ! -z "$BUILD_LIST" ] && echo "$BUILD_LIST" | jq -e '.' >/dev/null 2>&1; then
-            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[0].id // empty')
-            BUILD_URL=$(echo "$BUILD_LIST" | jq -r '.[0].artifacts.buildUrl // empty')
-            echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
-            echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
-            echo "🆔 Build ID: ${BUILD_ID}"
-            echo "🔗 Build URL: ${BUILD_URL}"
-          else
-            echo "⚠️ Could not retrieve build info"
+
+          echo "⏳ Waiting for EAS to process build metadata..."
+          sleep 10
+
+          echo "🔍 Attempting to retrieve build information..."
+          BUILD_LIST=$(eas build:list --platform ios --limit 1 --json 2>&1)
+          EXIT_CODE=$?
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ EAS build:list failed with exit code $EXIT_CODE"
+            echo "📋 Error output: $BUILD_LIST"
             echo "build_id=unknown" >> $GITHUB_OUTPUT
             echo "build_url=unknown" >> $GITHUB_OUTPUT
+          elif [ -z "$BUILD_LIST" ]; then
+            echo "⚠️ No build list returned"
+            echo "build_id=unknown" >> $GITHUB_OUTPUT
+            echo "build_url=unknown" >> $GITHUB_OUTPUT
+          elif ! echo "$BUILD_LIST" | jq -e '.' >/dev/null 2>&1; then
+            echo "⚠️ Build list is not valid JSON"
+            echo "📋 Output: $BUILD_LIST"
+            echo "build_id=unknown" >> $GITHUB_OUTPUT
+            echo "build_url=unknown" >> $GITHUB_OUTPUT
+          else
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[0].id // empty')
+            BUILD_URL=$(echo "$BUILD_LIST" | jq -r '.[0].artifacts.buildUrl // empty')
+
+            if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" == "null" ]; then
+              echo "⚠️ Could not extract build ID from response"
+              echo "build_id=unknown" >> $GITHUB_OUTPUT
+              echo "build_url=unknown" >> $GITHUB_OUTPUT
+            else
+              echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
+              echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+              echo "✅ Build ID: ${BUILD_ID}"
+              echo "🔗 Build URL: ${BUILD_URL}"
+            fi
           fi
+
           set -e
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: ✅ Deployment Summary
         run: |
