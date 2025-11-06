@@ -95,7 +95,7 @@ jobs:
           sleep 10
 
           echo "🔍 Attempting to retrieve build information..."
-          BUILD_LIST=$(eas build:list --platform ios --limit 1 --json 2>&1)
+          BUILD_LIST=$(eas build:list --platform ios --limit 1 --json --non-interactive 2>&1)
           EXIT_CODE=$?
 
           if [ $EXIT_CODE -ne 0 ]; then
