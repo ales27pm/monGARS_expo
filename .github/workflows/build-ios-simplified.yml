@@ -84,12 +84,21 @@ jobs:
       - name: 📋 Get build info
         id: build_info
         run: |
-          BUILD_ID=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].id // empty')
-          BUILD_URL=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].artifacts.buildUrl // empty')
-          echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
-          echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
-          echo "🆔 Build ID: ${BUILD_ID}"
-          echo "🔗 Build URL: ${BUILD_URL}"
+          set +e
+          BUILD_LIST=$(eas build:list --platform ios --limit 1 --json)
+          if [ $? -eq 0 ] && [ ! -z "$BUILD_LIST" ] && echo "$BUILD_LIST" | jq -e '.' >/dev/null 2>&1; then
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[0].id // empty')
+            BUILD_URL=$(echo "$BUILD_LIST" | jq -r '.[0].artifacts.buildUrl // empty')
+            echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
+            echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+            echo "🆔 Build ID: ${BUILD_ID}"
+            echo "🔗 Build URL: ${BUILD_URL}"
+          else
+            echo "⚠️ Could not retrieve build info"
+            echo "build_id=unknown" >> $GITHUB_OUTPUT
+            echo "build_url=unknown" >> $GITHUB_OUTPUT
+          fi
+          set -e
 
       - name: 📤 Upload logs on failure
         if: failure()
