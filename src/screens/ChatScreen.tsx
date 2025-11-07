@@ -115,32 +115,51 @@ export default function ChatScreen() {
 
   const loadLLM = async () => {
     try {
-      const { getGlobalLLM } = await import("../utils/on-device-llm");
-      const llmInstance = getGlobalLLM();
-      setLlm(llmInstance);
-
-      // Check if model needs to be initialized
-      if (activeModel) {
-        const modelInfo = llmInstance.getModelInfo();
-        if (!modelInfo.isInitialized || modelInfo.modelConfig?.filename !== activeModel.filename) {
-          // Initialize the model with settings
-          await llmInstance.initializeModel(activeModel, {
-            gpuLayers: settings.gpuLayers,
-            contextSize: settings.contextSize,
-            useMemoryLock: true,
-          });
-          setIsModelLoaded(true);
-        } else {
-          setIsModelLoaded(true);
-        }
+      if (!activeModel) {
+        throw new Error("No model selected");
       }
 
+      const { getGlobalLLM } = await import("../utils/on-device-llm");
+      const llmInstance = getGlobalLLM();
+
+      // Check if model needs to be initialized
+      const modelInfo = llmInstance.getModelInfo();
+      const needsInit = !modelInfo.isInitialized || modelInfo.modelConfig?.filename !== activeModel.filename;
+
+      if (needsInit) {
+        // Show loading state
+        setIsModelLoaded(false);
+
+        // Initialize the model with settings
+        console.log("Initializing model with settings:", {
+          gpuLayers: settings.gpuLayers,
+          contextSize: settings.contextSize,
+          model: activeModel.filename
+        });
+
+        await llmInstance.initializeModel(activeModel, {
+          gpuLayers: settings.gpuLayers,
+          contextSize: settings.contextSize,
+          useMemoryLock: true,
+        });
+
+        console.log("Model initialized successfully");
+        setIsModelLoaded(true);
+      } else {
+        console.log("Model already initialized");
+        setIsModelLoaded(true);
+      }
+
+      setLlm(llmInstance);
       return llmInstance;
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Failed to load LLM:", error);
+      setIsModelLoaded(false);
+
       setModal({
         visible: true,
-        title: "Module Not Available",
-        message: "On-device LLM module is not available. Make sure native files are generated via GitHub workflow and pulled into Vibecode.",
+        title: "Model Load Failed",
+        message: error?.message || "Failed to initialize model. Make sure native files are generated via GitHub workflow and pulled into Vibecode.",
       });
       throw error;
     }
@@ -315,11 +334,32 @@ export default function ChatScreen() {
               <Text className="text-gray-500 text-center mt-4 text-lg">
                 Start a conversation
               </Text>
-              <Text className="text-gray-400 text-sm text-center mt-2 px-8">
-                {activeModel
-                  ? "All processing happens on your device"
-                  : "Select a model in the Models tab to get started"}
-              </Text>
+              {activeModel ? (
+                <View className="mt-4 px-8">
+                  <Text className="text-gray-400 text-sm text-center mb-3">
+                    All processing happens on your device
+                  </Text>
+                  {!isModelLoaded && (
+                    <View className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <View className="flex-row items-start">
+                        <Ionicons name="warning" size={20} color="#f59e0b" />
+                        <View className="flex-1 ml-2">
+                          <Text className="text-amber-900 font-semibold mb-1">
+                            Native Module Required
+                          </Text>
+                          <Text className="text-amber-800 text-xs">
+                            On-device AI requires native iOS code. Run the GitHub Actions workflow to build native files, then pull into Vibecode.
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text className="text-gray-400 text-sm text-center mt-2 px-8">
+                  Select a model in the Models tab to get started
+                </Text>
+              )}
             </View>
           ) : (
             <>

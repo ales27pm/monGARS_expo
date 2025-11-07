@@ -176,7 +176,14 @@ If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FI
 - ✅ Complete 3-tab navigation (Models, Chat, Settings)
 - ✅ Model download UI
 - ✅ Chat interface with real LLM integration
+- ✅ Comprehensive settings (GPU layers, context size, temperature, etc.)
 - ⚠️ Native modules require workflow run + pull
+
+**Expected Behavior in Vibecode:**
+- Models can be downloaded successfully
+- Settings can be configured
+- Chat interface shows "Native Module Required" warning
+- Actual inference requires native build (via GitHub Actions)
 
 See [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md) for detailed instructions.
 
