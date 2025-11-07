@@ -1,0 +1,31 @@
++ exec gosu vibecode node node_modules/.bin/expo start --localhost
+Starting project at /home/user/workspace
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 875ms index.ts (1303 modules)
+iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 44ms index.ts (1 module)
+iOS Bundled 41ms index.ts (1 module)
+iOS Bundled 73ms index.ts (1 module)
+iOS Bundled 47ms index.ts (1 module)
+iOS Bundled 38ms index.ts (1 module)
+iOS Bundled 35ms index.ts (1 module)
+iOS Bundled 36ms index.ts (1 module)
+iOS Bundled 35ms index.ts (1 module)
+iOS Bundled 35ms index.ts (1 module)
+iOS Bundled 35ms index.ts (1 module)
+iOS Bundled 42ms index.ts (1 module)
+iOS Bundled 61ms index.ts (1 module)
+iOS Bundled 44ms index.ts (1 module)
+iOS Bundled 42ms index.ts (1 module)
+iOS Bundled 37ms index.ts (1 module)
+iOS Bundled 36ms index.ts (1 module)
+ LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80
+iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 42ms index.ts (1 module)
+ LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80
+iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 38ms index.ts (1 module)
+ LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80
