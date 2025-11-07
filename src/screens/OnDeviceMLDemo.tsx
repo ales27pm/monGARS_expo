@@ -11,7 +11,7 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
-  Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +31,66 @@ import {
 } from "../types/models";
 
 import { vectorStore } from "../utils/vector-store";
+import { useModelStore } from "../state/modelStore";
+import { OnDeviceLLM, getGlobalLLM } from "../utils/on-device-llm";
+
+// Custom Modal Component
+interface CustomModalProps {
+  visible: boolean;
+  title: string;
+  message: string;
+  onClose: () => void;
+  onConfirm?: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  isDestructive?: boolean;
+}
+
+function CustomModal({
+  visible,
+  title,
+  message,
+  onClose,
+  onConfirm,
+  confirmText = "OK",
+  cancelText = "Cancel",
+  isDestructive = false,
+}: CustomModalProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 bg-black/50 justify-center items-center px-6">
+        <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+          <Text className="text-xl font-bold text-gray-900 mb-2">{title}</Text>
+          <Text className="text-gray-600 mb-6">{message}</Text>
+
+          <View className="flex-row gap-3">
+            {onConfirm && (
+              <Pressable
+                onPress={onClose}
+                className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
+              >
+                <Text className="text-gray-700 font-semibold">{cancelText}</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => {
+                if (onConfirm) {
+                  onConfirm();
+                }
+                onClose();
+              }}
+              className={`flex-1 py-3 rounded-lg items-center ${
+                isDestructive ? "bg-red-500" : "bg-blue-500"
+              }`}
+            >
+              <Text className="text-white font-semibold">{confirmText}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function OnDeviceMLDemo() {
   const [isOffline, setIsOffline] = useState(false);
@@ -51,6 +111,29 @@ export default function OnDeviceMLDemo() {
     conversationCount: 0,
   });
 
+  // Modal state
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    isDestructive?: boolean;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+  });
+
+  // Model store integration
+  const activeModel = useModelStore((s) => s.activeModel);
+  const downloadModel = useModelStore((s) => s.downloadModel);
+  const deleteModelFromStore = useModelStore((s) => s.deleteModel);
+  const isModelDownloaded = useModelStore((s) => s.isModelDownloaded);
+  const checkDownloadedModels = useModelStore((s) => s.checkDownloadedModels);
+
+  // LLM instance
+  const [llm] = useState(() => getGlobalLLM());
+
   // Check network status - disabled to avoid NativeEventEmitter error
   // NetInfo requires native module initialization
   useEffect(() => {
@@ -69,45 +152,147 @@ export default function OnDeviceMLDemo() {
     });
   }, [messages]);
 
+  // Check downloaded models on mount
+  useEffect(() => {
+    checkDownloadedModels();
+  }, [checkDownloadedModels]);
+
+  // Sync selectedModel with activeModel from store
+  useEffect(() => {
+    if (activeModel) {
+      setSelectedModel(activeModel);
+      // Check if model is loaded in LLM instance
+      const modelInfo = llm.getModelInfo();
+      setIsModelLoaded(
+        modelInfo.isInitialized &&
+          modelInfo.modelConfig?.filename === activeModel.filename
+      );
+    }
+  }, [activeModel, llm]);
+
   const handleDownloadModel = async (model: ModelConfig) => {
     try {
       setIsDownloading(true);
       setSelectedModel(model);
 
-      // Simulate download progress for demo
-      Alert.alert(
-        "Demo Mode",
-        "Model download is not yet implemented. This requires llama.rn native module to be fully initialized.\n\nTo enable:\n1. Models will be downloaded via GitHub Actions\n2. Or implement in-app download when native modules are ready",
-        [{ text: "OK" }]
-      );
+      // Download model using the model store
+      await downloadModel(model, (progress) => {
+        setDownloadProgress(progress);
+      });
 
-      setIsDownloading(false);
-      setDownloadProgress(null);
+      setModal({
+        visible: true,
+        title: "Download Complete",
+        message: `${model.name} has been downloaded successfully. You can now load it for inference.`,
+      });
     } catch (error) {
-      Alert.alert("Download Failed", `Failed to download model: ${error}`);
+      setModal({
+        visible: true,
+        title: "Download Failed",
+        message: `Failed to download ${model.name}: ${error}`,
+      });
+    } finally {
       setIsDownloading(false);
       setDownloadProgress(null);
     }
   };
 
   const handleLoadModel = async (model: ModelConfig) => {
-    Alert.alert(
-      "Demo Mode",
-      "Model loading requires llama.rn native module.\n\nThis will be available after:\n1. Downloading models via GitHub Actions\n2. Building with EAS Build\n\nThe UI and architecture are complete and ready!",
-      [{ text: "OK" }]
-    );
+    try {
+      // Check if model is downloaded first
+      if (!isModelDownloaded(model)) {
+        setModal({
+          visible: true,
+          title: "Model Not Downloaded",
+          message: "Please download the model before loading it.",
+        });
+        return;
+      }
+
+      // Release any currently loaded model
+      if (isModelLoaded) {
+        await llm.release();
+        setIsModelLoaded(false);
+      }
+
+      // Show loading state
+      setModal({
+        visible: true,
+        title: "Loading Model",
+        message: `Initializing ${model.name}... This may take a moment.`,
+      });
+
+      // Initialize the model
+      await llm.initializeModel(model, {
+        gpuLayers: 99, // Use GPU acceleration
+        contextSize: 2048,
+        useMemoryLock: true,
+      });
+
+      setIsModelLoaded(true);
+      setSelectedModel(model);
+
+      setModal({
+        visible: true,
+        title: "Model Loaded",
+        message: `${model.name} is ready for inference! Start chatting below.`,
+      });
+    } catch (error) {
+      setModal({
+        visible: true,
+        title: "Load Failed",
+        message: `Failed to load ${model.name}: ${error}`,
+      });
+      setIsModelLoaded(false);
+    }
   };
 
   const handleDeleteModel = async (model: ModelConfig) => {
-    Alert.alert(
-      "Demo Mode",
-      "Model management will be available when llama.rn is fully initialized.",
-      [{ text: "OK" }]
-    );
+    setModal({
+      visible: true,
+      title: "Delete Model",
+      message: `Are you sure you want to delete ${model.name}? This will free up ${model.sizeInMB}MB of storage.`,
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          // Release model if it's currently loaded
+          if (
+            isModelLoaded &&
+            selectedModel?.filename === model.filename
+          ) {
+            await llm.release();
+            setIsModelLoaded(false);
+            setSelectedModel(null);
+          }
+
+          await deleteModelFromStore(model);
+
+          setModal({
+            visible: true,
+            title: "Model Deleted",
+            message: `${model.name} has been removed from your device.`,
+          });
+        } catch (error) {
+          setModal({
+            visible: true,
+            title: "Delete Failed",
+            message: `Failed to delete ${model.name}: ${error}`,
+          });
+        }
+      },
+    });
   };
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
+    if (!isModelLoaded) {
+      setModal({
+        visible: true,
+        title: "No Model Loaded",
+        message: "Please download and load a model before chatting.",
+      });
+      return;
+    }
 
     const userMessage = inputText.trim();
     setInputText("");
@@ -115,42 +300,82 @@ export default function OnDeviceMLDemo() {
     setIsGenerating(true);
 
     try {
-      // Simulate response for demo
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const demoResponse = "This is a demo response. Actual on-device inference will be available when llama.rn models are downloaded and loaded.\n\nThe complete implementation is ready:\n- Model downloads via GitHub Actions\n- LLM inference with llama.rn\n- Semantic memory with vector storage\n- RAG capabilities\n\nSee DEPLOYMENT.md for setup instructions!";
+      // Get response from on-device LLM
+      const response = await llm.chat(
+        [
+          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+          { role: "user" as const, content: userMessage },
+        ],
+        {
+          maxTokens: 512,
+          temperature: 0.7,
+        }
+      );
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: demoResponse },
+        { role: "assistant", content: response },
       ]);
+
+      // Store in vector memory for RAG
+      try {
+        // Generate embeddings for the conversation
+        const userEmbedding = await llm.embed(userMessage);
+        const assistantEmbedding = await llm.embed(response);
+
+        // Store both in vector store
+        await vectorStore.addEmbedding({
+          text: userMessage,
+          vector: userEmbedding,
+          timestamp: Date.now(),
+          metadata: {
+            role: "user",
+            conversationId: Date.now().toString(),
+          },
+        });
+
+        await vectorStore.addEmbedding({
+          text: response,
+          vector: assistantEmbedding,
+          timestamp: Date.now(),
+          metadata: {
+            role: "assistant",
+            conversationId: Date.now().toString(),
+          },
+        });
+      } catch (embeddingError) {
+        // Silently fail if embeddings don't work - chat still works
+        console.log("Failed to generate embeddings:", embeddingError);
+      }
     } catch (error) {
-      Alert.alert("Error", `Failed to generate response: ${error}`);
+      setModal({
+        visible: true,
+        title: "Generation Failed",
+        message: `Failed to generate response: ${error}`,
+      });
+      // Remove the user message if generation failed
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleClearMemory = () => {
-    Alert.alert(
-      "Clear All Memory",
-      "This will delete all stored embeddings and conversations. This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear",
-          style: "destructive",
-          onPress: () => {
-            vectorStore.clearAll();
-            setMemoryStats({
-              totalMemories: 0,
-              storageSize: 0,
-              conversationCount: 0,
-            });
-          },
-        },
-      ]
-    );
+    setModal({
+      visible: true,
+      title: "Clear All Memory",
+      message:
+        "This will delete all stored embeddings and conversations. This action cannot be undone.",
+      isDestructive: true,
+      onConfirm: () => {
+        vectorStore.clearAll();
+        setMemoryStats({
+          totalMemories: 0,
+          storageSize: 0,
+          conversationCount: 0,
+        });
+      },
+    });
   };
 
   return (
@@ -320,6 +545,16 @@ export default function OnDeviceMLDemo() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        onClose={() => setModal({ ...modal, visible: false })}
+        onConfirm={modal.onConfirm}
+        isDestructive={modal.isDestructive}
+      />
     </SafeAreaView>
   );
 }
