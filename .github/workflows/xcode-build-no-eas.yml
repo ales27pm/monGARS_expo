@@ -197,8 +197,25 @@ jobs:
             SCHEME="${{ inputs.scheme }}"
             echo "Using provided scheme: $SCHEME"
           else
-            # Auto-detect scheme from workspace
-            SCHEME=$(xcodebuild -list -workspace *.xcworkspace | grep -A 100 "Schemes:" | grep -v "Schemes:" | head -n 1 | xargs)
+            # Auto-detect scheme from workspace, excluding Pods and library schemes
+            SCHEME=$(xcodebuild -list -workspace *.xcworkspace 2>&1 | \
+              grep -A 100 "Schemes:" | \
+              grep -v "Schemes:" | \
+              grep -v "Pods-" | \
+              grep -v "^Pods" | \
+              grep -v "boost" | \
+              grep -v "React" | \
+              grep -v "^[[:space:]]*$" | \
+              head -n 1 | \
+              xargs)
+
+            if [ -z "$SCHEME" ]; then
+              echo "❌ Could not auto-detect scheme"
+              echo "Available schemes:"
+              xcodebuild -list -workspace *.xcworkspace
+              exit 1
+            fi
+
             echo "Auto-detected scheme: $SCHEME"
           fi
           echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
