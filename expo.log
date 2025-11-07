@@ -4,28 +4,21 @@ Starting Metro Bundler
 Waiting on http://localhost:8081
 Logs for your project will appear below.
 iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 875ms index.ts (1303 modules)
+iOS Bundled 902ms index.ts (1298 modules)
 iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 44ms index.ts (1 module)
-iOS Bundled 41ms index.ts (1 module)
-iOS Bundled 73ms index.ts (1 module)
-iOS Bundled 47ms index.ts (1 module)
-iOS Bundled 38ms index.ts (1 module)
-iOS Bundled 35ms index.ts (1 module)
-iOS Bundled 36ms index.ts (1 module)
-iOS Bundled 35ms index.ts (1 module)
-iOS Bundled 35ms index.ts (1 module)
-iOS Bundled 35ms index.ts (1 module)
-iOS Bundled 42ms index.ts (1 module)
-iOS Bundled 61ms index.ts (1 module)
-iOS Bundled 44ms index.ts (1 module)
-iOS Bundled 42ms index.ts (1 module)
-iOS Bundled 37ms index.ts (1 module)
-iOS Bundled 36ms index.ts (1 module)
+iOS Bundled 39ms index.ts (1 module)
  LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80
 iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 42ms index.ts (1 module)
+iOS Bundled 51ms index.ts (1 module)
  LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80
+ LOG  Downloading model: Llama 3.2 1B Instruct from https://huggingface.co/ggml-org/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf
+ LOG  Model downloaded successfully to: file:///var/mobile/Containers/Data/Application/DF8B9130-93BF-415E-BDCF-3B741FDE0075/Documents/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf
+ LOG  Deleted model: Llama 3.2 1B Instruct
+ LOG  Initializing model with settings: {"contextSize": 2048, "gpuLayers": 99, "model": "Phi-3-mini-4k-instruct-q4.gguf"}
+ LOG  Initializing model with settings: {"contextSize": 2048, "gpuLayers": 99, "model": "Phi-3-mini-4k-instruct-q4.gguf"}
+ ERROR  Invariant Violation: `new NativeEventEmitter()` requires a non-null argument., js engine: hermes
+ ERROR  Failed to load LLM: [TypeError: undefined is not a function]
+ ERROR  Failed to load LLM: [TypeError: undefined is not a function]
 iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 38ms index.ts (1 module)
+iOS Bundled 40ms index.ts (1 module)
  LOG  [index] Project ID is:  019a52b2-3a5f-7199-8a30-d1e8cd8abb80

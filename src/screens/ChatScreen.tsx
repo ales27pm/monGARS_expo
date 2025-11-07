@@ -156,10 +156,16 @@ export default function ChatScreen() {
       console.error("Failed to load LLM:", error);
       setIsModelLoaded(false);
 
+      const isNativeModuleError = error?.message?.includes("NativeEventEmitter") ||
+                                   error?.message?.includes("llama.rn") ||
+                                   error?.message?.includes("not available");
+
       setModal({
         visible: true,
-        title: "Model Load Failed",
-        message: error?.message || "Failed to initialize model. Make sure native files are generated via GitHub workflow and pulled into Vibecode.",
+        title: "Native Module Not Available",
+        message: isNativeModuleError
+          ? "The on-device AI module (llama.rn) is not available in Vibecode preview. Native modules need to be compiled into an actual iOS build. To test:\n\n1. Build with EAS: eas build --platform ios\n2. Install the build on a real device\n3. Or test in Xcode simulator after building\n\nVibecode preview cannot run native modules that require compilation."
+          : error?.message || "Failed to initialize model.",
       });
       throw error;
     }
@@ -345,10 +351,10 @@ export default function ChatScreen() {
                         <Ionicons name="warning" size={20} color="#f59e0b" />
                         <View className="flex-1 ml-2">
                           <Text className="text-amber-900 font-semibold mb-1">
-                            Native Module Required
+                            Build Required
                           </Text>
                           <Text className="text-amber-800 text-xs">
-                            On-device AI requires native iOS code. Run the GitHub Actions workflow to build native files, then pull into Vibecode.
+                            On-device AI requires a compiled iOS build. Vibecode preview cannot run native modules. Build with EAS or Xcode to test inference.
                           </Text>
                         </View>
                       </View>
