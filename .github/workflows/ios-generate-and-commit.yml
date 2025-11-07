@@ -158,6 +158,12 @@ jobs:
           ls -lah ios/build 2>/dev/null | head -10 || echo "⚠️ ios/build not found"
           ls -lah ios/DerivedData 2>/dev/null | head -10 || echo "⚠️ ios/DerivedData not found"
 
+      - name: 🗑️ Temporarily remove ios/.gitignore to prevent blocking
+        shell: bash
+        run: |
+          echo "Temporarily moving ios/.gitignore aside to ensure Pods can be staged"
+          mv ios/.gitignore ios/.gitignore.bak || true
+
       - name: 📝 Commit generated iOS sources (Pods + codegen + prebuild)
         if: ${{ env.PUSH_MODE == 'direct_push' }}
         shell: bash
@@ -181,6 +187,12 @@ jobs:
 
           # Push using HEAD reference which works better in Actions
           git push origin HEAD:refs/heads/${BRANCH}
+
+      - name: 🔄 Restore ios/.gitignore after commit
+        if: always()
+        shell: bash
+        run: |
+          mv ios/.gitignore.bak ios/.gitignore || true
 
       - name: 🔀 Create PR with generated iOS sources
         if: ${{ env.PUSH_MODE == 'pull_request' }}
