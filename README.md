@@ -130,10 +130,10 @@ A fully-featured AI application that runs entirely on your device with semantic 
 
 If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FIX.md](./BUILD_FIX.md)** for detailed solutions.
 
-**Quick Solutions:**
-- ✅ **Recommended**: Use EAS cloud builds → `eas build --platform ios --profile production`
-- ⚠️ For local builds: Install Xcode 16.2+ → `sudo xcode-select -s /Applications/Xcode_16.2.app`
-- 🤖 **Easiest**: Use GitHub Actions workflows (handles everything automatically)
+**Build Options:**
+- ✅ **Local builds**: See **[LOCAL_BUILD_GUIDE.md](./LOCAL_BUILD_GUIDE.md)** for step-by-step instructions
+- ✅ **Cloud builds**: Use EAS → `eas build --platform ios --profile production`
+- 🤖 **Automated**: Use GitHub Actions workflows (handles everything automatically)
 
 ### Current Setup (Vibecode)
 
