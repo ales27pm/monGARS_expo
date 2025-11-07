@@ -22,16 +22,36 @@ type LlamaModule = {
 // Lazy-load llama.rn to avoid NativeEventEmitter error on startup
 // Only import when actually needed (during model initialization)
 let llamaModule: any = null;
+let loadAttempted = false;
+let loadError: Error | null = null;
+
 async function getLlamaModule(): Promise<LlamaModule> {
-  if (!llamaModule) {
-    try {
-      llamaModule = await import("llama.rn");
-    } catch (error) {
-      console.error("Failed to load llama.rn module:", error);
-      throw new Error("llama.rn native module not available. Ensure native dependencies are installed.");
-    }
+  if (llamaModule) {
+    return llamaModule as LlamaModule;
   }
-  return llamaModule as LlamaModule;
+
+  // If we already tried and failed, throw the cached error
+  if (loadAttempted && loadError) {
+    throw loadError;
+  }
+
+  loadAttempted = true;
+
+  try {
+    // Dynamic import to avoid loading native module at startup
+    llamaModule = await import("llama.rn");
+    return llamaModule as LlamaModule;
+  } catch (error: any) {
+    // Cache the error for future attempts
+    loadError = new Error(
+      "llama.rn native module is not available. " +
+      "This is expected in development/Vibecode environment. " +
+      "The module will work after building with EAS Build. " +
+      `Original error: ${error?.message || error}`
+    );
+    console.warn("[OnDeviceLLM] Native module not available:", error?.message || error);
+    throw loadError;
+  }
 }
 
 export interface ModelConfig {
