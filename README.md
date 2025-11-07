@@ -136,10 +136,20 @@ If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FI
 - 🤖 **Easiest**: Use GitHub Actions workflows (handles everything automatically)
 
 ### Current Setup (Vibecode)
-1. Open Vibecode app
-2. View app automatically (already running on port 8081)
-3. App displays with all UI components
-4. Models not yet downloaded (requires GitHub Actions or manual download)
+
+**Status**: App UI is complete and running, but native dependencies need to be committed.
+
+1. ✅ App running on port 8081
+2. ✅ UI and architecture complete
+3. ⚠️ iOS Pods folder missing from repository (see [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md))
+4. ⚠️ Models not yet downloaded (requires native modules)
+
+**Next Steps**:
+1. Run "iOS — Generate Native Files & Commit" workflow with `direct_push` mode
+2. This commits the `ios/Pods/` folder to repository
+3. Then models can be downloaded and on-device ML will work
+
+See [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md) for detailed instructions.
 
 ### Required API Keys
 
