@@ -95,14 +95,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SCHEME_DETECT=$(xcodebuild -workspace ios/*.xcworkspace -list -json | python3 - <<'PY'
-import json,sys
-j=json.load(sys.stdin)
-d=j.get("workspace") or j.get("project") or {}
-s=d.get("schemes") or []
-print(s[0] if s else "")
-PY
-)
+          SCHEME_DETECT=$(xcodebuild -workspace ios/*.xcworkspace -list -json | python3 -c '
+          import json,sys
+          j=json.load(sys.stdin)
+          d=j.get("workspace") or j.get("project") or {}
+          s=d.get("schemes") or []
+          print(s[0] if s else "")
+          ')
           if [ -z "$SCHEME_DETECT" ]; then
             echo "::error::Could not detect an iOS scheme. Set one in Xcode or add IOS_SCHEME env."
             exit 1
