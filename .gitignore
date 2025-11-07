@@ -1,0 +1,74 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Watchman
+.watchmanconfig
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# typescript
+*.tsbuildinfo
+
+# iOS - KEEP all generated files including binaries for VibeCode
+# Only exclude Xcode user-specific files
+*.ipa
+*.dSYM.zip
+
+# Xcode user state
+**/*.xccheckout
+**/*.xcscmblueprint
+**/*.xcuserstate
+**/*.xcuserdatad
+**/*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# CocoaPods - WE KEEP Pods for VibeCode reproducibility
+!ios/Pods/**
+!ios/Podfile.lock
+# Keep DerivedData and build folders with generated code
+!ios/DerivedData/**
+!ios/build/**
+!ios/build/generated/**
+
+
+# Android large outputs
+android/.gradle/
+android/build/
+android/app/build/
+
+# Expo log
+expo.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# EAS Credentials - IMPORTANT: Keep these secure!
+eas-credentials/asc-api-key.json

@@ -340,9 +340,36 @@ git push origin main
 # 2. Run GitHub Actions workflow
 # Downloads models + builds iOS app
 
-# 3. Submit to App Store
+# 3. Submit to App Store (via Vibecode or CLI)
 eas submit --platform ios --latest
 ```
+
+### App Store Submission (Vibecode)
+
+If submitting through Vibecode's "Publish to App Store" feature:
+
+**Setup Required**: Create App Store Connect API Key for non-interactive submission:
+
+1. Go to: https://appstoreconnect.apple.com/access/integrations/api
+2. Create new key with **App Manager** role
+3. Download the `.p8` file (only downloadable once!)
+4. Note the **Key ID** and **Issuer ID**
+5. Create `eas-credentials/asc-api-key.json` with the credentials
+
+See **[eas-credentials/README.md](./eas-credentials/README.md)** for detailed instructions.
+
+**Alternative**: Use EAS managed credentials by modifying `eas.json`:
+```json
+"submit": {
+  "production": {
+    "ios": {
+      "ascAppId": "AUTO"
+    }
+  }
+}
+```
+
+Then EAS will prompt for Apple ID once and store credentials securely.
 
 ### EAS Build Archive Size Fix
 
