@@ -32,7 +32,6 @@ import {
 
 import { vectorStore } from "../utils/vector-store";
 import { useModelStore } from "../state/modelStore";
-import { OnDeviceLLM, getGlobalLLM } from "../utils/on-device-llm";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -131,8 +130,8 @@ export default function OnDeviceMLDemo() {
   const isModelDownloaded = useModelStore((s) => s.isModelDownloaded);
   const checkDownloadedModels = useModelStore((s) => s.checkDownloadedModels);
 
-  // LLM instance
-  const [llm] = useState(() => getGlobalLLM());
+  // LLM instance - lazy loaded only when needed
+  const [llm, setLlm] = useState<any>(null);
 
   // Check network status - disabled to avoid NativeEventEmitter error
   // NetInfo requires native module initialization
@@ -161,12 +160,14 @@ export default function OnDeviceMLDemo() {
   useEffect(() => {
     if (activeModel) {
       setSelectedModel(activeModel);
-      // Check if model is loaded in LLM instance
-      const modelInfo = llm.getModelInfo();
-      setIsModelLoaded(
-        modelInfo.isInitialized &&
-          modelInfo.modelConfig?.filename === activeModel.filename
-      );
+      // Check if model is loaded in LLM instance (only if llm is initialized)
+      if (llm) {
+        const modelInfo = llm.getModelInfo();
+        setIsModelLoaded(
+          modelInfo.isInitialized &&
+            modelInfo.modelConfig?.filename === activeModel.filename
+        );
+      }
     }
   }, [activeModel, llm]);
 
@@ -209,8 +210,24 @@ export default function OnDeviceMLDemo() {
         return;
       }
 
+      // Lazy-load the OnDeviceLLM class only when needed
+      if (!llm) {
+        try {
+          const { getGlobalLLM } = await import("../utils/on-device-llm");
+          const llmInstance = getGlobalLLM();
+          setLlm(llmInstance);
+        } catch (error) {
+          setModal({
+            visible: true,
+            title: "Module Not Available",
+            message: "On-device LLM module is not available in this environment. It will work after building with EAS Build.",
+          });
+          return;
+        }
+      }
+
       // Release any currently loaded model
-      if (isModelLoaded) {
+      if (isModelLoaded && llm) {
         await llm.release();
         setIsModelLoaded(false);
       }
@@ -285,7 +302,7 @@ export default function OnDeviceMLDemo() {
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
-    if (!isModelLoaded) {
+    if (!isModelLoaded || !llm) {
       setModal({
         visible: true,
         title: "No Model Loaded",

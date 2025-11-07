@@ -5,8 +5,34 @@
  * Supports GGUF models from HuggingFace
  */
 
-import { initLlama, LlamaContext, convertJsonSchemaToGrammar } from "llama.rn";
 import * as FileSystem from "expo-file-system";
+
+// Type definitions for llama.rn (to avoid importing the module at startup)
+type LlamaContext = {
+  completion: (options: any, callback?: (data: any) => void) => Promise<any>;
+  embedding: (text: string) => Promise<{ embedding: number[] }>;
+  release: () => Promise<void>;
+};
+
+type LlamaModule = {
+  initLlama: (options: any) => Promise<LlamaContext>;
+  convertJsonSchemaToGrammar?: (schema: any) => string | Promise<string>;
+};
+
+// Lazy-load llama.rn to avoid NativeEventEmitter error on startup
+// Only import when actually needed (during model initialization)
+let llamaModule: any = null;
+async function getLlamaModule(): Promise<LlamaModule> {
+  if (!llamaModule) {
+    try {
+      llamaModule = await import("llama.rn");
+    } catch (error) {
+      console.error("Failed to load llama.rn module:", error);
+      throw new Error("llama.rn native module not available. Ensure native dependencies are installed.");
+    }
+  }
+  return llamaModule as LlamaModule;
+}
 
 export interface ModelConfig {
   /** Model name (for display) */
@@ -198,8 +224,11 @@ export class OnDeviceLLM {
       );
     }
 
+    // Lazy-load llama.rn module
+    const llama = await getLlamaModule();
+
     // Initialize llama.rn
-    this.context = await initLlama({
+    this.context = await llama.initLlama({
       model: modelPath,
       use_mlock: useMemoryLock,
       n_ctx: contextSize,
