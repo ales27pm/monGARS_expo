@@ -9,43 +9,214 @@ import {
   Text,
   ScrollView,
   TextInput,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useModelStore } from "../state/modelStore";
-import FeatureUnavailableModal from "./FeatureUnavailableModal";
+import { vectorStore } from "../utils/vector-store";
+
+// Custom Modal Component
+interface CustomModalProps {
+  visible: boolean;
+  title: string;
+  message: string;
+  onClose: () => void;
+}
+
+function CustomModal({
+  visible,
+  title,
+  message,
+  onClose,
+}: CustomModalProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 bg-black/50 justify-center items-center px-6">
+        <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+          <Text className="text-xl font-bold text-gray-900 mb-2">{title}</Text>
+          <Text className="text-gray-600 mb-6">{message}</Text>
+
+          <View className="bg-blue-500 rounded-lg overflow-hidden">
+            <Text
+              onPress={onClose}
+              className="text-white font-semibold text-center py-3"
+            >
+              OK
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [inputText, setInputText] = useState("");
-  const [showFeatureModal, setShowFeatureModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Modal state
+  const [modal, setModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+  });
 
   // Model store
   const activeModel = useModelStore((s) => s.activeModel);
   const isModelDownloaded = useModelStore((s) => s.isModelDownloaded);
 
+  // LLM instance - lazy loaded
+  const [llm, setLlm] = useState<any>(null);
+
+  const loadLLM = async () => {
+    try {
+      const { getGlobalLLM } = await import("../utils/on-device-llm");
+      const llmInstance = getGlobalLLM();
+      setLlm(llmInstance);
+
+      // Check if model needs to be initialized
+      if (activeModel) {
+        const modelInfo = llmInstance.getModelInfo();
+        if (!modelInfo.isInitialized || modelInfo.modelConfig?.filename !== activeModel.filename) {
+          // Initialize the model
+          await llmInstance.initializeModel(activeModel, {
+            gpuLayers: 99,
+            contextSize: 2048,
+            useMemoryLock: true,
+          });
+          setIsModelLoaded(true);
+        } else {
+          setIsModelLoaded(true);
+        }
+      }
+    } catch (error) {
+      setModal({
+        visible: true,
+        title: "Module Not Available",
+        message: "On-device LLM module is not available. Make sure native files are generated via GitHub workflow and pulled into Vibecode.",
+      });
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
 
-    // Check if model is selected
     if (!activeModel) {
-      setShowFeatureModal(true);
+      setModal({
+        visible: true,
+        title: "No Model Selected",
+        message: "Please select a model in the Models tab first.",
+      });
       return;
     }
 
-    // Check if model is downloaded
-    if (activeModel && !isModelDownloaded(activeModel)) {
-      setShowFeatureModal(true);
+    if (!isModelDownloaded(activeModel)) {
+      setModal({
+        visible: true,
+        title: "Model Not Downloaded",
+        message: "Please download the model in the Models tab first.",
+      });
       return;
     }
 
-    // In Vibecode/development environment, native modules aren't available
-    // Show the feature unavailable modal
-    setShowFeatureModal(true);
+    // Try to load LLM if not already loaded
+    if (!llm) {
+      try {
+        await loadLLM();
+        if (!llm && !isModelLoaded) {
+          return; // loadLLM will show error modal
+        }
+      } catch (error) {
+        return; // loadLLM will show error modal
+      }
+    }
+
+    const userMessage = inputText.trim();
+    setInputText("");
+    Keyboard.dismiss();
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setIsGenerating(true);
+
+    // Scroll to bottom
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
+    try {
+      // Get response from on-device LLM
+      const response = await llm.chat(
+        [
+          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+          { role: "user" as const, content: userMessage },
+        ],
+        {
+          maxTokens: 512,
+          temperature: 0.7,
+        }
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: response },
+      ]);
+
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Store in vector memory for RAG
+      try {
+        const userEmbedding = await llm.embed(userMessage);
+        const assistantEmbedding = await llm.embed(response);
+
+        const conversationId = Date.now().toString();
+
+        await vectorStore.addEmbedding({
+          text: userMessage,
+          vector: userEmbedding,
+          timestamp: Date.now(),
+          metadata: {
+            role: "user",
+            conversationId,
+          },
+        });
+
+        await vectorStore.addEmbedding({
+          text: response,
+          vector: assistantEmbedding,
+          timestamp: Date.now(),
+          metadata: {
+            role: "assistant",
+            conversationId,
+          },
+        });
+      } catch (embeddingError) {
+        console.log("Failed to generate embeddings:", embeddingError);
+      }
+    } catch (error) {
+      setModal({
+        visible: true,
+        title: "Generation Failed",
+        message: `Failed to generate response: ${error}`,
+      });
+      // Remove the user message if generation failed
+      setMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleClearChat = () => {
@@ -69,11 +240,11 @@ export default function ChatScreen() {
               <View className="flex-row items-center mt-1">
                 <View
                   className={`w-2 h-2 rounded-full mr-2 ${
-                    activeModel ? "bg-blue-500" : "bg-gray-400"
+                    isModelLoaded ? "bg-green-500" : "bg-gray-400"
                   }`}
                 />
                 <Text className="text-xs text-gray-600">
-                  {activeModel ? "Model selected" : "No model"}
+                  {isModelLoaded ? "Ready" : "Not loaded"}
                 </Text>
               </View>
             </View>
@@ -106,22 +277,13 @@ export default function ChatScreen() {
                 color="#d1d5db"
               />
               <Text className="text-gray-500 text-center mt-4 text-lg">
-                On-Device AI Chat
+                Start a conversation
               </Text>
               <Text className="text-gray-400 text-sm text-center mt-2 px-8">
                 {activeModel
-                  ? "Native modules required for chat. Build with EAS to enable."
+                  ? "All processing happens on your device"
                   : "Select a model in the Models tab to get started"}
               </Text>
-
-              {activeModel && (
-                <View className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 mx-8">
-                  <Text className="text-sm text-blue-900 text-center">
-                    <Ionicons name="information-circle" size={16} color="#1e40af" />
-                    {" Tap send to see more info"}
-                  </Text>
-                </View>
-              )}
             </View>
           ) : (
             <>
@@ -145,6 +307,14 @@ export default function ChatScreen() {
                   </View>
                 </View>
               ))}
+
+              {isGenerating && (
+                <View className="items-start mb-4">
+                  <View className="bg-white border border-gray-200 px-4 py-4 rounded-2xl">
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                  </View>
+                </View>
+              )}
             </>
           )}
         </ScrollView>
@@ -161,19 +331,20 @@ export default function ChatScreen() {
                 onChangeText={setInputText}
                 multiline
                 maxLength={1000}
+                editable={!isGenerating}
               />
             </View>
 
             <View
               className={`w-10 h-10 rounded-full items-center justify-center ${
-                inputText.trim()
+                inputText.trim() && !isGenerating
                   ? "bg-blue-500"
                   : "bg-gray-300"
               }`}
             >
               <Text
                 onPress={handleSendMessage}
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() || isGenerating}
               >
                 <Ionicons
                   name="send"
@@ -191,10 +362,12 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* Feature Unavailable Modal */}
-      <FeatureUnavailableModal
-        visible={showFeatureModal}
-        onClose={() => setShowFeatureModal(false)}
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        onClose={() => setModal({ ...modal, visible: false })}
       />
     </KeyboardAvoidingView>
   );

@@ -136,35 +136,43 @@ If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FI
 
 ### Current Setup (Vibecode)
 
-**Status**: App is fully functional with complete UI/UX - native AI features require EAS Build.
+**Status**: App ready for native module generation via GitHub Actions
 
-1. ✅ App running on port 8081 with beautiful tab navigation
-2. ✅ **Models Tab** - Download and manage AI models (UI complete)
-3. ✅ **Chat Tab** - Clean chat interface with helpful info modals
-4. ✅ **Settings Tab** - Memory stats and privacy information
-5. ⚠️ **Native Modules** - llama.rn requires EAS Build to function
-6. ⚠️ **Current Behavior** - Tapping "Load" or sending messages shows informative modal
+**🚀 To Enable Native On-Device AI:**
 
-**What Works Now**:
-- ✅ Complete app navigation and UI
-- ✅ Model download functionality (downloads to device storage)
-- ✅ Model selection and state management
-- ✅ Beautiful, informative modals explaining native module requirements
-- ✅ No crashes or errors in Vibecode environment
+1. **Run GitHub Workflow** (generates all native files):
+   - Go to GitHub Actions tab
+   - Select "Complete Native Setup for Vibecode"
+   - Click "Run workflow"
+   - Choose options:
+     - Download models: `yes`
+     - Model name: `qwen2-0.5b` (or your preferred model)
+   - Click "Run workflow" button
+   - Wait ~10-15 minutes for completion
 
-**How It Works**:
-1. **Models Tab**: Browse models, see download status, tap "Load" to see info modal
-2. **Chat Tab**: View selected model, tap send to see explanation about EAS Build requirement
-3. **Settings Tab**: View app info and privacy details
-4. **Info Modal**: Explains that native modules work after EAS Build
+2. **Pull Native Files into Vibecode**:
+   ```bash
+   git pull origin main
+   ```
 
-**After EAS Build**:
-Once built with `eas build --platform ios`, all features will work:
-- ✅ Model loading with GPU acceleration
-- ✅ On-device chat inference (100% offline)
-- ✅ Semantic memory and RAG
-- ✅ Vector embeddings
-- ✅ Zero cloud dependencies
+3. **Test On-Device AI**:
+   - Open app in Vibecode
+   - Go to Models tab → Tap "Load" on Qwen2 model
+   - Go to Chat tab → Start chatting
+   - ✅ Real on-device inference works!
+
+**What the Workflow Does:**
+- ✅ Runs `expo prebuild` to generate iOS project
+- ✅ Installs all CocoaPods including llama.rn
+- ✅ Downloads AI model (optional)
+- ✅ Commits everything to repository
+- ✅ Ready for Vibecode to pull and use
+
+**Current App Features:**
+- ✅ Complete 3-tab navigation (Models, Chat, Settings)
+- ✅ Model download UI
+- ✅ Chat interface with real LLM integration
+- ⚠️ Native modules require workflow run + pull
 
 See [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md) for detailed instructions.
 

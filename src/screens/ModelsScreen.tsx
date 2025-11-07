@@ -26,7 +26,6 @@ import {
 } from "../types/models";
 
 import { useModelStore } from "../state/modelStore";
-import FeatureUnavailableModal from "./FeatureUnavailableModal";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -97,7 +96,6 @@ export default function ModelsScreen() {
   const [selectedModel, setSelectedModel] = useState<ModelConfig | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showFeatureModal, setShowFeatureModal] = useState(false);
 
   // Modal state
   const [modal, setModal] = useState<{
@@ -176,12 +174,14 @@ export default function ModelsScreen() {
         return;
       }
 
-      // In Vibecode/development, show info modal instead of trying to load
-      // Native modules aren't available until EAS Build
-      setShowFeatureModal(true);
-
-      // Still set as active model for when the app is built
+      // Set as active model (this will be used by ChatScreen)
       setActiveModel(model);
+
+      setModal({
+        visible: true,
+        title: "Model Selected",
+        message: `${model.name} is now active. Go to the Chat tab to start chatting!`,
+      });
     } catch (error) {
       setModal({
         visible: true,
@@ -295,12 +295,6 @@ export default function ModelsScreen() {
         onClose={() => setModal({ ...modal, visible: false })}
         onConfirm={modal.onConfirm}
         isDestructive={modal.isDestructive}
-      />
-
-      {/* Feature Unavailable Modal */}
-      <FeatureUnavailableModal
-        visible={showFeatureModal}
-        onClose={() => setShowFeatureModal(false)}
       />
     </View>
   );
