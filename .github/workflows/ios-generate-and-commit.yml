@@ -51,20 +51,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
       - name: ⌚ Install watchman
         run: brew install watchman
       - name: 💎 Install CocoaPods
         run: sudo gem install cocoapods -v "1.15.2"
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: 📦 Install JS deps
-        run: |
-          if [ -f yarn.lock ]; then
-            corepack enable
-            yarn install --frozen-lockfile
-          else
-            npm ci
-          fi
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Expo prebuild (iOS)
         shell: bash
