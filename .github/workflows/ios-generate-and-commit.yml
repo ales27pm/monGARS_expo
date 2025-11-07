@@ -1,0 +1,179 @@
+name: iOS — Generate Native Files & Commit
+
+on:
+  workflow_dispatch:
+    inputs:
+      push_mode:
+        description: "How to publish changes"
+        required: true
+        default: "pull_request"
+        type: choice
+        options:
+          - pull_request   # open a PR with the generated files (safe default)
+          - direct_push    # push directly to the source branch
+      build_configuration:
+        description: "Xcode configuration (for a quick compile to trigger codegen)"
+        required: true
+        default: "Release"
+        type: choice
+        options: [Debug, Release]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-and-commit:
+    runs-on: macos-14
+    env:
+      # Expo/RN deterministic environment
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_DO_NOT_TRACK: "1"
+      EAS_NO_VCS: "1"
+      RCT_NEW_ARCH_ENABLED: "1"
+
+      # workflow inputs
+      PUSH_MODE: ${{ github.event.inputs.push_mode }}
+      BUILD_CONFIGURATION: ${{ github.event.inputs.build_configuration }}
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🧰 Toolchain (Node, Ruby/CocoaPods, Watchman)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: 🔧 Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: ⌚ Install watchman
+        run: brew install watchman
+      - name: 💎 Install CocoaPods
+        run: sudo gem install cocoapods -v "1.15.2"
+
+      - name: 📦 Install JS deps
+        run: |
+          if [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: 🏗️ Expo prebuild (iOS)
+        shell: bash
+        run: |
+          # Generate ios/ project from Expo config if missing or if you want to refresh
+          npx expo prebuild --platform ios --no-install --clean || npx expo prebuild --platform ios --no-install
+          # Ensure Podfile exists
+          test -f ios/Podfile || { echo "::error::Podfile not found after prebuild"; exit 1; }
+
+      - name: 🔩 React Native codegen (new architecture)
+        shell: bash
+        run: |
+          # Ensures all JS specs -> ObjC/Swift sources are emitted before pod install
+          # RN 0.73+: codegen is internally run by pods; we pre-run to be explicit
+          npx react-native codegen || true
+
+      - name: 📚 CocoaPods install (with new arch flags)
+        working-directory: ios
+        shell: bash
+        env:
+          RCT_NEW_ARCH_ENABLED: "1"
+        run: |
+          pod repo update
+          RCT_NEW_ARCH_ENABLED=1 pod install --verbose
+
+      - name: 🔨 Quick compile to materialise generated sources
+        id: xcodebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEME_DETECT=$(xcodebuild -workspace ios/*.xcworkspace -list -json | python3 - <<'PY'
+import json,sys
+j=json.load(sys.stdin)
+d=j.get("workspace") or j.get("project") or {}
+s=d.get("schemes") or []
+print(s[0] if s else "")
+PY
+)
+          if [ -z "$SCHEME_DETECT" ]; then
+            echo "::error::Could not detect an iOS scheme. Set one in Xcode or add IOS_SCHEME env."
+            exit 1
+          fi
+          echo "Detected scheme: $SCHEME_DETECT"
+          xcodebuild \
+            -workspace ios/*.xcworkspace \
+            -scheme "$SCHEME_DETECT" \
+            -configuration "${BUILD_CONFIGURATION}" \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ios/DerivedData \
+            build | xcpretty
+
+          echo "scheme=$SCHEME_DETECT" >> "$GITHUB_OUTPUT"
+
+      - name: 🧹 Prune heavy build artefacts (keep only sources we want in git)
+        shell: bash
+        run: |
+          # We keep Pods and generated code, but drop big binary outputs.
+          rm -rf ios/DerivedData/Build/Products
+          rm -rf ios/DerivedData/Build/Intermediates.noindex
+          # Optional: keep only deterministic codegen dirs if present
+          find ios -type d -name "GeneratedSources" -maxdepth 3 -print || true
+          find ios -type d -name "generated" -maxdepth 3 -print || true
+
+      - name: 🗂️ Normalise line endings & file modes
+        run: |
+          git config core.autocrlf false
+          git config core.filemode false
+
+      - name: 📝 Commit generated iOS sources (Pods + codegen + prebuild)
+        if: ${{ env.PUSH_MODE == 'direct_push' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BRANCH="${GITHUB_REF_NAME}"
+          git add ios
+          # If you also want to commit android/ prebuild outputs, uncomment:
+          # npx expo prebuild --platform android --no-install || true
+          # git add android
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ios): commit generated native files (Pods, codegen, prebuild) — ${BUILD_CONFIGURATION}"
+          git push origin "$BRANCH"
+
+      - name: 🔀 Create PR with generated iOS sources
+        if: ${{ env.PUSH_MODE == 'pull_request' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(ios): commit generated native files (Pods, codegen, prebuild) — ${{ env.BUILD_CONFIGURATION }}"
+          branch: chore/ios-generated-${{ github.run_id }}
+          title: "iOS: add generated native files (Pods + codegen)"
+          body: |
+            This PR adds/refreshes all **generated native iOS** inputs required to run the app without rebuilding native code (useful for VibeCode).
+            - Expo `prebuild` outputs in `ios/`
+            - CocoaPods (`ios/Pods/**`, `Podfile.lock`)
+            - RN new architecture codegen results
+            - Excludes heavy build artefacts (DerivedData products)
+
+            ✅ After merge, VibeCode can pull the repo and run with complete native sources.
+
+          labels: |
+            ios
+            automation
+          add-paths: |
+            ios/**

@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Watchman
+.watchmanconfig
+
 # debug
 npm-debug.*
 yarn-debug.*
@@ -33,9 +36,27 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# iOS & Android
-ios/
-android/
+# iOS build artefacts (drop large binaries, keep sources)
+ios/DerivedData/
+ios/build/
+*.ipa
+*.dSYM.zip
+
+# Xcode user state
+**/*.xccheckout
+**/*.xcscmblueprint
+**/*.xcuserstate
+**/*.xcuserdatad
+**/*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# CocoaPods - WE KEEP Pods for VibeCode reproducibility
+!ios/Pods/**
+!ios/Podfile.lock
+
+# Android large outputs
+android/.gradle/
+android/build/
+android/app/build/
 
 # Expo log
 expo.log
