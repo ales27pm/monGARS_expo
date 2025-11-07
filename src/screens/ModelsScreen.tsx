@@ -267,6 +267,7 @@ export default function ModelsScreen() {
               sizeInMB={model.sizeInMB}
               quantization={model.quantization}
               isLoaded={activeModel?.filename === model.filename}
+              isDownloaded={isModelDownloaded(model)}
               isRecommended={model.recommended}
               description={model.description}
               onDownload={() => handleDownloadModel(model)}

@@ -447,6 +447,7 @@ export default function OnDeviceMLDemo() {
               isLoaded={
                 isModelLoaded && selectedModel?.filename === model.filename
               }
+              isDownloaded={isModelDownloaded(model)}
               isRecommended={model.recommended}
               description={model.description}
               onDownload={() => handleDownloadModel(model)}

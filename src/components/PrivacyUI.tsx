@@ -158,6 +158,7 @@ export interface ModelInfoCardProps {
   sizeInMB: number;
   quantization: string;
   isLoaded: boolean;
+  isDownloaded?: boolean;
   isRecommended?: boolean;
   description?: string;
   onDownload?: () => void;
@@ -173,6 +174,7 @@ export function ModelInfoCard({
   sizeInMB,
   quantization,
   isLoaded,
+  isDownloaded = false,
   isRecommended,
   description,
   onDownload,
@@ -195,7 +197,7 @@ export function ModelInfoCard({
 
         {isLoaded && (
           <View className="bg-green-100 px-2 py-1 rounded">
-            <Text className="text-xs font-medium text-green-700">Loaded</Text>
+            <Text className="text-xs font-medium text-green-700">Active</Text>
           </View>
         )}
       </View>
@@ -220,7 +222,7 @@ export function ModelInfoCard({
         </View>
 
         <View className="flex-row space-x-2">
-          {!isLoaded && onDownload && (
+          {!isDownloaded && onDownload && (
             <Text
               className="text-sm font-medium text-blue-600"
               onPress={onDownload}
@@ -229,18 +231,18 @@ export function ModelInfoCard({
             </Text>
           )}
 
-          {isLoaded && onLoad && (
+          {isDownloaded && !isLoaded && onLoad && (
             <Text
               className="text-sm font-medium text-green-600"
               onPress={onLoad}
             >
-              Use
+              Load
             </Text>
           )}
 
-          {isLoaded && onDelete && (
+          {isDownloaded && onDelete && (
             <Text
-              className="text-sm font-medium text-red-600"
+              className="text-sm font-medium text-red-600 ml-3"
               onPress={onDelete}
             >
               Delete
