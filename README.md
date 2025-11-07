@@ -322,16 +322,42 @@ const response = await llm.chat([
 
 ## 📋 Deployment
 
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for complete deployment instructions including:
+### Build Options
 
-- GitHub Actions setup
-- EAS Build configuration
-- App Store submission
-- Model management
-- Performance optimization
-- Troubleshooting
+You have **three options** for building your iOS app:
 
-### Quick Deploy
+#### 🆓 Option 1: Xcode Build on GitHub Actions (FREE - Recommended if no EAS)
+
+**Completely free using GitHub Actions macOS runners**
+
+See **[XCODE_BUILD_GUIDE.md](./XCODE_BUILD_GUIDE.md)** for detailed instructions.
+
+- ✅ 100% free (within GitHub's 2000 min/month)
+- ✅ Full native module support (llama.rn works!)
+- ✅ Direct Xcode control
+- ⚠️ Manual code signing setup required
+- ⚠️ Longer build times (~30-45 min)
+
+```bash
+# Run "Build iOS with Xcode (No EAS)" workflow on GitHub
+# Select model, configuration, and run
+# Download IPA or simulator build from artifacts
+```
+
+---
+
+#### 💳 Option 2: EAS Build (Requires Subscription)
+
+**Easiest option with managed code signing**
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for complete instructions.
+
+- ✅ Managed code signing
+- ✅ Faster builds (~20-35 min)
+- ✅ Integrated with Expo ecosystem
+- ⚠️ Requires EAS subscription ($29-$99/month)
+
+### Quick Deploy (EAS)
 
 ```bash
 # 1. Push to GitHub
