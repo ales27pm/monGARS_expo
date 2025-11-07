@@ -9,12 +9,15 @@ import {
   Text,
   ScrollView,
   Modal,
+  Switch,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { MemoryStatsCard } from "../components/PrivacyUI";
 import { vectorStore } from "../utils/vector-store";
 import { useModelStore } from "../state/modelStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -87,6 +90,14 @@ export default function SettingsScreen() {
     conversationCount: 0,
   });
 
+  // Settings state
+  const [autoSaveConversations, setAutoSaveConversations] = useState(true);
+  const [enableVectorMemory, setEnableVectorMemory] = useState(true);
+  const [contextSize, setContextSize] = useState(2048);
+  const [maxTokens, setMaxTokens] = useState(512);
+  const [temperature, setTemperature] = useState(0.7);
+  const [gpuLayers, setGpuLayers] = useState(99);
+
   // Modal state
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -105,6 +116,7 @@ export default function SettingsScreen() {
   // Load memory stats
   useEffect(() => {
     loadMemoryStats();
+    loadSettings();
   }, []);
 
   const loadMemoryStats = () => {
@@ -115,6 +127,44 @@ export default function SettingsScreen() {
       conversationCount: stats.conversationCount,
     });
   };
+
+  const loadSettings = async () => {
+    try {
+      const savedSettings = await AsyncStorage.getItem("app-settings");
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        setAutoSaveConversations(settings.autoSaveConversations ?? true);
+        setEnableVectorMemory(settings.enableVectorMemory ?? true);
+        setContextSize(settings.contextSize ?? 2048);
+        setMaxTokens(settings.maxTokens ?? 512);
+        setTemperature(settings.temperature ?? 0.7);
+        setGpuLayers(settings.gpuLayers ?? 99);
+      }
+    } catch (error) {
+      console.log("Failed to load settings:", error);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      const settings = {
+        autoSaveConversations,
+        enableVectorMemory,
+        contextSize,
+        maxTokens,
+        temperature,
+        gpuLayers,
+      };
+      await AsyncStorage.setItem("app-settings", JSON.stringify(settings));
+    } catch (error) {
+      console.log("Failed to save settings:", error);
+    }
+  };
+
+  // Save settings whenever they change
+  useEffect(() => {
+    saveSettings();
+  }, [autoSaveConversations, enableVectorMemory, contextSize, maxTokens, temperature, gpuLayers]);
 
   const handleClearMemory = () => {
     setModal({
@@ -191,6 +241,207 @@ export default function SettingsScreen() {
             conversationCount={memoryStats.conversationCount}
             onClear={handleClearMemory}
           />
+        </View>
+
+        {/* Model Settings */}
+        <View className="mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">
+            Model Configuration
+          </Text>
+
+          <View className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
+            <View className="mb-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-medium text-gray-900">
+                  GPU Layers
+                </Text>
+                <Text className="text-sm text-gray-600">{gpuLayers}</Text>
+              </View>
+              <Text className="text-xs text-gray-500 mb-2">
+                Higher values use more GPU (faster inference, more battery usage)
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setGpuLayers(Math.max(0, gpuLayers - 10))}
+                  className="bg-gray-200 px-3 py-1 rounded-lg"
+                >
+                  <Text className="text-gray-700 font-medium">-</Text>
+                </Pressable>
+                <View className="flex-1 bg-gray-100 rounded-lg px-3 py-2">
+                  <Text className="text-center text-gray-900">{gpuLayers} layers</Text>
+                </View>
+                <Pressable
+                  onPress={() => setGpuLayers(Math.min(99, gpuLayers + 10))}
+                  className="bg-blue-500 px-3 py-1 rounded-lg"
+                >
+                  <Text className="text-white font-medium">+</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View className="mb-4 pt-4 border-t border-gray-200">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-medium text-gray-900">
+                  Context Size
+                </Text>
+                <Text className="text-sm text-gray-600">{contextSize}</Text>
+              </View>
+              <Text className="text-xs text-gray-500 mb-2">
+                Maximum conversation context (higher = more memory usage)
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setContextSize(512)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 512 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${contextSize === 512 ? "text-white" : "text-gray-700"}`}>512</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setContextSize(1024)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 1024 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${contextSize === 1024 ? "text-white" : "text-gray-700"}`}>1024</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setContextSize(2048)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 2048 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${contextSize === 2048 ? "text-white" : "text-gray-700"}`}>2048</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setContextSize(4096)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 4096 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${contextSize === 4096 ? "text-white" : "text-gray-700"}`}>4096</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View className="mb-4 pt-4 border-t border-gray-200">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-medium text-gray-900">
+                  Max Tokens
+                </Text>
+                <Text className="text-sm text-gray-600">{maxTokens}</Text>
+              </View>
+              <Text className="text-xs text-gray-500 mb-2">
+                Maximum response length
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setMaxTokens(128)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 128 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${maxTokens === 128 ? "text-white" : "text-gray-700"}`}>128</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMaxTokens(256)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 256 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${maxTokens === 256 ? "text-white" : "text-gray-700"}`}>256</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMaxTokens(512)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 512 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${maxTokens === 512 ? "text-white" : "text-gray-700"}`}>512</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMaxTokens(1024)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 1024 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${maxTokens === 1024 ? "text-white" : "text-gray-700"}`}>1024</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View className="pt-4 border-t border-gray-200">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-medium text-gray-900">
+                  Temperature
+                </Text>
+                <Text className="text-sm text-gray-600">{temperature.toFixed(1)}</Text>
+              </View>
+              <Text className="text-xs text-gray-500 mb-2">
+                Controls randomness (lower = more focused, higher = more creative)
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setTemperature(0.1)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.1 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${temperature === 0.1 ? "text-white" : "text-gray-700"}`}>0.1</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setTemperature(0.5)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.5 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${temperature === 0.5 ? "text-white" : "text-gray-700"}`}>0.5</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setTemperature(0.7)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.7 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${temperature === 0.7 ? "text-white" : "text-gray-700"}`}>0.7</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setTemperature(1.0)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${temperature === 1.0 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${temperature === 1.0 ? "text-white" : "text-gray-700"}`}>1.0</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setTemperature(1.5)}
+                  className={`flex-1 px-3 py-2 rounded-lg ${temperature === 1.5 ? "bg-blue-500" : "bg-gray-200"}`}
+                >
+                  <Text className={`text-center font-medium ${temperature === 1.5 ? "text-white" : "text-gray-700"}`}>1.5</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* App Settings */}
+        <View className="mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">
+            App Settings
+          </Text>
+
+          <View className="bg-white rounded-lg border border-gray-200">
+            <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+              <View className="flex-1 mr-3">
+                <Text className="text-base font-medium text-gray-900 mb-1">
+                  Auto-save Conversations
+                </Text>
+                <Text className="text-xs text-gray-600">
+                  Automatically save chat history
+                </Text>
+              </View>
+              <Switch
+                value={autoSaveConversations}
+                onValueChange={setAutoSaveConversations}
+                trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                thumbColor={autoSaveConversations ? "#3b82f6" : "#f4f4f5"}
+              />
+            </View>
+
+            <View className="flex-row items-center justify-between p-4">
+              <View className="flex-1 mr-3">
+                <Text className="text-base font-medium text-gray-900 mb-1">
+                  Enable Vector Memory
+                </Text>
+                <Text className="text-xs text-gray-600">
+                  Use embeddings for better context recall
+                </Text>
+              </View>
+              <Switch
+                value={enableVectorMemory}
+                onValueChange={setEnableVectorMemory}
+                trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                thumbColor={enableVectorMemory ? "#3b82f6" : "#f4f4f5"}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Privacy Information */}

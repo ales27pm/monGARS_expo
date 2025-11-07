@@ -3,7 +3,7 @@
  * On-device AI chat interface
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useModelStore } from "../state/modelStore";
 import { vectorStore } from "../utils/vector-store";
@@ -62,6 +63,15 @@ export default function ChatScreen() {
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Settings state
+  const [settings, setSettings] = useState({
+    contextSize: 2048,
+    maxTokens: 512,
+    temperature: 0.7,
+    gpuLayers: 99,
+    enableVectorMemory: true,
+  });
+
   // Modal state
   const [modal, setModal] = useState<{
     visible: boolean;
@@ -80,6 +90,29 @@ export default function ChatScreen() {
   // LLM instance - lazy loaded
   const [llm, setLlm] = useState<any>(null);
 
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const savedSettings = await AsyncStorage.getItem("app-settings");
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        setSettings({
+          contextSize: parsed.contextSize ?? 2048,
+          maxTokens: parsed.maxTokens ?? 512,
+          temperature: parsed.temperature ?? 0.7,
+          gpuLayers: parsed.gpuLayers ?? 99,
+          enableVectorMemory: parsed.enableVectorMemory ?? true,
+        });
+      }
+    } catch (error) {
+      console.log("Failed to load settings:", error);
+    }
+  };
+
   const loadLLM = async () => {
     try {
       const { getGlobalLLM } = await import("../utils/on-device-llm");
@@ -90,10 +123,10 @@ export default function ChatScreen() {
       if (activeModel) {
         const modelInfo = llmInstance.getModelInfo();
         if (!modelInfo.isInitialized || modelInfo.modelConfig?.filename !== activeModel.filename) {
-          // Initialize the model
+          // Initialize the model with settings
           await llmInstance.initializeModel(activeModel, {
-            gpuLayers: 99,
-            contextSize: 2048,
+            gpuLayers: settings.gpuLayers,
+            contextSize: settings.contextSize,
             useMemoryLock: true,
           });
           setIsModelLoaded(true);
@@ -101,12 +134,15 @@ export default function ChatScreen() {
           setIsModelLoaded(true);
         }
       }
+
+      return llmInstance;
     } catch (error) {
       setModal({
         visible: true,
         title: "Module Not Available",
         message: "On-device LLM module is not available. Make sure native files are generated via GitHub workflow and pulled into Vibecode.",
       });
+      throw error;
     }
   };
 
@@ -132,12 +168,10 @@ export default function ChatScreen() {
     }
 
     // Try to load LLM if not already loaded
-    if (!llm) {
+    let llmInstance = llm;
+    if (!llmInstance) {
       try {
-        await loadLLM();
-        if (!llm && !isModelLoaded) {
-          return; // loadLLM will show error modal
-        }
+        llmInstance = await loadLLM();
       } catch (error) {
         return; // loadLLM will show error modal
       }
@@ -156,14 +190,14 @@ export default function ChatScreen() {
 
     try {
       // Get response from on-device LLM
-      const response = await llm.chat(
+      const response = await llmInstance.chat(
         [
           ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
           { role: "user" as const, content: userMessage },
         ],
         {
-          maxTokens: 512,
-          temperature: 0.7,
+          maxTokens: settings.maxTokens,
+          temperature: settings.temperature,
         }
       );
 
@@ -178,33 +212,35 @@ export default function ChatScreen() {
       }, 100);
 
       // Store in vector memory for RAG
-      try {
-        const userEmbedding = await llm.embed(userMessage);
-        const assistantEmbedding = await llm.embed(response);
+      if (settings.enableVectorMemory) {
+        try {
+          const userEmbedding = await llmInstance.embed(userMessage);
+          const assistantEmbedding = await llmInstance.embed(response);
 
-        const conversationId = Date.now().toString();
+          const conversationId = Date.now().toString();
 
-        await vectorStore.addEmbedding({
-          text: userMessage,
-          vector: userEmbedding,
-          timestamp: Date.now(),
-          metadata: {
-            role: "user",
-            conversationId,
-          },
-        });
+          await vectorStore.addEmbedding({
+            text: userMessage,
+            vector: userEmbedding,
+            timestamp: Date.now(),
+            metadata: {
+              role: "user",
+              conversationId,
+            },
+          });
 
-        await vectorStore.addEmbedding({
-          text: response,
-          vector: assistantEmbedding,
-          timestamp: Date.now(),
-          metadata: {
-            role: "assistant",
-            conversationId,
-          },
-        });
-      } catch (embeddingError) {
-        console.log("Failed to generate embeddings:", embeddingError);
+          await vectorStore.addEmbedding({
+            text: response,
+            vector: assistantEmbedding,
+            timestamp: Date.now(),
+            metadata: {
+              role: "assistant",
+              conversationId,
+            },
+          });
+        } catch (embeddingError) {
+          console.log("Failed to generate embeddings:", embeddingError);
+        }
       }
     } catch (error) {
       setModal({

@@ -115,8 +115,12 @@ A fully-featured AI application that runs entirely on your device with semantic 
 
 ### App Screens
 - **ModelsScreen** (`src/screens/ModelsScreen.tsx`) - Model selection, download, and management
-- **ChatScreen** (`src/screens/ChatScreen.tsx`) - Offline chat interface with on-device inference
-- **SettingsScreen** (`src/screens/SettingsScreen.tsx`) - Memory statistics, privacy info, and app settings
+- **ChatScreen** (`src/screens/ChatScreen.tsx`) - Offline chat interface with on-device inference and settings integration
+- **SettingsScreen** (`src/screens/SettingsScreen.tsx`) - Comprehensive settings including:
+  - **Model Configuration**: GPU layers, context size, max tokens, temperature
+  - **App Settings**: Auto-save conversations, vector memory toggle
+  - **Memory Management**: Storage statistics and clearing
+  - **Privacy Information**: On-device processing details
 - **Navigation** (`src/navigation/RootNavigator.tsx`) - Bottom tab navigation structure
 
 ---
@@ -250,8 +254,8 @@ hf_hub_download(
 // After download completes
 const llm = getGlobalLLM();
 await llm.initializeModel(selectedModel, {
-  gpuLayers: 99,      // Use GPU acceleration
-  contextSize: 2048,  // Context window
+  gpuLayers: 99,      // Use GPU acceleration (configurable in settings)
+  contextSize: 2048,  // Context window (configurable in settings)
   useMemoryLock: true // Recommended
 });
 ```
@@ -262,8 +266,8 @@ const response = await llm.chat([
   { role: "system", content: "You are a helpful assistant" },
   { role: "user", content: "Hello!" }
 ], {
-  maxTokens: 256,
-  temperature: 0.7
+  maxTokens: 512,     // Configurable in settings
+  temperature: 0.7    // Configurable in settings
 });
 ```
 
@@ -344,6 +348,22 @@ The `.easignore` file excludes unnecessary files (node_modules, logs, etc.) from
 ---
 
 ## ⚙️ Configuration
+
+### App Settings
+
+The app now includes comprehensive settings accessible from the Settings tab:
+
+**Model Configuration** (saved to device):
+- **GPU Layers**: 0-99 (controls GPU acceleration)
+- **Context Size**: 512, 1024, 2048, or 4096 tokens
+- **Max Tokens**: 128, 256, 512, or 1024 tokens
+- **Temperature**: 0.1 to 1.5 (controls randomness)
+
+**App Preferences**:
+- **Auto-save Conversations**: Toggle conversation history
+- **Enable Vector Memory**: Toggle embeddings for RAG
+
+All settings are automatically persisted using AsyncStorage and applied during model initialization.
 
 ### Model Selection
 
