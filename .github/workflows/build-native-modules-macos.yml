@@ -29,6 +29,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🔧 Select Xcode 16.2
+        run: |
+          echo "Selecting Xcode 16.2 for iOS 18 SDK support..."
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          echo "✅ Xcode 16.2 selected"
+
       - name: 🍎 System Information
         run: |
           echo "🖥️ macOS Version:"
