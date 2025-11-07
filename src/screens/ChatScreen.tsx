@@ -82,12 +82,8 @@ export default function ChatScreen() {
   // LLM instance - lazy loaded
   const [llm, setLlm] = useState<any>(null);
 
-  // Load LLM when active model changes
-  useEffect(() => {
-    if (activeModel && isModelDownloaded(activeModel) && !llm) {
-      loadLLM();
-    }
-  }, [activeModel]);
+  // DON'T automatically load LLM on mount - wait for user to explicitly load model in Models tab
+  // This prevents NativeEventEmitter errors when native modules aren't ready yet
 
   const loadLLM = async () => {
     try {
@@ -140,13 +136,16 @@ export default function ChatScreen() {
       return;
     }
 
-    if (!isModelLoaded || !llm) {
-      setModal({
-        visible: true,
-        title: "Model Not Loaded",
-        message: "The model is initializing. Please wait a moment and try again.",
-      });
-      return;
+    // Try to load LLM if not already loaded
+    if (!llm) {
+      try {
+        await loadLLM();
+        if (!llm && !isModelLoaded) {
+          return; // loadLLM will show error modal
+        }
+      } catch (error) {
+        return; // loadLLM will show error modal
+      }
     }
 
     const userMessage = inputText.trim();
