@@ -16,9 +16,9 @@ on:
           - all
           - none
       scheme:
-        description: 'Xcode scheme to build'
+        description: 'Xcode scheme to build (leave empty for auto-detect)'
         required: false
-        default: 'offLLMAppStoreFixer'
+        default: ''
         type: string
       configuration:
         description: 'Build configuration'
@@ -189,6 +189,21 @@ jobs:
           cd ios
           xcodebuild -list -workspace *.xcworkspace
 
+      - name: 🔍 Detect scheme name
+        id: detect_scheme
+        run: |
+          cd ios
+          if [ -n "${{ inputs.scheme }}" ]; then
+            SCHEME="${{ inputs.scheme }}"
+            echo "Using provided scheme: $SCHEME"
+          else
+            # Auto-detect scheme from workspace
+            SCHEME=$(xcodebuild -list -workspace *.xcworkspace | grep -A 100 "Schemes:" | grep -v "Schemes:" | head -n 1 | xargs)
+            echo "Auto-detected scheme: $SCHEME"
+          fi
+          echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
+          echo "✅ Using scheme: $SCHEME"
+
       - name: 🔑 Setup signing (if credentials provided)
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -229,13 +244,17 @@ jobs:
           WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
           echo "📁 Workspace: $WORKSPACE"
 
+          # Use detected scheme
+          SCHEME="${{ steps.detect_scheme.outputs.scheme }}"
+          echo "📱 Scheme: $SCHEME"
+
           # Check if we have signing credentials
           if [ -n "$APPLE_CERTIFICATE" ]; then
             echo "🔐 Building with code signing"
             # Build with signing
             xcodebuild \
               -workspace "$WORKSPACE" \
-              -scheme "${{ inputs.scheme }}" \
+              -scheme "$SCHEME" \
               -configuration "${{ inputs.configuration }}" \
               -sdk iphoneos \
               -destination generic/platform=iOS \
@@ -247,7 +266,7 @@ jobs:
             # Build for simulator without signing
             xcodebuild \
               -workspace "$WORKSPACE" \
-              -scheme "${{ inputs.scheme }}" \
+              -scheme "$SCHEME" \
               -configuration "${{ inputs.configuration }}" \
               -sdk iphonesimulator \
               -destination "generic/platform=iOS Simulator" \
@@ -356,7 +375,7 @@ jobs:
           echo "🛠️ Tool: Xcode (Native Build)"
           echo "📦 Model: ${{ inputs.model_name }}"
           echo "🔧 Configuration: ${{ inputs.configuration }}"
-          echo "📱 Scheme: ${{ inputs.scheme }}"
+          echo "📱 Scheme: ${{ steps.detect_scheme.outputs.scheme }}"
           echo ""
           echo "📥 Download the IPA from the Actions artifacts"
           echo "   Go to: Actions → This workflow run → Artifacts"
@@ -372,7 +391,7 @@ jobs:
           **Status:** ✅ Build finished on macOS runner
           **Model:** ${{ inputs.model_name }}
           **Configuration:** ${{ inputs.configuration }}
-          **Scheme:** ${{ inputs.scheme }}
+          **Scheme:** ${{ steps.detect_scheme.outputs.scheme }}
 
           ### 🏗️ Build Details
           - Built on: macOS-14 GitHub Runner
