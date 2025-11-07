@@ -113,12 +113,11 @@ A fully-featured AI application that runs entirely on your device with semantic 
 - **ModelInfoCard** - Model information and actions
 - **MemoryStatsCard** - Storage statistics
 
-### Demo Screen (`src/screens/OnDeviceMLDemo.tsx`)
-- Model selection and management
-- Offline chat interface
-- Memory statistics
-- Privacy indicators
-- Real-time status updates
+### App Screens
+- **ModelsScreen** (`src/screens/ModelsScreen.tsx`) - Model selection, download, and management
+- **ChatScreen** (`src/screens/ChatScreen.tsx`) - Offline chat interface with on-device inference
+- **SettingsScreen** (`src/screens/SettingsScreen.tsx`) - Memory statistics, privacy info, and app settings
+- **Navigation** (`src/navigation/RootNavigator.tsx`) - Bottom tab navigation structure
 
 ---
 
@@ -137,17 +136,25 @@ If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FI
 
 ### Current Setup (Vibecode)
 
-**Status**: App UI is complete and running, but native dependencies need to be committed.
+**Status**: App is now fully functional with tab navigation for Models, Chat, and Settings.
 
-1. ✅ App running on port 8081
-2. ✅ UI and architecture complete
-3. ⚠️ iOS Pods folder missing from repository (see [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md))
-4. ⚠️ Models not yet downloaded (requires native modules)
+1. ✅ App running on port 8081 with tab navigation
+2. ✅ Models tab - Download and manage AI models
+3. ✅ Chat tab - Have conversations with on-device AI
+4. ✅ Settings tab - View memory stats and privacy information
+5. ⚠️ iOS Pods folder missing from repository (see [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md))
+6. ⚠️ Models not yet downloaded (requires native modules)
+
+**How to Use**:
+1. **Models Tab**: Download Qwen2 0.5B Instruct model (already downloaded)
+2. **Models Tab**: Tap "Load" to select the model for inference
+3. **Chat Tab**: Start chatting with the AI - all processing happens on your device
+4. **Settings Tab**: View memory usage and app information
 
 **Next Steps**:
 1. Run "iOS — Generate Native Files & Commit" workflow with `direct_push` mode
 2. This commits the `ios/Pods/` folder to repository
-3. Then models can be downloaded and on-device ML will work
+3. Then models can be loaded and on-device ML will work fully
 
 See [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md) for detailed instructions.
 
