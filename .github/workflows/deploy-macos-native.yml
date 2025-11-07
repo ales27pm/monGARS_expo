@@ -14,6 +14,7 @@ on:
           - smollm2-1.7b
           - phi-3-mini
           - all
+          - none
       submit_to_app_store:
         description: 'Submit to App Store after build'
         required: false
