@@ -7,29 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0677F9A4E57C9A8ABD886708 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FD6EB9A44DBE97F85D6ECD84 /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		41282E55FFC8D527FB67D5D3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F2C5A1D98F4C7D0A3FC100B /* ExpoModulesProvider.swift */; };
+		7349AB7A02E9AB41AC1C1493 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EEF4CF3AAF4B7A32CD9B15 /* ExpoModulesProvider.swift */; };
+		B24EF5F21BF1F12B154126DE /* libPods-offLLMAppStoreFixer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0534DBB35CE5121D523EA9DC /* libPods-offLLMAppStoreFixer.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		EFAE2ACEEEC2D21B4827E80E /* libPods-offLLMAppStoreFixer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 63E015351E24290FE92BBFEB /* libPods-offLLMAppStoreFixer.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		FDFC19D4D75B3A90284D57D6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 717843AECDBAE1A277B280A4 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0534DBB35CE5121D523EA9DC /* libPods-offLLMAppStoreFixer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-offLLMAppStoreFixer.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* offLLMAppStoreFixer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = offLLMAppStoreFixer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = offLLMAppStoreFixer/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = offLLMAppStoreFixer/Info.plist; sourceTree = "<group>"; };
-		1A287CD43E55AAD53C463D44 /* Pods-offLLMAppStoreFixer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.debug.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.debug.xcconfig"; sourceTree = "<group>"; };
-		396DC26DF34FD09C05ECD68F /* Pods-offLLMAppStoreFixer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.release.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.release.xcconfig"; sourceTree = "<group>"; };
-		5F2C5A1D98F4C7D0A3FC100B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-offLLMAppStoreFixer/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		63E015351E24290FE92BBFEB /* libPods-offLLMAppStoreFixer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-offLLMAppStoreFixer.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		23EEF4CF3AAF4B7A32CD9B15 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-offLLMAppStoreFixer/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		69EF0349A91B9270D5C91C94 /* Pods-offLLMAppStoreFixer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.release.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.release.xcconfig"; sourceTree = "<group>"; };
+		717843AECDBAE1A277B280A4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = offLLMAppStoreFixer/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		84E8D67B1CADC8EF9210CF11 /* Pods-offLLMAppStoreFixer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.debug.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = offLLMAppStoreFixer/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = offLLMAppStoreFixer/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* offLLMAppStoreFixer-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "offLLMAppStoreFixer-Bridging-Header.h"; path = "offLLMAppStoreFixer/offLLMAppStoreFixer-Bridging-Header.h"; sourceTree = "<group>"; };
-		FD6EB9A44DBE97F85D6ECD84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = offLLMAppStoreFixer/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EFAE2ACEEEC2D21B4827E80E /* libPods-offLLMAppStoreFixer.a in Frameworks */,
+				B24EF5F21BF1F12B154126DE /* libPods-offLLMAppStoreFixer.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				FD6EB9A44DBE97F85D6ECD84 /* PrivacyInfo.xcprivacy */,
+				717843AECDBAE1A277B280A4 /* PrivacyInfo.xcprivacy */,
 			);
 			name = offLLMAppStoreFixer;
 			sourceTree = "<group>";
@@ -62,25 +62,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				63E015351E24290FE92BBFEB /* libPods-offLLMAppStoreFixer.a */,
+				0534DBB35CE5121D523EA9DC /* libPods-offLLMAppStoreFixer.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		404601A16A272AE0C31C857C /* offLLMAppStoreFixer */ = {
-			isa = PBXGroup;
-			children = (
-				5F2C5A1D98F4C7D0A3FC100B /* ExpoModulesProvider.swift */,
-			);
-			name = offLLMAppStoreFixer;
-			sourceTree = "<group>";
-		};
-		6E523C4D8B53D7D84C44B4DF /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				404601A16A272AE0C31C857C /* offLLMAppStoreFixer */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -97,8 +81,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				E112B4F3120CB173B33B90B8 /* Pods */,
-				6E523C4D8B53D7D84C44B4DF /* ExpoModulesProviders */,
+				FF6EE2665719130C5D2EC480 /* Pods */,
+				93264A2EEDA93855485B1978 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -113,6 +97,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		93264A2EEDA93855485B1978 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				E904C99C4A7BA268F2A02032 /* offLLMAppStoreFixer */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -122,11 +114,19 @@
 			path = offLLMAppStoreFixer/Supporting;
 			sourceTree = "<group>";
 		};
-		E112B4F3120CB173B33B90B8 /* Pods */ = {
+		E904C99C4A7BA268F2A02032 /* offLLMAppStoreFixer */ = {
 			isa = PBXGroup;
 			children = (
-				1A287CD43E55AAD53C463D44 /* Pods-offLLMAppStoreFixer.debug.xcconfig */,
-				396DC26DF34FD09C05ECD68F /* Pods-offLLMAppStoreFixer.release.xcconfig */,
+				23EEF4CF3AAF4B7A32CD9B15 /* ExpoModulesProvider.swift */,
+			);
+			name = offLLMAppStoreFixer;
+			sourceTree = "<group>";
+		};
+		FF6EE2665719130C5D2EC480 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				84E8D67B1CADC8EF9210CF11 /* Pods-offLLMAppStoreFixer.debug.xcconfig */,
+				69EF0349A91B9270D5C91C94 /* Pods-offLLMAppStoreFixer.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "offLLMAppStoreFixer" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				9C17BB6DD7285B671F9C87AE /* [Expo] Configure project */,
+				EB9DD5692C68314707892029 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				7920DAB47C02D423A0A9C8C5 /* [CP] Embed Pods Frameworks */,
+				54BEF9896C7A0A84CE7EBBA0 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				0677F9A4E57C9A8ABD886708 /* PrivacyInfo.xcprivacy in Resources */,
+				FDFC19D4D75B3A90284D57D6 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		7920DAB47C02D423A0A9C8C5 /* [CP] Embed Pods Frameworks */ = {
+		54BEF9896C7A0A84CE7EBBA0 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -312,7 +312,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9C17BB6DD7285B671F9C87AE /* [Expo] Configure project */ = {
+		EB9DD5692C68314707892029 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -339,7 +339,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				41282E55FFC8D527FB67D5D3 /* ExpoModulesProvider.swift in Sources */,
+				7349AB7A02E9AB41AC1C1493 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -348,7 +348,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1A287CD43E55AAD53C463D44 /* Pods-offLLMAppStoreFixer.debug.xcconfig */;
+			baseConfigurationReference = 84E8D67B1CADC8EF9210CF11 /* Pods-offLLMAppStoreFixer.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -384,7 +384,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 396DC26DF34FD09C05ECD68F /* Pods-offLLMAppStoreFixer.release.xcconfig */;
+			baseConfigurationReference = 69EF0349A91B9270D5C91C94 /* Pods-offLLMAppStoreFixer.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
