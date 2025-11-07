@@ -82,6 +82,18 @@
     <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>offLLM App Store Fixer uses speech recognition to turn your spoken words into text inside the app.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your camera to take photos.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your photo library.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your calendar to create events.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your contacts.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your microphone for voice features.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
