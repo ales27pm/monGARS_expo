@@ -197,22 +197,65 @@ jobs:
             SCHEME="${{ inputs.scheme }}"
             echo "Using provided scheme: $SCHEME"
           else
-            # Auto-detect scheme from workspace, excluding Pods and library schemes
-            SCHEME=$(xcodebuild -list -workspace *.xcworkspace 2>&1 | \
-              grep -A 100 "Schemes:" | \
-              grep -v "Schemes:" | \
-              grep -v "Pods-" | \
-              grep -v "^Pods" | \
-              grep -v "boost" | \
-              grep -v "React" | \
-              grep -v "^[[:space:]]*$" | \
-              head -n 1 | \
-              xargs)
+            # Get the project/app name from app.json
+            APP_NAME=$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' ../app.json | head -1 | sed 's/"name"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
+            echo "App name from app.json: $APP_NAME"
+
+            # List all schemes
+            ALL_SCHEMES=$(xcodebuild -list -workspace *.xcworkspace 2>&1 | grep -A 200 "Schemes:" | grep -v "Schemes:" | sed 's/^[[:space:]]*//')
+            echo "All schemes found:"
+            echo "$ALL_SCHEMES"
+            echo ""
+
+            # Try to find scheme that matches the workspace/project name
+            WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
+            echo "Looking for scheme matching: $WORKSPACE_NAME"
+
+            SCHEME=$(echo "$ALL_SCHEMES" | grep "^${WORKSPACE_NAME}$" | head -n 1)
+
+            if [ -z "$SCHEME" ]; then
+              echo "⚠️ Exact match not found, filtering out libraries..."
+              # Filter out known library schemes
+              SCHEME=$(echo "$ALL_SCHEMES" | \
+                grep -v "^Pods-" | \
+                grep -v "^boost" | \
+                grep -v "^React" | \
+                grep -v "^RN" | \
+                grep -v "^Expo" | \
+                grep -v "^EX" | \
+                grep -v "^RCT" | \
+                grep -v "^Yoga$" | \
+                grep -v "^fmt$" | \
+                grep -v "^glog" | \
+                grep -v "^hermes" | \
+                grep -v "^libavif" | \
+                grep -v "^libdav1d" | \
+                grep -v "^libwebp" | \
+                grep -v "^lottie" | \
+                grep -v "^SDWebImage" | \
+                grep -v "^SocketRocket" | \
+                grep -v "^fast_float" | \
+                grep -v "^FBLazyVector" | \
+                grep -v "^Galeria" | \
+                grep -v "^ComputableLayout" | \
+                grep -v "^ContextMenu" | \
+                grep -v "^DGSwiftUtilities" | \
+                grep -v "^DoubleConversion" | \
+                grep -v "^EASClient" | \
+                grep -v "^llama-rn" | \
+                grep -v "react-native" | \
+                grep -v "ReactAppDependency" | \
+                grep -v "ReactCodegen" | \
+                grep -v "ReactCommon" | \
+                head -n 1)
+            fi
 
             if [ -z "$SCHEME" ]; then
               echo "❌ Could not auto-detect scheme"
               echo "Available schemes:"
-              xcodebuild -list -workspace *.xcworkspace
+              echo "$ALL_SCHEMES"
+              echo ""
+              echo "Please provide scheme manually using the 'scheme' input parameter"
               exit 1
             fi
 
