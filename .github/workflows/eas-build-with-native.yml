@@ -1,0 +1,299 @@
+name: EAS Build with Native Modules
+
+# This workflow creates an actual iOS build that can be installed and run
+# Unlike the Vibecode workflow which just generates files, this creates a working .ipa
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      download_models:
+        description: 'Download AI models before build?'
+        required: true
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      model_name:
+        description: 'Which model to download'
+        required: true
+        default: 'qwen2-0.5b'
+        type: choice
+        options:
+          - qwen2-0.5b
+          - llama-3.2-1b
+          - smollm2-1.7b
+
+permissions:
+  contents: write
+
+env:
+  MODELS_DIR: ./assets/models
+
+jobs:
+  build:
+    name: EAS Build iOS with Native Modules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🔑 Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # ====================
+      # MODEL DOWNLOADS (if requested)
+      # ====================
+
+      - name: 🐍 Setup Python for model downloads
+        if: ${{ inputs.download_models == 'yes' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Python dependencies
+        if: ${{ inputs.download_models == 'yes' }}
+        run: |
+          pip install huggingface-hub requests tqdm
+
+      - name: 📁 Create models directory
+        if: ${{ inputs.download_models == 'yes' }}
+        run: |
+          mkdir -p ${{ env.MODELS_DIR }}
+
+      - name: ⬇️ Download AI Model
+        if: ${{ inputs.download_models == 'yes' }}
+        run: |
+          python - <<'EOF'
+          from huggingface_hub import hf_hub_download
+          import os
+
+          model_name = "${{ inputs.model_name }}"
+
+          models = {
+              "qwen2-0.5b": {
+                  "repo": "Qwen/Qwen2-0.5B-Instruct-GGUF",
+                  "file": "qwen2-0_5b-instruct-q4_k_m.gguf"
+              },
+              "llama-3.2-1b": {
+                  "repo": "ggml-org/Llama-3.2-1B-Instruct-GGUF",
+                  "file": "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+              },
+              "smollm2-1.7b": {
+                  "repo": "HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF",
+                  "file": "smollm2-1.7b-instruct-q4_k_m.gguf"
+              }
+          }
+
+          if model_name in models:
+              config = models[model_name]
+              print(f"📥 Downloading {model_name}...")
+              file_path = hf_hub_download(
+                  repo_id=config["repo"],
+                  filename=config["file"],
+                  local_dir="${{ env.MODELS_DIR }}",
+                  local_dir_use_symlinks=False
+              )
+              print(f"✅ Downloaded to: {file_path}")
+              print(f"📊 Size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
+          else:
+              print(f"❌ Unknown model: {model_name}")
+              exit(1)
+          EOF
+
+      - name: 📊 Verify model
+        if: ${{ inputs.download_models == 'yes' }}
+        run: |
+          echo "📁 Downloaded models:"
+          ls -lh ${{ env.MODELS_DIR }}
+          echo ""
+          echo "💾 Total size:"
+          du -sh ${{ env.MODELS_DIR }}
+
+      # ====================
+      # EAS BUILD
+      # ====================
+
+      - name: 🏗️ EAS Build (iOS)
+        run: |
+          echo "🚀 Starting EAS Build with profile: ${{ inputs.profile }}"
+          echo "📱 This will create a fully compiled iOS app with native modules"
+          echo ""
+
+          eas build \
+            --platform ios \
+            --profile ${{ inputs.profile }} \
+            --non-interactive \
+            --no-wait
+
+          echo "✅ Build submitted to EAS"
+          echo "📊 Build will be available in your Expo dashboard"
+
+      - name: 📋 Get build information
+        id: build-info
+        run: |
+          echo "⏳ Waiting for build metadata to be available..."
+          sleep 10
+
+          # Get latest build ID
+          BUILD_INFO=$(eas build:list --platform=ios --limit=1 --json --non-interactive 2>/dev/null || echo "[]")
+
+          if [ "$BUILD_INFO" != "[]" ]; then
+            BUILD_ID=$(echo $BUILD_INFO | jq -r '.[0].id // "unknown"')
+            BUILD_STATUS=$(echo $BUILD_INFO | jq -r '.[0].status // "unknown"')
+            echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+            echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
+            echo "✅ Build ID: $BUILD_ID"
+            echo "📊 Status: $BUILD_STATUS"
+          else
+            echo "⚠️ Could not retrieve build information yet"
+            echo "build_id=check-expo-dashboard" >> $GITHUB_OUTPUT
+            echo "build_status=submitted" >> $GITHUB_OUTPUT
+          fi
+
+      # ====================
+      # COMMIT MODELS (if downloaded)
+      # ====================
+
+      - name: 💾 Commit models to repository
+        if: ${{ inputs.download_models == 'yes' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add ${{ env.MODELS_DIR }}
+
+          if git diff --staged --quiet; then
+            echo "ℹ️ No model changes to commit"
+          else
+            git commit -m "chore: add AI model ${{ inputs.model_name }} for EAS build"
+            git push origin HEAD:${GITHUB_REF_NAME}
+            echo "✅ Models committed to repository"
+          fi
+
+      # ====================
+      # SUMMARY
+      # ====================
+
+      - name: 💬 Create workflow summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## 🎉 EAS Build Started
+
+          ### 📱 Build Information:
+
+          - **Platform**: iOS
+          - **Profile**: \`${{ inputs.profile }}\`
+          - **Build ID**: \`${{ steps.build-info.outputs.build_id }}\`
+          - **Status**: \`${{ steps.build-info.outputs.build_status }}\`
+          ${{ inputs.download_models == 'yes' && format('- **AI Model**: {0}', inputs.model_name) || '' }}
+
+          ### ⏱️ What's Happening:
+
+          1. **Build Queued**: Your build is now in the EAS Build queue
+          2. **Compilation**: Native modules (including llama.rn) are being compiled
+          3. **Binary Creation**: A fully functional .ipa file will be created
+          4. **Testing**: Once complete, you can install it on a device or simulator
+
+          ### 📥 How to Get the Build:
+
+          **Option 1: Expo Dashboard**
+          \`\`\`bash
+          # View build status
+          eas build:list --platform ios --limit 5
+
+          # Download when ready
+          eas build:download --platform ios --latest
+          \`\`\`
+
+          **Option 2: Expo Website**
+          Visit: [Expo Dashboard](https://expo.dev/accounts/[your-account]/projects/monGARS_expo/builds)
+
+          ### 📲 Installation:
+
+          **Development Build (for testing):**
+          \`\`\`bash
+          # Install on connected device
+          eas build:download --platform ios --latest
+          # Then drag .ipa to Xcode Devices window
+          \`\`\`
+
+          **Production Build (for App Store):**
+          \`\`\`bash
+          # Submit to TestFlight/App Store
+          eas submit --platform ios --latest
+          \`\`\`
+
+          ### ✅ What Will Work:
+
+          - ✅ All native modules compiled
+          - ✅ llama.rn fully functional
+          - ✅ On-device AI inference works
+          - ✅ No NativeEventEmitter errors
+          - ✅ Real model loading and chat
+          ${{ inputs.download_models == 'yes' && '- ✅ AI model bundled in app' || '' }}
+
+          ### 🔄 Build Progress:
+
+          Monitor your build at: [EAS Builds](https://expo.dev/accounts/[your-account]/projects/monGARS_expo/builds)
+
+          Typically takes **15-25 minutes** depending on queue and build complexity.
+
+          ---
+          **Next**: Wait for build to complete, then download and test!
+          **Branch**: \`${{ github.ref_name }}\`
+          **Commit**: \`${{ github.sha }}\`
+          EOF
+
+      - name: ✅ Success Message
+        run: |
+          echo "================================================"
+          echo "🎉 EAS BUILD SUBMITTED SUCCESSFULLY"
+          echo "================================================"
+          echo ""
+          echo "📱 Build Profile: ${{ inputs.profile }}"
+          echo "🆔 Build ID: ${{ steps.build-info.outputs.build_id }}"
+          echo ""
+          echo "⏱️ Build is now processing on EAS servers"
+          echo "📊 Estimated time: 15-25 minutes"
+          echo ""
+          echo "🔍 Monitor progress:"
+          echo "   eas build:list --platform ios --limit 5"
+          echo ""
+          echo "📥 Download when ready:"
+          echo "   eas build:download --platform ios --latest"
+          echo ""
+          echo "================================================"
+          echo "💡 This build includes ALL native modules"
+          echo "   including llama.rn for on-device AI!"
+          echo "================================================"

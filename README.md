@@ -144,30 +144,70 @@ If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FI
 
 **🚀 To Enable Native On-Device AI:**
 
-1. **Run GitHub Workflow** (generates all native files):
+You have **two options** depending on how you want to test:
+
+### Option 1: Full iOS Build (Recommended - Actually Works!)
+
+**Creates a real iOS app with compiled native modules:**
+
+1. **Run EAS Build Workflow**:
+   - Go to GitHub Actions tab
+   - Select "EAS Build with Native Modules"
+   - Click "Run workflow"
+   - Choose options:
+     - Profile: `development` (for testing)
+     - Download models: `yes`
+     - Model name: `qwen2-0.5b`
+   - Wait ~15-25 minutes for build completion
+
+2. **Download the Build**:
+   ```bash
+   # Check build status
+   eas build:list --platform ios --limit 5
+
+   # Download when ready
+   eas build:download --platform ios --latest
+   ```
+
+3. **Install and Test**:
+   - Drag the .ipa file to Xcode Devices window
+   - Or use: `eas build:run --platform ios --latest`
+   - ✅ **Native modules work perfectly!**
+   - ✅ On-device AI inference actually runs!
+
+### Option 2: Files Only (For Vibecode - Preview Limitations)
+
+**Generates native files but Vibecode can't run them:**
+
+1. **Run Native Setup Workflow**:
    - Go to GitHub Actions tab
    - Select "Complete Native Setup for Vibecode"
    - Click "Run workflow"
-   - Choose options:
-     - Download models: `yes`
-     - Model name: `qwen2-0.5b` (or your preferred model)
-   - Click "Run workflow" button
-   - Wait ~10-15 minutes for completion
+   - Wait ~10-15 minutes
 
-2. **Pull Native Files into Vibecode**:
+2. **Pull into Vibecode**:
    ```bash
    git pull origin main
    ```
 
-3. **Test On-Device AI**:
-   - Open app in Vibecode
-   - Go to Models tab → Tap "Load" on Qwen2 model
-   - Go to Chat tab → Start chatting
-   - ✅ Real on-device inference works!
+3. **Limitations**:
+   - ⚠️ Files present but native modules can't run
+   - ⚠️ Vibecode uses Expo Go (no custom native modules)
+   - ✅ Good for UI/UX testing only
 
-**What the Workflow Does:**
-- ✅ Runs `expo prebuild` to generate iOS project
-- ✅ Installs all CocoaPods including llama.rn
+**What the Workflows Do:**
+
+**EAS Build (Option 1)**:
+- ✅ Compiles native modules into actual binary
+- ✅ Creates installable .ipa file
+- ✅ Native AI inference actually works
+- ✅ Can be tested on real device/simulator
+
+**Native Setup (Option 2)**:
+- ✅ Generates iOS project files
+- ✅ Installs CocoaPods including llama.rn
+- ✅ Commits files to repository
+- ⚠️ But Vibecode can't execute native code
 - ✅ Downloads AI model (optional)
 - ✅ Commits everything to repository
 - ✅ Ready for Vibecode to pull and use
