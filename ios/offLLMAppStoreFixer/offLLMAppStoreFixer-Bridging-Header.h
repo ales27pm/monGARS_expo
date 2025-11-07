@@ -1,3 +1,9 @@
 //
 // Use this file to import your target's public headers that you would like to expose to Swift.
 //
+
+// React Native Bridge
+#import <React/RCTBridgeModule.h>
+
+// Native Turbo Modules
+#import "NativeModules/SensorsTurboModule.h"

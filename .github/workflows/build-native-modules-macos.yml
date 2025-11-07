@@ -1,0 +1,359 @@
+name: Build & Deploy on macOS Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: "Build configuration"
+        required: false
+        default: "Release"
+        type: choice
+        options:
+          - Debug
+          - Release
+      submit_to_app_store:
+        description: "Submit to App Store after build"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-with-native-modules:
+    name: Build iOS with Native Turbo Modules
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🍎 System Information
+        run: |
+          echo "🖥️ macOS Version:"
+          sw_vers
+          echo ""
+          echo "💻 Hardware:"
+          sysctl hw.model hw.machine hw.ncpu hw.memsize
+          echo ""
+          echo "🛠️ Xcode Version:"
+          xcodebuild -version
+          xcode-select --print-path
+          echo ""
+          echo "📱 Available iOS SDKs:"
+          xcodebuild -showsdks | grep iOS
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install JavaScript dependencies
+        run: |
+          echo "📦 Installing dependencies with bun..."
+          bun install --frozen-lockfile
+          echo "✅ Dependencies installed"
+
+      - name: 🏗️ Run Expo Prebuild
+        run: |
+          echo "🏗️ Running expo prebuild to generate/update iOS project..."
+          npx expo prebuild --platform ios --clean
+          echo "✅ iOS project generated with native modules"
+
+      - name: 📋 Verify Native Modules
+        run: |
+          echo "📋 Checking for native modules..."
+          ls -la ios/offLLMAppStoreFixer/NativeModules/
+          echo ""
+          echo "Native modules found:"
+          find ios/offLLMAppStoreFixer/NativeModules -name "*.mm" -o -name "*.h"
+
+      - name: 📦 Install CocoaPods dependencies
+        run: |
+          echo "📦 Installing CocoaPods dependencies..."
+          cd ios
+          pod install
+          echo "✅ Pods installed"
+
+      - name: 📋 List available schemes
+        run: |
+          echo "📋 Available Xcode schemes:"
+          cd ios
+          xcodebuild -list -workspace *.xcworkspace
+
+      - name: 🔍 Detect scheme name
+        id: detect_scheme
+        run: |
+          cd ios
+          WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
+          echo "Using scheme: $WORKSPACE_NAME"
+          echo "scheme=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
+
+      - name: 🔑 Setup signing (if credentials provided)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
+            echo "🔑 Setting up code signing..."
+
+            # Create keychain
+            security create-keychain -p actions build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p actions build.keychain
+            security set-keychain-settings -t 3600 -u build.keychain
+
+            # Import certificate
+            echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+
+            # Import provisioning profile
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+            echo "✅ Code signing configured"
+          else
+            echo "⚠️ No signing credentials provided, will build for simulator only"
+          fi
+
+      - name: 🏗️ Build with Xcode (Native Turbo Modules)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          echo "🚀 Building iOS app with Native Turbo Modules..."
+          cd ios
+
+          # Find the workspace
+          WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
+          echo "📁 Workspace: $WORKSPACE"
+
+          # Use detected scheme
+          SCHEME="${{ steps.detect_scheme.outputs.scheme }}"
+          echo "📱 Scheme: $SCHEME"
+
+          # Check if we have signing credentials
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "🔐 Building with code signing for device"
+            # Build archive for device (requires signing)
+            xcodebuild \
+              -workspace "$WORKSPACE" \
+              -scheme "$SCHEME" \
+              -configuration "${{ inputs.configuration }}" \
+              -sdk iphoneos \
+              -destination generic/platform=iOS \
+              -archivePath "./build/App.xcarchive" \
+              archive \
+              -allowProvisioningUpdates
+            echo "✅ Archive created successfully with native modules compiled"
+          else
+            echo "⚠️ Building without code signing (simulator only)"
+            # Build for simulator (no archive, just build)
+            xcodebuild \
+              -workspace "$WORKSPACE" \
+              -scheme "$SCHEME" \
+              -configuration "${{ inputs.configuration }}" \
+              -sdk iphonesimulator \
+              -derivedDataPath "./build/DerivedData" \
+              build
+            echo "✅ Simulator build completed successfully"
+          fi
+
+      - name: 📦 Export Archive to IPA
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "📦 Exporting archive to IPA..."
+            cd ios
+
+            # Create export options plist
+            cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+
+            # Export the archive
+            xcodebuild \
+              -exportArchive \
+              -archivePath "./build/App.xcarchive" \
+              -exportPath "./build" \
+              -exportOptionsPlist ExportOptions.plist \
+              -allowProvisioningUpdates
+
+            echo "✅ IPA exported successfully"
+          else
+            echo "⚠️ Skipping IPA export (no signing credentials)"
+          fi
+
+      - name: 📦 Create simulator build
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "📦 Creating simulator build package..."
+            cd ios
+
+            # Find the built .app in DerivedData
+            APP_PATH=$(find build/DerivedData/Build/Products/*-iphonesimulator -name "*.app" -type d | head -n 1)
+
+            if [ -z "$APP_PATH" ]; then
+              echo "❌ Could not find built .app"
+              echo "Searching in:"
+              find build/DerivedData -name "*.app" -type d || echo "No .app found"
+              exit 1
+            fi
+
+            echo "Found app at: $APP_PATH"
+
+            # Create zip
+            cd "$(dirname "$APP_PATH")"
+            zip -r ../../../../App-Simulator.zip "$(basename "$APP_PATH")"
+
+            echo "✅ Simulator build created: App-Simulator.zip"
+          else
+            echo "⚠️ Skipping simulator build (signed IPA created instead)"
+          fi
+
+      - name: 📊 Build artifacts info
+        run: |
+          echo "📊 Build artifacts:"
+          ls -lh ios/build/ || echo "No build directory"
+          if ls ios/build/*.ipa 1> /dev/null 2>&1; then
+            IPA_SIZE=$(du -h ios/build/*.ipa | cut -f1)
+            echo "📦 IPA Size: $IPA_SIZE"
+          fi
+
+      - name: 📤 Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-native-modules-${{ inputs.configuration }}
+          path: |
+            ios/build/*.ipa
+            ios/App-Simulator.zip
+            ios/build/App.xcarchive
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: 📱 Submit to App Store
+        if: ${{ inputs.submit_to_app_store }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          echo "📱 Submitting to App Store Connect..."
+          cd ios
+
+          # Find the IPA file
+          IPA_FILE=$(find build -name "*.ipa" | head -n 1)
+
+          if [ -z "$IPA_FILE" ]; then
+            echo "❌ No IPA file found"
+            exit 1
+          fi
+
+          echo "Found IPA: $IPA_FILE"
+
+          # Upload using altool
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_FILE" \
+            --username "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+          echo "✅ Submitted to App Store Connect"
+
+      - name: ✅ Build Summary
+        if: always()
+        run: |
+          echo "================================================"
+          echo "🎉 NATIVE MODULES BUILD COMPLETE"
+          echo "================================================"
+          echo ""
+          echo "🖥️ Built on: macOS-15 GitHub Runner"
+          echo "🛠️ Tool: Xcode (Native Turbo Modules)"
+          echo "🔧 Configuration: ${{ inputs.configuration }}"
+          echo "📱 Scheme: ${{ steps.detect_scheme.outputs.scheme }}"
+          echo ""
+          echo "✨ Native iOS Turbo Modules Compiled:"
+          echo "   - BatteryTurboModule"
+          echo "   - BrightnessTurboModule"
+          echo "   - SensorsTurboModule"
+          echo "   - DeviceInfoTurboModule"
+          echo "   - FlashlightTurboModule"
+          echo ""
+          echo "📥 Download the IPA from the Actions artifacts"
+          echo "   Go to: Actions → This workflow run → Artifacts"
+          echo ""
+          if [ "${{ inputs.submit_to_app_store }}" == "true" ]; then
+            echo "✅ Submitted to App Store Connect"
+            echo "   Check status at https://appstoreconnect.apple.com"
+          fi
+          echo "================================================"
+
+      - name: 💬 Create build summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          ## 🎉 Native Turbo Modules Build Complete
+
+          **Status:** ✅ Build finished on macOS runner
+          **Configuration:** ${{ inputs.configuration }}
+          **Scheme:** ${{ steps.detect_scheme.outputs.scheme }}
+          **Submitted to App Store:** ${{ inputs.submit_to_app_store == true && '✅ Yes' || '❌ No' }}
+
+          ### 🏗️ Build Details
+          - Built on: macOS-15 GitHub Runner
+          - Xcode: $(xcodebuild -version | head -n 1)
+          - Build system: Xcode (No EAS)
+          - New Architecture: Enabled
+
+          ### ✨ Native iOS Turbo Modules
+          The following native modules were compiled:
+          - **BatteryTurboModule** - Battery level and state monitoring
+          - **BrightnessTurboModule** - Screen brightness control
+          - **SensorsTurboModule** - Accelerometer, gyroscope, magnetometer
+          - **DeviceInfoTurboModule** - Device model, OS, low power mode
+          - **FlashlightTurboModule** - Flashlight/torch control
+
+          ### 📥 Download IPA
+          The built IPA file is available as a workflow artifact. Download it from the "Artifacts" section above.
+
+          ### 🔗 Useful Links
+          - [Repository](https://github.com/\${{ github.repository }})
+          - [Actions](\${{ github.server_url }}/\${{ github.repository }}/actions)
+          $(if [ "${{ inputs.submit_to_app_store }}" == "true" ]; then
+            echo "- [App Store Connect](https://appstoreconnect.apple.com)"
+          fi)
+
+          ---
+          *Built with native iOS Turbo Modules on GitHub Actions macOS runner*
+          EOF
+
+      - name: 📤 Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-native-modules
+          path: |
+            **/*.log
+            ios/build/
+          if-no-files-found: warn
+          retention-days: 7

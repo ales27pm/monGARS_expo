@@ -20,12 +20,13 @@ A fully-featured AI application that runs entirely on your device with semantic 
 - ✅ **Conversation Memory** - Persistent chat history with semantic search
 
 ### Technical Stack
-- **Framework**: Expo SDK 53 + React Native 0.76.7
+- **Framework**: Expo SDK 53 + React Native 0.76.7 (New Architecture)
 - **LLM Runtime**: llama.rn (llama.cpp bindings)
+- **Native Modules**: Custom iOS Turbo Modules (Battery, Sensors, DeviceInfo, etc.)
 - **Vector Storage**: MMKV with encryption
 - **State Management**: Zustand with persistence
 - **Styling**: NativeWind (Tailwind for RN)
-- **Build System**: EAS Build
+- **Build System**: Xcode + GitHub Actions macOS runners
 - **CI/CD**: GitHub Actions
 
 ---
@@ -58,6 +59,21 @@ A fully-featured AI application that runs entirely on your device with semantic 
 ---
 
 ## 📦 What's Included
+
+### Native iOS Turbo Modules
+
+#### Custom Device Feature Modules (`ios/offLLMAppStoreFixer/NativeModules/`)
+- **BatteryTurboModule** - Battery level and charging state monitoring
+- **BrightnessTurboModule** - Screen brightness control
+- **SensorsTurboModule** - Accelerometer, gyroscope, and magnetometer data
+- **DeviceInfoTurboModule** - Device model, OS version, low power mode
+- **FlashlightTurboModule** - Flashlight/torch control
+
+All modules are:
+- ✅ Written in Objective-C++ for optimal performance
+- ✅ Using React Native New Architecture (Turbo Modules)
+- ✅ Compiled directly on macOS runners for native performance
+- ✅ TypeScript interfaces available in `src/native-modules/`
 
 ### Implemented Systems
 
@@ -321,6 +337,36 @@ const response = await llm.chat([
 ---
 
 ## 📋 Deployment
+
+### Build with Native Modules on macOS Runner
+
+**New Workflow**: `build-native-modules-macos.yml`
+
+This workflow compiles all native iOS Turbo Modules using Xcode on GitHub Actions macOS runners:
+
+```bash
+# 1. Go to GitHub Actions tab
+# 2. Select "Build & Deploy on macOS Runner"
+# 3. Click "Run workflow"
+# 4. Choose configuration (Debug or Release)
+# 5. Optionally enable App Store submission
+# 6. Wait ~30-45 minutes for native compilation
+# 7. Download IPA from workflow artifacts
+```
+
+**What this workflow does**:
+- ✅ Compiles all native Turbo Modules (Battery, Sensors, DeviceInfo, etc.)
+- ✅ Builds iOS app with Xcode on macOS-15 runner
+- ✅ Creates installable .ipa file
+- ✅ Optionally submits directly to App Store
+- ✅ 100% free with GitHub Actions
+
+**Native modules included in build**:
+- BatteryTurboModule.mm
+- BrightnessTurboModule.mm
+- SensorsTurboModule.mm + .h
+- DeviceInfoTurboModule.mm
+- FlashlightTurboModule.mm
 
 ### Build Options
 
