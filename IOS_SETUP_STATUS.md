@@ -54,23 +54,27 @@ Add the `GH_PAT` secret to your repository:
 
 ## Why Pods Folder Is Important
 
-The `ios/Pods/` folder contains:
+The `ios/Pods/` folder and all generated binary files contain:
 - All React Native native modules (compiled)
 - Expo modules (compiled)
 - CocoaPods dependencies
 - Generated bridge code for React Native new architecture
+- Build artifacts from DerivedData and build folders
+- Pre-compiled binaries ready for immediate use
 
-**Without Pods committed:**
+**Without Pods and binaries committed:**
 - VibeCode must run `pod install` on every startup
-- Native modules must be recompiled
+- Native modules must be recompiled from scratch
 - Takes 5-15 minutes to initialize
 - Requires macOS with Xcode
+- Large compilation overhead
 
-**With Pods committed:**
+**With Pods and binaries committed:**
 - VibeCode loads instantly
-- Native modules pre-compiled
+- Native modules pre-compiled and ready
 - No build step required
 - Works on any VibeCode server
+- Complete native environment included
 
 ## Model Download Status
 
@@ -112,6 +116,12 @@ ios/
 │   ├── Pods.xcodeproj/
 │   ├── Target Support Files/
 │   └── [~50 pod dependencies]/
+├── DerivedData/                      ❌ Missing (needs commit)
+│   └── Build/
+│       ├── Products/                 (pre-compiled binaries)
+│       └── Intermediates.noindex/    (build cache)
+├── build/                            ❌ Missing (needs commit)
+│   └── generated/                    (codegen outputs)
 ├── offLLMAppStoreFixer/              ✅ Present
 │   ├── AppDelegate.swift
 │   ├── Info.plist

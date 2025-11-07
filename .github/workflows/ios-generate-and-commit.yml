@@ -125,15 +125,18 @@ jobs:
 
           echo "scheme=$SCHEME_DETECT" >> "$GITHUB_OUTPUT"
 
-      - name: 🧹 Prune heavy build artefacts (keep only sources we want in git)
+      - name: 📋 List generated files (keeping all artifacts)
         shell: bash
         run: |
-          # We keep Pods and generated code, but drop big binary outputs.
-          rm -rf ios/DerivedData/Build/Products
-          rm -rf ios/DerivedData/Build/Intermediates.noindex
-          # Optional: keep only deterministic codegen dirs if present
+          echo "✅ Keeping all generated files including binaries"
+          echo "📁 Generated sources:"
           find ios -type d -name "GeneratedSources" -maxdepth 3 -print || true
           find ios -type d -name "generated" -maxdepth 3 -print || true
+          echo "📦 Pods directory size:"
+          du -sh ios/Pods 2>/dev/null || echo "Pods not found"
+          echo "🔨 Build artifacts:"
+          du -sh ios/DerivedData 2>/dev/null || echo "DerivedData not found"
+          du -sh ios/build 2>/dev/null || echo "build not found"
 
       - name: 🗂️ Normalise line endings & file modes
         run: |

@@ -36,9 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# iOS build artefacts (drop large binaries, keep sources)
-ios/DerivedData/
-ios/build/
+# iOS - KEEP all generated files including binaries for VibeCode
+# Only exclude Xcode user-specific files
 *.ipa
 *.dSYM.zip
 
@@ -52,6 +51,9 @@ ios/build/
 # CocoaPods - WE KEEP Pods for VibeCode reproducibility
 !ios/Pods/**
 !ios/Podfile.lock
+# Keep DerivedData and build folders
+!ios/DerivedData/**
+!ios/build/**
 
 # Android large outputs
 android/.gradle/
