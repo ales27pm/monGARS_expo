@@ -4,7 +4,8 @@
 
 # Xcode
 #
-build/
+# NOTE: We KEEP build/ and DerivedData for VibeCode - commented out below
+# build/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -16,7 +17,7 @@ build/
 xcuserdata
 *.xccheckout
 *.moved-aside
-DerivedData
+# DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
@@ -27,4 +28,5 @@ project.xcworkspace
 *.jsbundle
 
 # CocoaPods
-/Pods/
+# NOTE: We KEEP Pods for VibeCode - commented out below
+# /Pods/
