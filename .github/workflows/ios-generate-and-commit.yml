@@ -1,5 +1,15 @@
 name: iOS — Generate Native Files & Commit
 
+# This workflow generates iOS native files (Pods, codegen) and commits them for VibeCode.
+#
+# SETUP REQUIRED:
+# To create pull requests, you need to either:
+# 1. Add a Personal Access Token (PAT) as a secret named GH_PAT with repo permissions, OR
+# 2. Go to Settings > Actions > General > Workflow permissions and enable
+#    "Allow GitHub Actions to create and approve pull requests"
+#
+# Without this setup, you can still use "direct_push" mode to commit directly to your branch.
+
 on:
   workflow_dispatch:
     inputs:
@@ -156,6 +166,7 @@ jobs:
         if: ${{ env.PUSH_MODE == 'pull_request' }}
         uses: peter-evans/create-pull-request@v6
         with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           commit-message: "chore(ios): commit generated native files (Pods, codegen, prebuild) — ${{ env.BUILD_CONFIGURATION }}"
           branch: chore/ios-generated-${{ github.run_id }}
           title: "iOS: add generated native files (Pods + codegen)"
