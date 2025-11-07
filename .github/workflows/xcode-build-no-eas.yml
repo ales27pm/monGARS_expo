@@ -310,8 +310,8 @@ jobs:
 
           # Check if we have signing credentials
           if [ -n "$APPLE_CERTIFICATE" ]; then
-            echo "🔐 Building with code signing"
-            # Build with signing
+            echo "🔐 Building with code signing for device"
+            # Build archive for device (requires signing)
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
@@ -321,23 +321,19 @@ jobs:
               -archivePath "./build/App.xcarchive" \
               archive \
               -allowProvisioningUpdates
+            echo "✅ Archive created successfully"
           else
             echo "⚠️ Building without code signing (simulator only)"
-            # Build for simulator without signing
+            # Build for simulator (no archive, just build)
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
               -configuration "${{ inputs.configuration }}" \
               -sdk iphonesimulator \
-              -destination "generic/platform=iOS Simulator" \
-              -archivePath "./build/App.xcarchive" \
-              archive \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              -derivedDataPath "./build/DerivedData" \
+              build
+            echo "✅ Simulator build completed successfully"
           fi
-
-          echo "✅ Archive created successfully"
 
       - name: 📦 Export Archive to IPA
         env:
@@ -381,10 +377,26 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
-            echo "📦 Creating simulator build (no signing credentials)..."
-            cd ios/build/App.xcarchive/Products/Applications
-            zip -r ../../../../../App-Simulator.zip *.app
-            echo "✅ Simulator build created"
+            echo "📦 Creating simulator build package..."
+            cd ios
+
+            # Find the built .app in DerivedData
+            APP_PATH=$(find build/DerivedData/Build/Products/*-iphonesimulator -name "*.app" -type d | head -n 1)
+
+            if [ -z "$APP_PATH" ]; then
+              echo "❌ Could not find built .app"
+              echo "Searching in:"
+              find build/DerivedData -name "*.app" -type d || echo "No .app found"
+              exit 1
+            fi
+
+            echo "Found app at: $APP_PATH"
+
+            # Create zip
+            cd "$(dirname "$APP_PATH")"
+            zip -r ../../../../App-Simulator.zip "$(basename "$APP_PATH")"
+
+            echo "✅ Simulator build created: App-Simulator.zip"
           else
             echo "⚠️ Skipping simulator build (signed IPA created instead)"
           fi
