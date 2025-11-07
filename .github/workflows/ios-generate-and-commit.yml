@@ -144,6 +144,20 @@ jobs:
           git config core.autocrlf false
           git config core.filemode false
 
+      - name: 🔍 Debug git status & ignore rules
+        shell: bash
+        run: |
+          echo "📋 Git status (porcelain):"
+          git status --porcelain=v1 | head -50
+          echo ""
+          echo "🔍 Checking ignore rules for key paths:"
+          git check-ignore -v ios/Pods ios/Pods/** ios/Podfile.lock ios/build/generated ios/build/generated/** ios/DerivedData ios/DerivedData/** || true
+          echo ""
+          echo "📁 Verifying files exist:"
+          ls -lah ios/Pods 2>/dev/null | head -10 || echo "❌ ios/Pods not found"
+          ls -lah ios/build 2>/dev/null | head -10 || echo "⚠️ ios/build not found"
+          ls -lah ios/DerivedData 2>/dev/null | head -10 || echo "⚠️ ios/DerivedData not found"
+
       - name: 📝 Commit generated iOS sources (Pods + codegen + prebuild)
         if: ${{ env.PUSH_MODE == 'direct_push' }}
         shell: bash

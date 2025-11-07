@@ -49,11 +49,13 @@ yarn-error.*
 **/*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 
 # CocoaPods - WE KEEP Pods for VibeCode reproducibility
-# !ios/Pods/**
-# !ios/Podfile.lock
-# Keep DerivedData and build folders
-# !ios/DerivedData/**
-# !ios/build/**
+!ios/Pods/**
+!ios/Podfile.lock
+# Keep DerivedData and build folders with generated code
+!ios/DerivedData/**
+!ios/build/**
+!ios/build/generated/**
+
 
 # Android large outputs
 android/.gradle/
