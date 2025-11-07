@@ -127,16 +127,16 @@ A fully-featured AI application that runs entirely on your device with semantic 
 
 ## 🚀 Quick Start
 
-### ⚠️ Important: Xcode Requirements
+### ⚠️ Important: Building for Native Modules
 
-**This app requires Xcode 16.2+ (iOS 18 SDK) to build.**
+**To test on-device AI, you need to build the app** (Vibecode preview can't run native modules).
 
-If you encounter build errors like `onGeometryChange not found`, see **[BUILD_FIX.md](./BUILD_FIX.md)** for detailed solutions.
+📖 **Complete Guide**: See [BUILDING.md](./BUILDING.md) for step-by-step instructions
 
-**Build Options:**
-- ✅ **Local builds**: See **[LOCAL_BUILD_GUIDE.md](./LOCAL_BUILD_GUIDE.md)** for step-by-step instructions
-- ✅ **Cloud builds**: Use EAS → `eas build --platform ios --profile production`
-- 🤖 **Automated**: Use GitHub Actions workflows (handles everything automatically)
+**Quick Summary**:
+- ✅ **EAS Build** (recommended): No Mac required, automated, creates installable .ipa
+- ✅ **Xcode Build**: Full control, local development, requires macOS
+- ⚠️ **Vibecode**: UI/UX preview only, native modules won't work
 
 ### Current Setup (Vibecode)
 
