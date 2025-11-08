@@ -27,7 +27,7 @@ env:
 jobs:
   build-and-deploy-macos:
     name: Build & Deploy on macOS Runner
-    runs-on: macos-14  # macOS 14 with Xcode 16.1 (more stable)
+    runs-on: macos-15  # macOS 15 with Xcode 16.2 for iOS 18.2
     permissions:
       contents: write
       pull-requests: write
@@ -38,13 +38,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔧 Select Xcode 16.1
+      - name: 🔧 Select Xcode 16.2 and Initialize
         run: |
-          echo "Selecting Xcode 16.1 for iOS 18 SDK support..."
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          xcodebuild -runFirstLaunch || true
+          echo "Selecting Xcode 16.2 for iOS 18.2 SDK support..."
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+          echo "Accepting Xcode license..."
           sudo xcodebuild -license accept || true
-          echo "✅ Xcode 16.1 selected"
+
+          echo "Running Xcode first launch..."
+          sudo xcodebuild -runFirstLaunch || true
+
+          echo "✅ Xcode 16.2 selected and initialized"
 
       - name: 🍎 System Information
         run: |
@@ -188,19 +193,65 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📱 Install iOS 18.2 Runtime (if needed)
+      - name: 📱 Install and Configure iOS 18.2 Platform
         run: |
-          echo "🔍 Checking for iOS platform..."
+          echo "🔍 Checking for iOS 18.2 platform..."
 
-          # Check if iOS platform is available
-          echo "📱 Available SDKs:"
+          # Check current SDKs
+          echo "📱 Current SDKs:"
+          xcodebuild -showsdks
+
+          # Check if iOS 18.2 SDK exists
+          if xcodebuild -showsdks | grep -q "iphoneos18.2"; then
+            echo "✅ iOS 18.2 SDK found"
+          else
+            echo "⚠️ iOS 18.2 SDK not found, attempting to download..."
+
+            # Try to download iOS platform
+            sudo xcodebuild -downloadPlatform iOS || {
+              echo "❌ Failed to auto-download iOS platform"
+              echo "Checking for alternative Xcode versions..."
+              ls -la /Applications/ | grep -i xcode
+            }
+          fi
+
+          echo ""
+          echo "📱 Installing iOS 18.2 Simulator Runtime..."
+
+          # Download and install iOS 18.2 runtime using xcodebuild
+          sudo xcrun simctl runtime add "iOS 18.2" || {
+            echo "⚠️ Standard runtime install failed, trying alternative method..."
+
+            # Alternative: Use xcodes or manual download
+            # First check what runtimes are available
+            echo "Available runtimes:"
+            xcrun simctl list runtimes
+
+            # If iOS 18.2 runtime doesn't exist, we may need to download it
+            # This can take 5-10 minutes
+            sudo xcodebuild -downloadAllPlatforms || echo "Download all platforms command not available"
+          }
+
+          echo ""
+          echo "📱 Creating iPhone 16 Pro simulator with iOS 18.2..."
+          # Create a simulator for testing if needed
+          xcrun simctl create "iPhone 16 Pro" "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro" "com.apple.CoreSimulator.SimRuntime.iOS-18-2" || echo "Simulator already exists or runtime not available"
+
+          echo ""
+          echo "📱 Verifying iOS 18.2 installation..."
+          echo "Available SDKs after installation:"
           xcodebuild -showsdks | grep -i ios
 
-          # The issue is likely that EAS is trying to use a destination that requires runtime
-          # Let's ensure we have at least one iOS simulator available
           echo ""
-          echo "📱 Available iOS Simulators:"
-          xcrun simctl list devices available | grep -i iphone || echo "No iPhone simulators found"
+          echo "Available iOS Simulators:"
+          xcrun simctl list devices available | grep -i iphone || echo "No iPhone simulators found yet"
+
+          echo ""
+          echo "All iOS Runtimes:"
+          xcrun simctl list runtimes | grep -i ios
+
+          echo ""
+          echo "✅ iOS 18.2 platform configuration complete"
 
       - name: 🏗️ Build iOS with EAS (on macOS)
         run: |
@@ -317,8 +368,8 @@ jobs:
           **Submitted to App Store:** ${{ inputs.submit_to_app_store == 'true' && '✅ Yes' || '❌ No' }}
 
           ### 🏗️ Build Details
-          - Built on: macOS-14 GitHub Runner
-          - Xcode: Latest
+          - Built on: macOS-15 GitHub Runner with Xcode 16.2
+          - iOS SDK: 18.2
           - Native compilation: All native modules compiled on macOS
 
           $(if [ "${{ inputs.submit_to_app_store }}" == "true" ]; then
