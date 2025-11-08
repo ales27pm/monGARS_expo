@@ -11,6 +11,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.vibecode.offllmappstorefixer-iz6sup",
       "buildNumber": "5",
+      "deploymentTarget": "16.0",
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "offLLM App Store Fixer uses speech recognition to turn your spoken words into text inside the app.",
         "ITSAppUsesNonExemptEncryption": false

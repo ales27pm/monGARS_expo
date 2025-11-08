@@ -16,7 +16,10 @@
     "production": {
       "env": {},
       "ios": {
-        "distribution": "store"
+        "distribution": "store",
+        "buildConfiguration": "Release",
+        "simulator": false,
+        "resourceClass": "m-medium"
       },
       "android": {
         "distribution": "store"
