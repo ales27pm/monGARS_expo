@@ -238,6 +238,34 @@ export class AIAgent {
       case "clipboard_set":
         return await CustomModules.ClipboardModule.setString(params.content);
 
+      // AI/ML
+      case "mlx_load_model":
+        return await CustomModules.MLXModule.loadModel(params.modelId, params.options);
+
+      case "mlx_generate":
+        return await CustomModules.MLXModule.generate(
+          params.modelId,
+          params.prompt,
+          params.options
+        );
+
+      case "mlx_chat_session":
+        return await CustomModules.MLXModule.createChatSession(
+          params.modelId,
+          params.sessionId,
+          params.systemPrompt
+        );
+
+      case "mlx_chat_respond":
+        return await CustomModules.MLXModule.chatRespond(
+          params.sessionId,
+          params.message,
+          params.options
+        );
+
+      case "mlx_recommended_models":
+        return await CustomModules.MLXModule.getRecommendedModels();
+
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -268,7 +296,7 @@ export class AIAgent {
    * Build comprehensive system prompt for LLM
    */
   private getSystemPrompt(): string {
-    return `You are an AI agent with access to 20 native iOS capabilities. Your role is to:
+    return `You are an AI agent with access to 21 native iOS capabilities. Your role is to:
 
 1. Understand user requests and their underlying intent
 2. Reason about which native tools are needed
@@ -309,7 +337,8 @@ Respond with a JSON object containing:
       "Device": ["battery_monitoring", "brightness_control", "sensor_data", "device_info", "flashlight_control"],
       "Communication": ["calendar_event", "take_photo", "find_contacts", "get_location", "send_sms", "compose_email"],
       "Media": ["pick_photo", "web_fetch", "web_scrape"],
-      "Advanced": ["text_to_speech", "speech_to_text", "ocr_recognize", "haptic_feedback", "biometric_auth", "clipboard_get", "clipboard_set"]
+      "Advanced": ["text_to_speech", "speech_to_text", "ocr_recognize", "haptic_feedback", "biometric_auth", "clipboard_get", "clipboard_set"],
+      "AI/ML": ["mlx_load_model", "mlx_generate", "mlx_chat_session", "mlx_chat_respond", "mlx_recommended_models"]
     };
 
     return Object.entries(capabilities)

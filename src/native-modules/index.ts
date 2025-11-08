@@ -1,4 +1,4 @@
-// Native iOS Modules - Turbo Modules (20 Modules Total)
+// Native iOS Modules - Turbo Modules (21 Modules Total)
 // These modules provide direct access to native iOS functionality
 // Compiled on macOS runners for full native performance
 
@@ -19,7 +19,7 @@ export { default as MessagesModule } from "./MessagesModule";
 export { default as PhotosModule } from "./PhotosModule";
 export { default as MailComposerModule } from "./MailComposerModule";
 
-// Advanced Features (7 modules)
+// Advanced Features (8 modules)
 export { default as SpeechModule } from "./SpeechModule";
 export { default as SpeechRecognitionModule } from "./SpeechRecognitionModule";
 export { default as OCRModule } from "./OCRModule";
@@ -27,3 +27,4 @@ export { default as HapticsModule } from "./HapticsModule";
 export { default as BiometricsModule } from "./BiometricsModule";
 export { default as ClipboardModule } from "./ClipboardModule";
 export { default as WebModule } from "./WebModule";
+export { default as MLXModule, MLXEventEmitter } from "./MLXModule";
