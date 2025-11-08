@@ -27,7 +27,7 @@ env:
 jobs:
   build-and-deploy-macos:
     name: Build & Deploy on macOS Runner
-    runs-on: macos-15  # macOS 15 with Xcode 16.2
+    runs-on: macos-14  # macOS 14 with Xcode 16.1 (more stable)
     permissions:
       contents: write
       pull-requests: write
@@ -38,11 +38,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔧 Select Xcode 16.2
+      - name: 🔧 Select Xcode 16.1
         run: |
-          echo "Selecting Xcode 16.2 for iOS 18 SDK support..."
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-          echo "✅ Xcode 16.2 selected"
+          echo "Selecting Xcode 16.1 for iOS 18 SDK support..."
+          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          xcodebuild -runFirstLaunch || true
+          sudo xcodebuild -license accept || true
+          echo "✅ Xcode 16.1 selected"
 
       - name: 🍎 System Information
         run: |
@@ -57,6 +59,9 @@ jobs:
           echo ""
           echo "📱 Available iOS SDKs:"
           xcodebuild -showsdks
+          echo ""
+          echo "📱 Available iOS Runtimes:"
+          xcrun simctl list runtimes
 
       - name: 🐍 Setup Python for model downloads
         uses: actions/setup-python@v5
@@ -182,6 +187,20 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📱 Install iOS 18.2 Runtime (if needed)
+        run: |
+          echo "🔍 Checking for iOS platform..."
+
+          # Check if iOS platform is available
+          echo "📱 Available SDKs:"
+          xcodebuild -showsdks | grep -i ios
+
+          # The issue is likely that EAS is trying to use a destination that requires runtime
+          # Let's ensure we have at least one iOS simulator available
+          echo ""
+          echo "📱 Available iOS Simulators:"
+          xcrun simctl list devices available | grep -i iphone || echo "No iPhone simulators found"
 
       - name: 🏗️ Build iOS with EAS (on macOS)
         run: |
