@@ -29,11 +29,7 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "ascAppId": "AUTO",
-        "appleTeamId": "AUTO",
-        "ascApiKeyPath": "./eas-credentials/asc-api-key.json"
-      }
+      "ios": {}
     }
   }
 }
