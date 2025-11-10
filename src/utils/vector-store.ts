@@ -126,7 +126,7 @@ export class VectorStore {
   /**
    * Add multiple embeddings in batch
    */
-  async addBatch(embeddings: Array<Omit<Embedding, "id">>): Promise<string[]> {
+  async addBatch(embeddings: Omit<Embedding, "id">[]): Promise<string[]> {
     await this.waitUntilReady();
     const ids: string[] = [];
 
@@ -178,7 +178,7 @@ export class VectorStore {
       }
     }
 
-    const mismatched: Array<{ id: string; expected: number; actual: number }> = [];
+    const mismatched: { id: string; expected: number; actual: number }[] = [];
     const compatibleEmbeddings = embeddings.filter((embedding) => {
       if (embedding.vector.length !== queryVector.length) {
         mismatched.push({ id: embedding.id, expected: queryVector.length, actual: embedding.vector.length });

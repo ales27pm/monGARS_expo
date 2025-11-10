@@ -68,7 +68,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
    */
   const buildMessages = useCallback(
     (userMessage: string) => {
-      const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [];
+      const messages: { role: "user" | "assistant" | "system"; content: string }[] = [];
 
       // Add system prompt if provided
       if (options?.systemPrompt) {

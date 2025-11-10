@@ -7,32 +7,8 @@ let secureStoreModule: SecureStoreModule | null = null;
 let cryptoModule: CryptoModule | null = null;
 let loggedSecureFallback = false;
 let loggedCryptoFallback = false;
-
-try {
-  secureStoreModule = require("expo-secure-store");
-} catch (error) {
-  secureStoreModule = null;
-  if (!loggedSecureFallback) {
-    console.warn(
-      "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
-      error instanceof Error ? error.message : error,
-    );
-    loggedSecureFallback = true;
-  }
-}
-
-try {
-  cryptoModule = require("expo-crypto");
-} catch (error) {
-  cryptoModule = null;
-  if (!loggedCryptoFallback) {
-    console.warn(
-      "[SecureKeyProvider] expo-crypto unavailable. Falling back to global crypto APIs for randomness.",
-      error instanceof Error ? error.message : error,
-    );
-    loggedCryptoFallback = true;
-  }
-}
+let secureStorePromise: Promise<SecureStoreModule | null> | null = null;
+let cryptoModulePromise: Promise<CryptoModule | null> | null = null;
 
 interface SecureStoreLike {
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: string | number;
@@ -52,11 +28,80 @@ const fallbackSecureStore: SecureStoreLike = {
   },
 };
 
-const SecureStore: SecureStoreLike = secureStoreModule ?? fallbackSecureStore;
+async function resolveSecureStore(): Promise<SecureStoreLike> {
+  if (secureStoreModule) {
+    return secureStoreModule as SecureStoreLike;
+  }
+
+  if (!secureStorePromise) {
+    secureStorePromise = import("expo-secure-store")
+      .then((module) => module)
+      .catch((error: unknown) => {
+        if (!loggedSecureFallback) {
+          console.warn(
+            "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
+            error instanceof Error ? error.message : error,
+          );
+          loggedSecureFallback = true;
+        }
+        return null;
+      });
+  }
+
+  const module = await secureStorePromise;
+  if (module) {
+    secureStoreModule = module;
+    return module as SecureStoreLike;
+  }
+
+  if (!loggedSecureFallback) {
+    console.warn(
+      "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
+    );
+    loggedSecureFallback = true;
+  }
+
+  return fallbackSecureStore;
+}
+
+async function resolveCryptoModule(): Promise<CryptoModule | null> {
+  if (cryptoModule) {
+    return cryptoModule;
+  }
+
+  if (!cryptoModulePromise) {
+    cryptoModulePromise = import("expo-crypto")
+      .then((module) => module)
+      .catch((error: unknown) => {
+        if (!loggedCryptoFallback) {
+          console.warn(
+            "[SecureKeyProvider] expo-crypto unavailable. Falling back to global crypto APIs for randomness.",
+            error instanceof Error ? error.message : error,
+          );
+          loggedCryptoFallback = true;
+        }
+        return null;
+      });
+  }
+
+  const module = await cryptoModulePromise;
+  if (module) {
+    cryptoModule = module;
+    return module;
+  }
+
+  if (!loggedCryptoFallback) {
+    console.warn("[SecureKeyProvider] expo-crypto unavailable. Falling back to global crypto APIs for randomness.");
+    loggedCryptoFallback = true;
+  }
+
+  return null;
+}
 
 async function getRandomBytes(size: number): Promise<Uint8Array> {
-  if (cryptoModule?.getRandomBytesAsync) {
-    return cryptoModule.getRandomBytesAsync(size);
+  const expoCrypto = await resolveCryptoModule();
+  if (expoCrypto?.getRandomBytesAsync) {
+    return expoCrypto.getRandomBytesAsync(size);
   }
 
   if (typeof globalThis.crypto?.getRandomValues === "function") {
@@ -65,11 +110,11 @@ async function getRandomBytes(size: number): Promise<Uint8Array> {
     return buffer;
   }
 
-  if (typeof require === "function") {
+  if (typeof process !== "undefined" && process.versions?.node) {
     try {
-      const nodeCrypto = require("crypto");
+      const nodeCrypto = await import("crypto");
       if (typeof nodeCrypto.randomBytes === "function") {
-        const buffer: Uint8Array = nodeCrypto.randomBytes(size);
+        const buffer = nodeCrypto.randomBytes(size);
         return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
       }
     } catch (error) {
@@ -99,12 +144,13 @@ export async function getOrCreateVectorStoreKey(): Promise<string> {
 
   if (!inFlight) {
     inFlight = (async () => {
-      let key = await SecureStore.getItemAsync(STORAGE_KEY);
+      const secureStore = await resolveSecureStore();
+      let key = await secureStore.getItemAsync(STORAGE_KEY);
 
       if (!key) {
         key = await generateKey();
-        await SecureStore.setItemAsync(STORAGE_KEY, key, {
-          keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+        await secureStore.setItemAsync(STORAGE_KEY, key, {
+          keychainAccessible: secureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
         });
       }
 

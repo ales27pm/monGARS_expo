@@ -82,7 +82,7 @@ export default function OnDeviceMLDemo() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Chat state
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -214,6 +214,7 @@ export default function OnDeviceMLDemo() {
           const llmInstance = getGlobalLLM();
           setLlm(llmInstance);
         } catch (error) {
+          console.error("[OnDeviceMLDemo] Failed to load on-device LLM module", error);
           setModal({
             visible: true,
             title: "Module Not Available",

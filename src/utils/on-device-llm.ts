@@ -303,7 +303,7 @@ export class OnDeviceLLM {
    * Chat-style inference (maintains conversation context)
    */
   async chat(
-    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    messages: { role: "system" | "user" | "assistant"; content: string }[],
     options: InferenceOptions = {},
   ): Promise<string> {
     // Format messages into prompt

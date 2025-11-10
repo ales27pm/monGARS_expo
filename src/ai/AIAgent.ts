@@ -1,4 +1,3 @@
-import { NativeEventEmitter } from "react-native";
 import * as CustomModules from "../native-modules";
 
 /**
@@ -7,12 +6,6 @@ import * as CustomModules from "../native-modules";
  * This agent can reason about tasks and intelligently use all 20 native modules
  * to accomplish complex real-world tasks on iOS.
  */
-
-interface Task {
-  type: string;
-  description: string;
-  params: any;
-}
 
 interface AgentContext {
   userIntent: string;
@@ -422,6 +415,8 @@ Provide your decision in the specified JSON format.`;
 
 Execution Results:
 ${results.map((r) => `- ${r.tool}: ${r.success ? "Success" : "Failed"}`).join("\n")}
+
+Summary Statistics: ${successCount} succeeded, ${failureCount} failed.
 
 ${decision.reasoning}
 

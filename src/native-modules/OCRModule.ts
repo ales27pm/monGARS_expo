@@ -14,11 +14,11 @@ interface OCRTurboModuleType {
    * @returns Promise with array of text observations
    */
   recognizeTextDetailed(imagePath: string): Promise<{
-    observations: Array<{
+    observations: {
       text: string;
       confidence: number;
       boundingBox: { x: number; y: number; width: number; height: number };
-    }>;
+    }[];
   }>;
 }
 

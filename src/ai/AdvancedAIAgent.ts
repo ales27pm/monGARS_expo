@@ -1,4 +1,3 @@
-import { NativeEventEmitter } from "react-native";
 import * as CustomModules from "../native-modules";
 
 /**
@@ -15,17 +14,6 @@ import * as CustomModules from "../native-modules";
  */
 
 // ==================== TYPE DEFINITIONS ====================
-
-interface Task {
-  id: string;
-  type: string;
-  description: string;
-  params: Record<string, any>;
-  priority: number;
-  dependencies?: string[];
-  retries?: number;
-  timeout?: number;
-}
 
 interface AgentContext {
   userIntent: string;
@@ -147,7 +135,7 @@ export class AdvancedAIAgent {
       successRate: 1.0,
       cacheHitRate: 0,
       mostUsedTools: [],
-      errorRate: 0
+      errorRate: 0,
     };
 
     this.context = {
@@ -161,8 +149,8 @@ export class AdvancedAIAgent {
         toolUsageCount: {},
         errorCount: 0,
         totalTokens: 0,
-        cacheHits: 0
-      }
+        cacheHits: 0,
+      },
     };
   }
 
@@ -177,7 +165,7 @@ export class AdvancedAIAgent {
         description: "Get current battery level and charging status",
         averageDuration: 10,
         reliability: 0.99,
-        examples: ["Check battery before starting intensive task", "Monitor power status"]
+        examples: ["Check battery before starting intensive task", "Monitor power status"],
       },
       {
         name: "brightness_control",
@@ -185,7 +173,7 @@ export class AdvancedAIAgent {
         description: "Get or set screen brightness (0.0-1.0)",
         averageDuration: 15,
         reliability: 0.98,
-        examples: ["Adjust brightness based on ambient light", "Dim screen to save battery"]
+        examples: ["Adjust brightness based on ambient light", "Dim screen to save battery"],
       },
       {
         name: "sensors_read",
@@ -193,7 +181,7 @@ export class AdvancedAIAgent {
         description: "Read accelerometer, gyroscope, magnetometer data",
         averageDuration: 50,
         reliability: 0.95,
-        examples: ["Detect device orientation", "Track movement patterns"]
+        examples: ["Detect device orientation", "Track movement patterns"],
       },
       {
         name: "device_info",
@@ -201,7 +189,7 @@ export class AdvancedAIAgent {
         description: "Get device model, OS version, and capabilities",
         averageDuration: 5,
         reliability: 0.99,
-        examples: ["Check device compatibility", "Get system information"]
+        examples: ["Check device compatibility", "Get system information"],
       },
       {
         name: "flashlight_toggle",
@@ -209,7 +197,7 @@ export class AdvancedAIAgent {
         description: "Turn flashlight on/off or set brightness",
         averageDuration: 20,
         reliability: 0.97,
-        examples: ["Enable flashlight in dark", "Use as notification indicator"]
+        examples: ["Enable flashlight in dark", "Use as notification indicator"],
       },
 
       // Communication & Calendar
@@ -221,7 +209,7 @@ export class AdvancedAIAgent {
         averageDuration: 100,
         reliability: 0.95,
         dependencies: [],
-        examples: ["Schedule meeting", "Set reminder for task"]
+        examples: ["Schedule meeting", "Set reminder for task"],
       },
       {
         name: "camera_take_photo",
@@ -229,8 +217,8 @@ export class AdvancedAIAgent {
         description: "Capture photo from camera",
         requiredPermissions: ["camera"],
         averageDuration: 2000,
-        reliability: 0.90,
-        examples: ["Take picture of document", "Capture scene for analysis"]
+        reliability: 0.9,
+        examples: ["Take picture of document", "Capture scene for analysis"],
       },
       {
         name: "find_contacts",
@@ -239,7 +227,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["contacts"],
         averageDuration: 50,
         reliability: 0.96,
-        examples: ["Find contact info", "Search for person by name"]
+        examples: ["Find contact info", "Search for person by name"],
       },
       {
         name: "get_location",
@@ -248,7 +236,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["location"],
         averageDuration: 1000,
         reliability: 0.92,
-        examples: ["Get current position", "Track location for context"]
+        examples: ["Get current position", "Track location for context"],
       },
       {
         name: "send_sms",
@@ -257,7 +245,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["messaging"],
         averageDuration: 1500,
         reliability: 0.93,
-        examples: ["Send text message", "Share info via SMS"]
+        examples: ["Send text message", "Share info via SMS"],
       },
       {
         name: "compose_email",
@@ -266,7 +254,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["email"],
         averageDuration: 2000,
         reliability: 0.94,
-        examples: ["Send email with attachments", "Share report via email"]
+        examples: ["Send email with attachments", "Share report via email"],
       },
 
       // Media
@@ -277,7 +265,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["photos"],
         averageDuration: 2000,
         reliability: 0.91,
-        examples: ["Choose image for processing", "Select photo to share"]
+        examples: ["Choose image for processing", "Select photo to share"],
       },
       {
         name: "web_fetch",
@@ -285,7 +273,7 @@ export class AdvancedAIAgent {
         description: "Fetch content from URL",
         averageDuration: 1000,
         reliability: 0.88,
-        examples: ["Download web page", "Fetch API data"]
+        examples: ["Download web page", "Fetch API data"],
       },
       {
         name: "web_scrape",
@@ -294,7 +282,7 @@ export class AdvancedAIAgent {
         averageDuration: 2000,
         reliability: 0.85,
         dependencies: ["web_fetch"],
-        examples: ["Extract article text", "Parse structured data from website"]
+        examples: ["Extract article text", "Parse structured data from website"],
       },
 
       // Advanced AI Features
@@ -304,7 +292,7 @@ export class AdvancedAIAgent {
         description: "Convert text to spoken audio",
         averageDuration: 500,
         reliability: 0.97,
-        examples: ["Read text aloud", "Provide audio feedback"]
+        examples: ["Read text aloud", "Provide audio feedback"],
       },
       {
         name: "speech_to_text",
@@ -313,7 +301,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["microphone"],
         averageDuration: 3000,
         reliability: 0.92,
-        examples: ["Voice command input", "Transcribe voice note"]
+        examples: ["Voice command input", "Transcribe voice note"],
       },
       {
         name: "ocr_recognize",
@@ -322,7 +310,7 @@ export class AdvancedAIAgent {
         averageDuration: 1500,
         reliability: 0.93,
         dependencies: ["camera_take_photo"],
-        examples: ["Scan document", "Read text from image"]
+        examples: ["Scan document", "Read text from image"],
       },
       {
         name: "haptic_feedback",
@@ -330,7 +318,7 @@ export class AdvancedAIAgent {
         description: "Trigger haptic feedback",
         averageDuration: 10,
         reliability: 0.99,
-        examples: ["Confirm action", "Alert user"]
+        examples: ["Confirm action", "Alert user"],
       },
       {
         name: "biometric_auth",
@@ -339,7 +327,7 @@ export class AdvancedAIAgent {
         requiredPermissions: ["biometrics"],
         averageDuration: 2000,
         reliability: 0.96,
-        examples: ["Secure sensitive action", "Verify user identity"]
+        examples: ["Secure sensitive action", "Verify user identity"],
       },
       {
         name: "clipboard_get",
@@ -347,7 +335,7 @@ export class AdvancedAIAgent {
         description: "Get text from clipboard",
         averageDuration: 5,
         reliability: 0.99,
-        examples: ["Read copied text", "Get clipboard content"]
+        examples: ["Read copied text", "Get clipboard content"],
       },
       {
         name: "clipboard_set",
@@ -355,7 +343,7 @@ export class AdvancedAIAgent {
         description: "Copy text to clipboard",
         averageDuration: 5,
         reliability: 0.99,
-        examples: ["Copy result to clipboard", "Share text via clipboard"]
+        examples: ["Copy result to clipboard", "Share text via clipboard"],
       },
 
       // MLX AI/ML
@@ -364,8 +352,8 @@ export class AdvancedAIAgent {
         category: "ml",
         description: "Load LLM model for on-device inference",
         averageDuration: 5000,
-        reliability: 0.90,
-        examples: ["Load AI model for chat", "Initialize LLM"]
+        reliability: 0.9,
+        examples: ["Load AI model for chat", "Initialize LLM"],
       },
       {
         name: "mlx_generate",
@@ -374,7 +362,7 @@ export class AdvancedAIAgent {
         averageDuration: 3000,
         reliability: 0.92,
         dependencies: ["mlx_load_model"],
-        examples: ["Generate AI response", "Create text completion"]
+        examples: ["Generate AI response", "Create text completion"],
       },
       {
         name: "mlx_chat_session",
@@ -383,7 +371,7 @@ export class AdvancedAIAgent {
         averageDuration: 100,
         reliability: 0.95,
         dependencies: ["mlx_load_model"],
-        examples: ["Start AI conversation", "Initialize chat with context"]
+        examples: ["Start AI conversation", "Initialize chat with context"],
       },
       {
         name: "mlx_chat_respond",
@@ -392,7 +380,7 @@ export class AdvancedAIAgent {
         averageDuration: 2500,
         reliability: 0.93,
         dependencies: ["mlx_chat_session"],
-        examples: ["Continue conversation", "Ask AI question"]
+        examples: ["Continue conversation", "Ask AI question"],
       },
       {
         name: "mlx_recommended_models",
@@ -400,11 +388,11 @@ export class AdvancedAIAgent {
         description: "Get recommended models for device",
         averageDuration: 50,
         reliability: 0.98,
-        examples: ["Find suitable AI model", "Check device compatibility"]
-      }
+        examples: ["Find suitable AI model", "Check device compatibility"],
+      },
     ];
 
-    return new Map(capabilities.map(cap => [cap.name, cap]));
+    return new Map(capabilities.map((cap) => [cap.name, cap]));
   }
 
   // ==================== ADVANCED REASONING ENGINE ====================
@@ -428,11 +416,7 @@ export class AdvancedAIAgent {
       const relevantMemories = await this.retrieveRelevantMemories(userRequest);
 
       // 4. Build enhanced reasoning prompt with few-shot examples
-      const reasoningPrompt = this.buildEnhancedReasoningPrompt(
-        userRequest,
-        deviceState,
-        relevantMemories
-      );
+      const reasoningPrompt = this.buildEnhancedReasoningPrompt(userRequest, deviceState, relevantMemories);
 
       // 5. Get LLM decision with structured output
       const llmResponse = await this.callLLMWithRetry(reasoningPrompt);
@@ -454,7 +438,6 @@ export class AdvancedAIAgent {
       this.updatePerformanceMetrics(duration, true);
 
       return decision;
-
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Reasoning failed:", errorMessage);
@@ -472,7 +455,7 @@ export class AdvancedAIAgent {
   private buildEnhancedReasoningPrompt(
     userRequest: string,
     deviceState: DeviceState,
-    relevantMemories: VectorMemory[]
+    relevantMemories: VectorMemory[],
   ): string {
     const systemPrompt = this.getEnhancedSystemPrompt();
     const fewShotExamples = this.getFewShotExamples();
@@ -632,7 +615,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
   private formatToolReference(): string {
     const byCategory = new Map<string, ToolCapability[]>();
 
-    this.toolCapabilities.forEach(tool => {
+    this.toolCapabilities.forEach((tool) => {
       if (!byCategory.has(tool.category)) {
         byCategory.set(tool.category, []);
       }
@@ -642,7 +625,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
     let reference = "";
     byCategory.forEach((tools, category) => {
       reference += `\n${category.toUpperCase()}:\n`;
-      tools.forEach(tool => {
+      tools.forEach((tool) => {
         reference += `- ${tool.name}: ${tool.description} (${tool.averageDuration}ms, ${(tool.reliability * 100).toFixed(0)}% reliable)\n`;
         if (tool.dependencies && tool.dependencies.length > 0) {
           reference += `  Dependencies: ${tool.dependencies.join(", ")}\n`;
@@ -667,18 +650,16 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
 
     for (const level of executionLevels) {
       // Execute all tools in this level in parallel
-      const levelResults = await Promise.all(
-        level.map(tool => this.executeToolWithRetry(tool, executed))
-      );
+      const levelResults = await Promise.all(level.map((tool) => this.executeToolWithRetry(tool, executed)));
 
       results.push(...levelResults);
 
       // Mark as executed
-      level.forEach(tool => executed.add(tool.tool));
+      level.forEach((tool) => executed.add(tool.tool));
 
       // Stop if any critical tool failed
       const criticalFailure = levelResults.find(
-        r => !r.success && r.tool === level.find(t => t.priority > 8)?.tool
+        (r) => !r.success && r.tool === level.find((t) => t.priority > 8)?.tool,
       );
 
       if (criticalFailure) {
@@ -690,10 +671,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
     return results;
   }
 
-  private async executeToolWithRetry(
-    toolUse: ToolUse,
-    executedTools: Set<string>
-  ): Promise<ExecutionResult> {
+  private async executeToolWithRetry(toolUse: ToolUse, executedTools: Set<string>): Promise<ExecutionResult> {
     const startTime = Date.now();
     let retries = 0;
     const maxRetries = this.MAX_RETRIES;
@@ -708,7 +686,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         tool: toolUse.tool,
         result: cached,
         duration: Date.now() - startTime,
-        retries: 0
+        retries: 0,
       };
     }
 
@@ -728,9 +706,8 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
           tool: toolUse.tool,
           result,
           duration: Date.now() - startTime,
-          retries
+          retries,
         };
-
       } catch (error: unknown) {
         retries++;
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -742,7 +719,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
             tool: toolUse.tool,
             error: errorMessage,
             duration: Date.now() - startTime,
-            retries: retries - 1
+            retries: retries - 1,
           };
         }
 
@@ -760,7 +737,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       tool: toolUse.tool,
       error: "Max retries exceeded",
       duration: Date.now() - startTime,
-      retries: maxRetries
+      retries: maxRetries,
     };
   }
 
@@ -777,10 +754,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         return CustomModules.BrightnessModule.setBrightness(params.level ?? 0.5);
 
       case "sensors_read":
-        return CustomModules.SensorsModule.getSensorData(
-          params.type || "accelerometer",
-          params.duration || 1000
-        );
+        return CustomModules.SensorsModule.getSensorData(params.type || "accelerometer", params.duration || 1000);
 
       case "device_info":
         return CustomModules.DeviceInfoModule.getDeviceInfo();
@@ -796,7 +770,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
           params.endDate,
           params.durationSeconds,
           params.location,
-          params.notes
+          params.notes,
         );
 
       case "camera_take_photo":
@@ -809,10 +783,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         return CustomModules.LocationModule.getCurrentLocation();
 
       case "send_sms":
-        return CustomModules.MessagesModule.sendMessage(
-          params.phoneNumber,
-          params.body
-        );
+        return CustomModules.MessagesModule.sendMessage(params.phoneNumber, params.body);
 
       case "compose_email":
         return CustomModules.MailComposerModule.composeMail(params);
@@ -854,25 +825,13 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         return CustomModules.MLXModule.loadModel(params.modelId, params.options);
 
       case "mlx_generate":
-        return CustomModules.MLXModule.generate(
-          params.modelId,
-          params.prompt,
-          params.options
-        );
+        return CustomModules.MLXModule.generate(params.modelId, params.prompt, params.options);
 
       case "mlx_chat_session":
-        return CustomModules.MLXModule.createChatSession(
-          params.modelId,
-          params.sessionId,
-          params.systemPrompt
-        );
+        return CustomModules.MLXModule.createChatSession(params.modelId, params.sessionId, params.systemPrompt);
 
       case "mlx_chat_respond":
-        return CustomModules.MLXModule.chatRespond(
-          params.sessionId,
-          params.message,
-          params.options
-        );
+        return CustomModules.MLXModule.chatRespond(params.sessionId, params.message, params.options);
 
       case "mlx_recommended_models":
         return CustomModules.MLXModule.getRecommendedModels();
@@ -887,11 +846,8 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
   /**
    * Store interaction in vector memory with embedding
    */
-  private async storeInVectorMemory(
-    userRequest: string,
-    decision: AgentDecision
-  ): Promise<void> {
-    const content = `Request: ${userRequest} | Tools: ${decision.toolsToUse.map(t => t.tool).join(", ")} | Outcome: ${decision.expectedOutcome}`;
+  private async storeInVectorMemory(userRequest: string, decision: AgentDecision): Promise<void> {
+    const content = `Request: ${userRequest} | Tools: ${decision.toolsToUse.map((t) => t.tool).join(", ")} | Outcome: ${decision.expectedOutcome}`;
 
     // Simple embedding (in production, use actual embedding model)
     const embedding = this.generateSimpleEmbedding(content);
@@ -905,8 +861,8 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       metadata: {
         toolCount: decision.toolsToUse.length,
         confidence: decision.confidence,
-        estimatedTime: decision.estimatedTime
-      }
+        estimatedTime: decision.estimatedTime,
+      },
     };
 
     this.context.vectorMemory.push(memory);
@@ -928,18 +884,18 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
     const queryEmbedding = this.generateSimpleEmbedding(query);
 
     // Calculate similarity scores
-    const scored = this.context.vectorMemory.map(mem => ({
+    const scored = this.context.vectorMemory.map((mem) => ({
       memory: mem,
-      similarity: this.cosineSimilarity(queryEmbedding, mem.embedding)
+      similarity: this.cosineSimilarity(queryEmbedding, mem.embedding),
     }));
 
     // Sort by similarity and return top results
     return scored
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5)
-      .map(item => ({
+      .map((item) => ({
         ...item.memory,
-        relevance: item.similarity
+        relevance: item.similarity,
       }));
   }
 
@@ -949,17 +905,37 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
    */
   private generateSimpleEmbedding(text: string): number[] {
     const keywords = [
-      "battery", "brightness", "sensor", "device", "flashlight",
-      "calendar", "camera", "contact", "location", "sms", "email",
-      "photo", "web", "fetch", "scrape",
-      "speech", "voice", "ocr", "text", "haptic", "biometric", "clipboard",
-      "ai", "llm", "model", "chat", "generate"
+      "battery",
+      "brightness",
+      "sensor",
+      "device",
+      "flashlight",
+      "calendar",
+      "camera",
+      "contact",
+      "location",
+      "sms",
+      "email",
+      "photo",
+      "web",
+      "fetch",
+      "scrape",
+      "speech",
+      "voice",
+      "ocr",
+      "text",
+      "haptic",
+      "biometric",
+      "clipboard",
+      "ai",
+      "llm",
+      "model",
+      "chat",
+      "generate",
     ];
 
     const lowerText = text.toLowerCase();
-    return keywords.map(keyword =>
-      lowerText.includes(keyword) ? 1 : 0
-    );
+    return keywords.map((keyword) => (lowerText.includes(keyword) ? 1 : 0));
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -981,7 +957,6 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
   }
 
   private categorizeRequest(request: string): string {
-    const lower = request.toLowerCase();
     if (/(battery|power|charge|brightness)/i.test(request)) return "device";
     if (/(calendar|meeting|event|reminder)/i.test(request)) return "calendar";
     if (/(photo|camera|picture|image)/i.test(request)) return "media";
@@ -1002,7 +977,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
 
     // Build dependency graph
     const graph = new Map<string, string[]>();
-    sorted.forEach(tool => {
+    sorted.forEach((tool) => {
       graph.set(tool.tool, tool.dependencies || []);
     });
 
@@ -1024,16 +999,16 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       visiting.add(toolName);
 
       const deps = graph.get(toolName) || [];
-      deps.forEach(dep => visit(dep));
+      deps.forEach((dep) => visit(dep));
 
       visiting.delete(toolName);
       visited.add(toolName);
 
-      const tool = tools.find(t => t.tool === toolName);
+      const tool = tools.find((t) => t.tool === toolName);
       if (tool) sorted.push(tool);
     };
 
-    tools.forEach(tool => visit(tool.tool));
+    tools.forEach((tool) => visit(tool.tool));
 
     return sorted;
   }
@@ -1051,7 +1026,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
 
       for (const tool of remaining) {
         const deps = tool.dependencies || [];
-        const allDepsMet = deps.every(dep => executed.has(dep));
+        const allDepsMet = deps.every((dep) => executed.has(dep));
 
         if (allDepsMet) {
           currentLevel.push(tool);
@@ -1060,12 +1035,15 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
 
       if (currentLevel.length === 0) {
         // No progress possible - circular dependency or missing tool
-        console.warn("Cannot resolve dependencies for:", Array.from(remaining).map(t => t.tool));
+        console.warn(
+          "Cannot resolve dependencies for:",
+          Array.from(remaining).map((t) => t.tool),
+        );
         break;
       }
 
       levels.push(currentLevel);
-      currentLevel.forEach(tool => {
+      currentLevel.forEach((tool) => {
         remaining.delete(tool);
         executed.add(tool.tool);
       });
@@ -1082,9 +1060,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
 
     // Sum max duration per level (parallel execution)
     return levels.reduce((total, level) => {
-      const maxDuration = Math.max(
-        ...level.map(tool => tool.expectedDuration || 100)
-      );
+      const maxDuration = Math.max(...level.map((tool) => tool.expectedDuration || 100));
       return total + maxDuration;
     }, 0);
   }
@@ -1095,7 +1071,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
     try {
       const [deviceInfo, batteryInfo] = await Promise.all([
         CustomModules.DeviceInfoModule.getDeviceInfo(),
-        CustomModules.BatteryModule.getBatteryInfo()
+        CustomModules.BatteryModule.getBatteryInfo(),
       ]);
 
       return {
@@ -1105,7 +1081,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         isCharging: batteryInfo.state === 2 || batteryInfo.state === 3, // 2=charging, 3=full
         isLowPowerMode: false, // Not available from current BatteryInfo
         availableMemoryMB: 2048, // Placeholder - would need native module
-        networkStatus: "wifi" as const // Placeholder - would need native module
+        networkStatus: "wifi" as const, // Placeholder - would need native module
       };
     } catch (error) {
       console.error("Failed to gather device context:", error);
@@ -1116,7 +1092,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         isCharging: false,
         isLowPowerMode: false,
         availableMemoryMB: 2048,
-        networkStatus: "wifi" as const
+        networkStatus: "wifi" as const,
       };
     }
   }
@@ -1128,12 +1104,11 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         // This is a placeholder - replace with actual LLM call
         const response = await this.llmClient.chat([
           { role: "system", content: "You are an expert iOS automation agent." },
-          { role: "user", content: prompt }
+          { role: "user", content: prompt },
         ]);
 
         this.context.sessionMetadata.totalTokens += response.tokens || 0;
         return response.content;
-
       } catch (error) {
         if (i === retries) throw error;
         await this.sleep(1000 * (i + 1));
@@ -1163,7 +1138,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       decision.estimatedTime = decision.estimatedTime || 1000;
 
       // Validate tools
-      decision.toolsToUse = decision.toolsToUse.filter(tool => {
+      decision.toolsToUse = decision.toolsToUse.filter((tool) => {
         if (!this.toolCapabilities.has(tool.tool)) {
           console.warn(`Unknown tool: ${tool.tool}`);
           return false;
@@ -1174,7 +1149,6 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       });
 
       return decision;
-
     } catch (error) {
       console.error("Failed to parse LLM decision:", error);
       throw new Error("Invalid LLM response format");
@@ -1190,15 +1164,15 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
           tool: "text_to_speech",
           reason: "Inform user of error",
           params: {
-            text: `I encountered an error: ${error}. Please try rephrasing your request.`
+            text: `I encountered an error: ${error}. Please try rephrasing your request.`,
           },
           priority: 10,
-          expectedDuration: 500
-        }
+          expectedDuration: 500,
+        },
       ],
       expectedOutcome: "Error message delivered to user",
       estimatedTime: 500,
-      fallbackStrategy: "Manual intervention required"
+      fallbackStrategy: "Manual intervention required",
     };
   }
 
@@ -1222,7 +1196,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
   private addToCache(key: string, result: any): void {
     this.executionCache.set(key, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Limit cache size
@@ -1238,7 +1212,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
     this.context.conversationHistory.push({
       role,
       content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Keep only recent history
@@ -1266,12 +1240,10 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       (this.performanceMetrics.successRate * (totalCalls - 1) + successCount) / totalCalls;
 
     // Update cache hit rate
-    this.performanceMetrics.cacheHitRate =
-      this.context.sessionMetadata.cacheHits / Math.max(totalCalls, 1);
+    this.performanceMetrics.cacheHitRate = this.context.sessionMetadata.cacheHits / Math.max(totalCalls, 1);
 
     // Update error rate
-    this.performanceMetrics.errorRate =
-      this.context.sessionMetadata.errorCount / Math.max(totalCalls, 1);
+    this.performanceMetrics.errorRate = this.context.sessionMetadata.errorCount / Math.max(totalCalls, 1);
 
     // Update most used tools
     this.performanceMetrics.mostUsedTools = Object.entries(total)
@@ -1285,7 +1257,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // ==================== PUBLIC API ====================
@@ -1331,7 +1303,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
       toolUsageCount: {},
       errorCount: 0,
       totalTokens: 0,
-      cacheHits: 0
+      cacheHits: 0,
     };
   }
 }
@@ -1351,7 +1323,7 @@ export class EnhancedIntelligentScenarios {
    */
   async smartMorningRoutine(): Promise<any> {
     const decision = await this.agent.analyzeAndPlan(
-      "Execute my morning routine: check battery, adjust brightness, fetch weather, and read me the forecast"
+      "Execute my morning routine: check battery, adjust brightness, fetch weather, and read me the forecast",
     );
 
     const results = await this.agent.executeTools(decision.toolsToUse);
@@ -1359,7 +1331,7 @@ export class EnhancedIntelligentScenarios {
     return {
       decision,
       results,
-      summary: this.summarizeResults(results)
+      summary: this.summarizeResults(results),
     };
   }
 
@@ -1369,13 +1341,13 @@ export class EnhancedIntelligentScenarios {
    */
   async intelligentDocumentScanner(): Promise<string> {
     const decision = await this.agent.analyzeAndPlan(
-      "Scan a document with high quality OCR, optimize the text, copy to clipboard, and confirm with voice feedback"
+      "Scan a document with high quality OCR, optimize the text, copy to clipboard, and confirm with voice feedback",
     );
 
     const results = await this.agent.executeTools(decision.toolsToUse);
 
     // Extract OCR text
-    const ocrResult = results.find(r => r.tool === "ocr_recognize");
+    const ocrResult = results.find((r) => r.tool === "ocr_recognize");
     return ocrResult?.result?.text || "No text extracted";
   }
 
@@ -1385,7 +1357,7 @@ export class EnhancedIntelligentScenarios {
    */
   async contextAwareReminder(contactName: string, message: string): Promise<void> {
     const decision = await this.agent.analyzeAndPlan(
-      `Create a location-based reminder for ${contactName} with message: "${message}". Include authentication, location context, and confirmation.`
+      `Create a location-based reminder for ${contactName} with message: "${message}". Include authentication, location context, and confirmation.`,
     );
 
     await this.agent.executeTools(decision.toolsToUse);
@@ -1397,13 +1369,13 @@ export class EnhancedIntelligentScenarios {
    */
   async aiResearchAssistant(topic: string): Promise<string> {
     const decision = await this.agent.analyzeAndPlan(
-      `Research "${topic}" by scraping relevant websites, use on-device AI to summarize findings, and present results via speech and clipboard`
+      `Research "${topic}" by scraping relevant websites, use on-device AI to summarize findings, and present results via speech and clipboard`,
     );
 
     const results = await this.agent.executeTools(decision.toolsToUse);
 
     // Extract AI summary
-    const mlxResult = results.find(r => r.tool === "mlx_generate" || r.tool === "mlx_chat_respond");
+    const mlxResult = results.find((r) => r.tool === "mlx_generate" || r.tool === "mlx_chat_respond");
     return mlxResult?.result?.text || "Research completed";
   }
 
@@ -1413,7 +1385,7 @@ export class EnhancedIntelligentScenarios {
    */
   async voiceControlledAction(): Promise<void> {
     const decision = await this.agent.analyzeAndPlan(
-      "Listen for voice command, interpret the action needed, execute it, and confirm completion with haptic and voice feedback"
+      "Listen for voice command, interpret the action needed, execute it, and confirm completion with haptic and voice feedback",
     );
 
     await this.agent.executeTools(decision.toolsToUse);
@@ -1425,15 +1397,15 @@ export class EnhancedIntelligentScenarios {
    */
   async secureQuickAction(contactName: string, action: "sms" | "email" | "call"): Promise<void> {
     const decision = await this.agent.analyzeAndPlan(
-      `Authenticate with biometrics, find ${contactName}, perform ${action} action, and confirm with haptic feedback`
+      `Authenticate with biometrics, find ${contactName}, perform ${action} action, and confirm with haptic feedback`,
     );
 
     await this.agent.executeTools(decision.toolsToUse);
   }
 
   private summarizeResults(results: ExecutionResult[]): string {
-    const successful = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
     const totalTime = results.reduce((sum, r) => sum + r.duration, 0);
 
     return `Executed ${results.length} tools: ${successful} succeeded, ${failed} failed. Total time: ${totalTime}ms`;

@@ -3,7 +3,7 @@
  * App settings and memory management
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, Modal, Switch, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -136,7 +136,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const saveSettings = async () => {
+  const saveSettings = useCallback(async () => {
     try {
       const settings = {
         autoSaveConversations,
@@ -150,12 +150,12 @@ export default function SettingsScreen() {
     } catch (error) {
       console.log("Failed to save settings:", error);
     }
-  };
+  }, [autoSaveConversations, enableVectorMemory, contextSize, maxTokens, temperature, gpuLayers]);
 
   // Save settings whenever they change
   useEffect(() => {
-    saveSettings();
-  }, [autoSaveConversations, enableVectorMemory, contextSize, maxTokens, temperature, gpuLayers]);
+    void saveSettings();
+  }, [autoSaveConversations, enableVectorMemory, contextSize, maxTokens, temperature, gpuLayers, saveSettings]);
 
   const handleClearMemory = () => {
     setModal({

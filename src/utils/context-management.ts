@@ -35,9 +35,10 @@ export function estimateTokens(text: string): number {
   // Adjust for punctuation, spaces, and special chars
   const words = text.split(/\s+/).length;
   const chars = text.length;
+  const charBasedEstimate = chars / 4;
 
-  // Heuristic: words * 1.3 (accounts for subword tokenization)
-  return Math.ceil(words * 1.3);
+  // Heuristic: blend word and character estimates to approximate tokenizer behaviour
+  return Math.ceil((words * 1.3 + charBasedEstimate) / 2);
 }
 
 /**

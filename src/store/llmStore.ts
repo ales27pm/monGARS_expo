@@ -1,10 +1,9 @@
 /**
  * LLM Store - Zustand store for managing conversations and LLM state
- * Adapted from offLLM for Expo with AsyncStorage persistence
+ * Adapted from offLLM for Expo with persistence hooks ready for integration
  */
 
 import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const generateId = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -150,10 +149,9 @@ const useLLMStore = create<LLMStoreState>((set, get) => ({
           ? {
               ...conv,
               messages: normalizedMessages,
-              lastUpdated:
-                normalizedMessages[normalizedMessages.length - 1]?.timestamp ?? conv.lastUpdated,
+              lastUpdated: normalizedMessages[normalizedMessages.length - 1]?.timestamp ?? conv.lastUpdated,
             }
-          : conv
+          : conv,
       );
       const activeConversation = conversations.find((conv) => conv.id === conversationId);
       return {
@@ -207,7 +205,7 @@ const useLLMStore = create<LLMStoreState>((set, get) => ({
     setIsGenerating(true);
     try {
       const response = await llmService.generate(trimmed);
-      const text = typeof response === "string" ? response : response?.text ?? String(response);
+      const text = typeof response === "string" ? response : (response?.text ?? String(response));
       addMessage({ role: "assistant", content: text });
       return text;
     } catch (error) {

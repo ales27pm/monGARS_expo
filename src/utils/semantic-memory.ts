@@ -187,7 +187,7 @@ export function createCloudEmbeddingFunction(): ((text: string) => Promise<numbe
       try {
         const data = await response.json();
         errorDetail = data?.error?.message;
-      } catch (parseError) {
+      } catch {
         errorDetail = undefined;
       }
 
@@ -613,7 +613,9 @@ export async function createSemanticMemory(): Promise<SemanticMemory> {
   const cloudEmbeddingFn = createCloudEmbeddingFunction();
 
   if (onDeviceEmbedding) {
-    memory.setEmbeddingFunction(createResilientEmbeddingFunction(onDeviceEmbedding, fallbackEmbeddingFn, cloudEmbeddingFn));
+    memory.setEmbeddingFunction(
+      createResilientEmbeddingFunction(onDeviceEmbedding, fallbackEmbeddingFn, cloudEmbeddingFn),
+    );
     return memory;
   }
 
