@@ -1,4 +1,4 @@
-name: iOS (macOS native EAS) + ASC Upload
+name: iOS (macOS native EAS) + ASC Upload — iOS 18.3.1
 
 on:
   workflow_dispatch:
@@ -16,13 +16,14 @@ on:
 
 env:
   APP_NAME: monGARS
-  BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup   # change when you remove vibecode
-  SCHEME: offllm-app-store-fixer                        # change if needed
+  # TODO: change these when you purge VIBECODE from the project:
+  BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup
+  SCHEME: offLLMAppStoreFixer
   MODELS_DIR: ./assets/models
 
 jobs:
   build-and-upload:
-    runs-on: macos-15    # Xcode 16.2 / iOS 18.2 image
+    runs-on: macos-15      # macOS 15 image (Xcode 16.x toolchains)
     permissions:
       contents: write
       pull-requests: write
@@ -34,15 +35,55 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔧 Select Xcode 16.2 & initialize
+      # --- Select the newest Xcode available that supports 18.3.x (tries 16.4 → 16.3 → 16.2) ---
+      - name: 🔧 Select Xcode (16.4 → 16.3 → 16.2)
+        id: xcode
+        shell: bash
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          set -e
+          choose() {
+            local P="$1"
+            if [ -d "$P" ]; then
+              sudo xcode-select -s "$P"
+              echo "DEVELOPER_DIR=$P" >> "$GITHUB_ENV"
+              echo "selected=$P" >> "$GITHUB_OUTPUT"
+              return 0
+            fi
+            return 1
+          }
+
+          if ! choose "/Applications/Xcode_16.4.app/Contents/Developer"; then
+            if ! choose "/Applications/Xcode_16.3.app/Contents/Developer"; then
+              choose "/Applications/Xcode_16.2.app/Contents/Developer"
+            fi
+          fi
+
+          echo "Using DEVELOPER_DIR=$(xcode-select -p)"
           sudo xcodebuild -license accept || true
           sudo xcodebuild -runFirstLaunch || true
           xcodebuild -version
-          xcodebuild -showsdks | grep -i iphoneos || true
+          echo "::notice title=Selected Xcode::$(xcodebuild -version | paste -sd ' ' -)"
 
-      # -------- Optional small-model downloads (same pattern as your working file)
+      # --- Ensure iOS 18.3.x device platform is present (18.3.1 accepted) ---
+      - name: 🧩 Ensure iOS 18.3.1 platform is installed
+        shell: bash
+        run: |
+          set -e
+          echo "SDKs BEFORE:"
+          xcodebuild -showsdks || true
+          # Accept any 18.3.x device SDK (18.3 or 18.3.1)
+          if ! xcodebuild -showsdks | grep -E -q "iphoneos18\.3(\.1)?"; then
+            echo "⚠️ iPhoneOS 18.3(.1) SDK not found — downloading iOS platform…"
+            sudo xcodebuild -downloadPlatform iOS || true
+            if ! xcodebuild -showsdks | grep -E -q "iphoneos18\.3(\.1)?"; then
+              echo "Trying fallback: -downloadAllPlatforms…"
+              sudo xcodebuild -downloadAllPlatforms || true
+            fi
+          fi
+          echo "SDKs AFTER:"
+          xcodebuild -showsdks || true
+
+      # --- Optional model downloads (same pattern as your successful workflow) ---
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
@@ -102,7 +143,7 @@ jobs:
           ls -lh ${{ env.MODELS_DIR }} || true
           du -sh  ${{ env.MODELS_DIR }} || true
 
-      # -------- JS side (use Bun, like your success case)
+      # --- JS stack (use Bun like your passing workflow) ---
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -118,7 +159,7 @@ jobs:
             echo "No JS workspace at repo root — skipping."
           fi
 
-      # -------- iOS signing (p12 + mobileprovision) for local native build
+      # --- iOS signing (p12 + mobileprovision) for local native build ---
       - name: 🔐 Import signing certificate (.p12)
         uses: apple-actions/import-codesign-certs@v2
         with:
@@ -134,18 +175,31 @@ jobs:
             "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
           ls -la "$HOME/Library/MobileDevice/Provisioning Profiles"
 
-      # -------- EAS CLI (local build on macOS image)
+      # --- Force device SDK/destination for Gym/xcodebuild (EAS/fastlane will pick this up) ---
+      - name: 🔧 Force device SDK/destination (iphoneos / generic iOS)
+        run: |
+          echo "GYM_DESTINATION=generic/platform=iOS" >> $GITHUB_ENV
+          echo "GYM_SDK=iphoneos" >> $GITHUB_ENV
+          # Pin DEVELOPER_DIR to whichever we selected above:
+          echo "DEVELOPER_DIR=${{ steps.xcode.outputs.selected }}" >> $GITHUB_ENV
+
+      # --- EAS CLI (local macOS build) ---
       - name: 🔧 Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🏗️ EAS build (local on macOS)
+      - name: 🏗️ EAS build (local on macOS; iOS 18.3.1)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          DEVELOPER_DIR: ${{ env.DEVELOPER_DIR }}
         run: |
           set -e
+          echo "Using DEVELOPER_DIR=$DEVELOPER_DIR"
+          echo "Available SDKs:"
+          xcodebuild -showsdks | grep -i iphoneos || true
+          # Build locally; Gym will receive our GYM_* envs
           eas build \
             --platform ios \
             --profile production \
@@ -158,7 +212,6 @@ jobs:
         id: findipa
         run: |
           set -e
-          # Common EAS local output paths:
           CANDIDATES=$(ls -1 dist/*.ipa 2>/dev/null || true)
           if [ -z "$CANDIDATES" ]; then
             CANDIDATES="$(ls -1 **/*.ipa 2>/dev/null || true)"
@@ -179,7 +232,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # -------- App Store Connect upload using .p8 (no Apple ID needed)
+      # --- App Store Connect upload using .p8 (no Apple ID needed) ---
       - name: 🔑 Write ASC API private key
         if: ${{ inputs.upload_to_testflight }}
         env:
