@@ -126,6 +126,11 @@
     "typescript": "~5.8.3"
   },
   "private": true,
+  "overrides": {
+    "@shopify/react-native-skia": "v2.0.0-next.4",
+    "canvaskit-wasm": "0.40.0",
+    "react-reconciler": "0.31.0"
+  },
   "patchedDependencies": {
     "react-native@0.79.2": "patches/react-native@0.79.2.patch",
     "expo-asset@11.1.5": "patches/expo-asset@11.1.5.patch"
