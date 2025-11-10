@@ -14,6 +14,7 @@ import { vectorStore, VectorStore } from "./vector-store";
 import { chunkText, TextChunk } from "./text-chunking";
 import { EmbeddingStorageStats, SemanticSearchOptions } from "../types/embeddings";
 import { getGlobalLLM } from "./on-device-llm";
+import { extractErrorMessage, isNativeModuleUnavailableError } from "./nativeModuleError";
 
 const FALLBACK_VECTOR_SIZE = 384;
 const STOP_WORDS = new Set([
@@ -71,6 +72,27 @@ function normalizeVector(vector: number[]): number[] {
   return vector.map((value) => value / norm);
 }
 
+function matchVectorDimensions(vector: number[], targetLength: number): number[] {
+  if (vector.length === targetLength) {
+    return vector;
+  }
+
+  if (targetLength <= 0) {
+    return [];
+  }
+
+  if (vector.length > targetLength) {
+    return normalizeVector(vector.slice(0, targetLength));
+  }
+
+  const padded = new Array(targetLength).fill(0);
+  for (let i = 0; i < Math.min(vector.length, targetLength); i += 1) {
+    padded[i] = vector[i];
+  }
+
+  return normalizeVector(padded);
+}
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -112,6 +134,80 @@ function fallbackEmbedding(text: string): number[] {
   }
 
   return normalizeVector(vector);
+}
+
+function createFallbackEmbeddingFunction(): (text: string) => Promise<number[]> {
+  return async (text: string) => fallbackEmbedding(text);
+}
+
+function shouldFallbackToHashEmbeddings(error: unknown): boolean {
+  if (isNativeModuleUnavailableError(error)) {
+    return true;
+  }
+
+  const message = extractErrorMessage(error).toLowerCase();
+
+  if (!message) {
+    return false;
+  }
+
+  const recoverablePatterns = [
+    "model not initialized",
+    "call initializemodel",
+    "initialize model()",
+    "initllama",
+    "failed to load the model",
+    "context is null",
+    "embedding vector",
+  ];
+
+  return recoverablePatterns.some((pattern) => message.includes(pattern));
+}
+
+function createResilientEmbeddingFunction(
+  onDeviceEmbedding: (text: string) => Promise<number[]>,
+  fallbackEmbeddingFn: (text: string) => Promise<number[]>,
+): (text: string) => Promise<number[]> {
+  let hasLoggedFallback = false;
+  let expectedLength: number | null = null;
+
+  return async (text: string) => {
+    try {
+      const vector = await onDeviceEmbedding(text);
+
+      if (!Array.isArray(vector) || vector.length === 0) {
+        throw new Error("Invalid embedding vector returned from on-device model.");
+      }
+
+      expectedLength = expectedLength ?? vector.length;
+      return expectedLength !== vector.length ? matchVectorDimensions(vector, expectedLength) : normalizeVector(vector);
+    } catch (error) {
+      const message = extractErrorMessage(error);
+
+      if (!shouldFallbackToHashEmbeddings(error)) {
+        console.error("[SemanticMemory] Unexpected embedding failure:", error);
+        throw error instanceof Error ? error : new Error(message || "Unknown embedding error");
+      }
+
+      if (!hasLoggedFallback) {
+        const details = message ? ` (${message})` : "";
+        console.warn(
+          "[SemanticMemory] On-device embeddings unavailable" +
+            `${details}. Using fallback hash-based embeddings until the model is reinitialized.`,
+        );
+        hasLoggedFallback = true;
+      }
+
+      const fallbackVector = await fallbackEmbeddingFn(text);
+
+      if (expectedLength === null) {
+        expectedLength = fallbackVector.length;
+        return fallbackVector;
+      }
+
+      return matchVectorDimensions(fallbackVector, expectedLength);
+    }
+  };
 }
 
 async function tryCreateOnDeviceEmbedding(): Promise<((text: string) => Promise<number[]>) | null> {
@@ -414,13 +510,15 @@ export async function createSemanticMemory(): Promise<SemanticMemory> {
     console.error("[SemanticMemory] Failed to initialize vector store:", error);
   }
 
+  const fallbackEmbeddingFn = createFallbackEmbeddingFunction();
   const onDeviceEmbedding = await tryCreateOnDeviceEmbedding();
+
   if (onDeviceEmbedding) {
-    memory.setEmbeddingFunction(onDeviceEmbedding);
+    memory.setEmbeddingFunction(createResilientEmbeddingFunction(onDeviceEmbedding, fallbackEmbeddingFn));
     return memory;
   }
 
-  memory.setEmbeddingFunction(async (text: string) => fallbackEmbedding(text));
+  memory.setEmbeddingFunction(fallbackEmbeddingFn);
   console.warn(
     "[SemanticMemory] Falling back to lightweight hash-based embeddings. " +
       "Load an on-device embedding model for higher quality results.",

@@ -6,7 +6,6 @@
  * Supports semantic search with cosine similarity
  */
 
-import { MMKV } from "react-native-mmkv";
 import {
   Embedding,
   EmbeddingStorageOptions,
@@ -16,14 +15,15 @@ import {
 } from "../types/embeddings";
 import { compressVector, topKSimilar } from "./vector-math";
 import { getOrCreateVectorStoreKey } from "./secure-key-provider";
+import { createMMKVInstance } from "./mmkv-adapter";
 
 // MMKV storage for fast vector operations
-const vectorStorage = new MMKV({
+const vectorStorage = createMMKVInstance({
   id: "vector-embeddings",
 });
 
 // Index storage for fast lookups
-const indexStorage = new MMKV({
+const indexStorage = createMMKVInstance({
   id: "vector-index",
 });
 
@@ -178,13 +178,37 @@ export class VectorStore {
       }
     }
 
+    const mismatched: Array<{ id: string; expected: number; actual: number }> = [];
+    const compatibleEmbeddings = embeddings.filter((embedding) => {
+      if (embedding.vector.length !== queryVector.length) {
+        mismatched.push({ id: embedding.id, expected: queryVector.length, actual: embedding.vector.length });
+        return false;
+      }
+      return true;
+    });
+
+    if (mismatched.length > 0) {
+      const sample = mismatched
+        .slice(0, 3)
+        .map((item) => `${item.id}(${item.actual})`)
+        .join(", ");
+      console.warn(
+        `[VectorStore] Skipped ${mismatched.length} embedding(s) due to dimension mismatch. Expected ${queryVector.length}, ` +
+          `saw ${sample}${mismatched.length > 3 ? ", ..." : ""}.`,
+      );
+    }
+
+    if (compatibleEmbeddings.length === 0) {
+      return [];
+    }
+
     // Calculate similarities
-    const vectors = embeddings.map((e) => e.vector);
+    const vectors = compatibleEmbeddings.map((e) => e.vector);
     const topResults = topKSimilar(queryVector, vectors, limit, threshold);
 
     // Map back to embeddings
     const results: SimilaritySearchResult[] = topResults.map((result: { index: number; similarity: number }) => ({
-      embedding: embeddings[result.index],
+      embedding: compatibleEmbeddings[result.index],
       similarity: result.similarity,
     }));
 

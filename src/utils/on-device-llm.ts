@@ -45,9 +45,9 @@ async function getLlamaModule(): Promise<LlamaModule> {
     // Cache the error for future attempts
     loadError = new Error(
       "llama.rn native module is not available. " +
-      "This is expected in development/Vibecode environment. " +
-      "The module will work after building with EAS Build. " +
-      `Original error: ${error?.message || error}`
+        "This is expected in development/Vibecode environment. " +
+        "The module will work after building with EAS Build. " +
+        `Original error: ${error?.message || error}`,
     );
     console.warn("[OnDeviceLLM] Native module not available:", error?.message || error);
     throw loadError;
@@ -169,10 +169,7 @@ export class OnDeviceLLM {
   /**
    * Download a model from HuggingFace
    */
-  async downloadModel(
-    config: ModelConfig,
-    onProgress?: (progress: ModelDownloadProgress) => void
-  ): Promise<string> {
+  async downloadModel(config: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
     const url = `https://huggingface.co/${config.repo}/resolve/main/${config.filename}`;
     const localPath = this.getModelPath(config);
 
@@ -187,23 +184,15 @@ export class OnDeviceLLM {
     await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
 
     // Create download resumable
-    const downloadResumable = FileSystem.createDownloadResumable(
-      url,
-      localPath,
-      {},
-      (downloadProgress) => {
-        const progress: ModelDownloadProgress = {
-          totalBytes: downloadProgress.totalBytesExpectedToWrite,
-          downloadedBytes: downloadProgress.totalBytesWritten,
-          progress:
-            (downloadProgress.totalBytesWritten /
-              downloadProgress.totalBytesExpectedToWrite) *
-            100,
-        };
+    const downloadResumable = FileSystem.createDownloadResumable(url, localPath, {}, (downloadProgress) => {
+      const progress: ModelDownloadProgress = {
+        totalBytes: downloadProgress.totalBytesExpectedToWrite,
+        downloadedBytes: downloadProgress.totalBytesWritten,
+        progress: (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100,
+      };
 
-        onProgress?.(progress);
-      }
-    );
+      onProgress?.(progress);
+    });
 
     // Download
     const result = await downloadResumable.downloadAsync();
@@ -230,7 +219,7 @@ export class OnDeviceLLM {
 
       /** Use memory lock (recommended for mobile) */
       useMemoryLock?: boolean;
-    } = {}
+    } = {},
   ): Promise<void> {
     const { gpuLayers = 99, contextSize = 2048, useMemoryLock = true } = options;
 
@@ -239,9 +228,7 @@ export class OnDeviceLLM {
     const isDownloaded = await this.isModelDownloaded(config);
 
     if (!isDownloaded) {
-      throw new Error(
-        "Model not downloaded. Call downloadModel() first."
-      );
+      throw new Error("Model not downloaded. Call downloadModel() first.");
     }
 
     // Lazy-load llama.rn module
@@ -270,13 +257,7 @@ export class OnDeviceLLM {
       throw new Error("Model not initialized. Call initializeModel() first.");
     }
 
-    const {
-      maxTokens = 512,
-      temperature = 0.7,
-      stop = [],
-      stream = false,
-      onToken,
-    } = options;
+    const { maxTokens = 512, temperature = 0.7, stop = [], stream = false, onToken } = options;
 
     // Format prompt with system message if provided
     const fullPrompt = options.systemPrompt
@@ -301,7 +282,7 @@ export class OnDeviceLLM {
           const token = data.token;
           result += token;
           onToken(token);
-        }
+        },
       );
 
       return result.trim();
@@ -323,7 +304,7 @@ export class OnDeviceLLM {
    */
   async chat(
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-    options: InferenceOptions = {}
+    options: InferenceOptions = {},
   ): Promise<string> {
     // Format messages into prompt
     let prompt = "";
@@ -431,4 +412,8 @@ export function getGlobalLLM(): OnDeviceLLM {
     globalLLM = new OnDeviceLLM();
   }
   return globalLLM;
+}
+
+export function setGlobalLLM(instance: OnDeviceLLM | null): void {
+  globalLLM = instance;
 }
