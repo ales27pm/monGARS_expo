@@ -1,0 +1,222 @@
+name: iOS Release (TestFlight)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_configuration:
+        description: "Xcode configuration"
+        required: true
+        default: "Release"
+
+env:
+  # === App details ===
+  APP_NAME: monGARS
+  BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup
+  SCHEME: offllm-app-store-fixer
+  EXPORT_METHOD: app-store
+  TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-upload:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode (15.4)
+        run: sudo xcode-select -s "/Applications/Xcode_15.4.app/Contents/Developer"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # --- JS deps if RN/Expo present (safe no-op otherwise) ---
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install JS deps (if package.json exists)
+        run: |
+            if [ -f package.json ]; then
+              if [ -f pnpm-lock.yaml ]; then
+                corepack enable
+                pnpm i --frozen-lockfile
+              elif [ -f yarn.lock ]; then
+                corepack enable
+                yarn install --frozen-lockfile
+              else
+                npm ci
+              fi
+            fi
+
+      # --- CocoaPods (safe no-op if ios/ not present) ---
+      - name: Install CocoaPods
+        run: |
+          if [ -d ios ]; then
+            gem install cocoapods --no-document
+            cd ios && pod install --repo-update
+          fi
+
+      # --- Import signing assets ---
+      - name: Import signing certificate (.p12)
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: Install provisioning profile
+        run: |
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "${IOS_PROVISIONING_PROFILE_BASE64}" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+
+      # --- Discover workspace/project at runtime ---
+      - name: Discover Xcode workspace or project
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Prefer things inside ios/
+          ROOT="."
+          if [ -d "ios" ]; then ROOT="ios"; fi
+
+          WORKSPACE=$(find "$ROOT" -maxdepth 2 -name "*.xcworkspace" | head -n 1 || true)
+          PROJECT=$(find "$ROOT" -maxdepth 2 -name "*.xcodeproj" | head -n 1 || true)
+
+          if [ -n "$WORKSPACE" ]; then
+            echo "kind=workspace" >> $GITHUB_OUTPUT
+            echo "path=$WORKSPACE" >> $GITHUB_OUTPUT
+          elif [ -n "$PROJECT" ]; then
+            echo "kind=project" >> $GITHUB_OUTPUT
+            echo "path=$PROJECT" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Could not find any .xcworkspace or .xcodeproj under $ROOT"
+            exit 1
+          fi
+
+      # --- Export options for App Store ---
+      - name: Create exportOptions.plist
+        run: |
+          cat > exportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${{ env.TEAM_ID }}</string>
+            <key>manageAppVersionAndBuildNumber</key><true/>
+            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>export</string>
+            <key>stripSwiftSymbols</key><true/>
+            <key>thinning</key><string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          PLIST
+
+      # --- Optional: bump build number automatically ---
+      - name: Auto-increment build number
+        run: |
+          INFO_PLIST=$(find . -name "*-Info.plist" | head -n 1 || true)
+          if [ -n "$INFO_PLIST" ]; then
+            NEW_BUILD=$((1000 + GITHUB_RUN_NUMBER))
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$INFO_PLIST" || true
+          fi
+
+      # --- Archive ---
+      - name: Xcode archive
+        run: |
+          set -e
+          ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
+          if [ "${{ steps.discover.outputs.kind }}" = "workspace" ]; then
+            xcodebuild \
+              -workspace "${{ steps.discover.outputs.path }}" \
+              -scheme "${{ env.SCHEME }}" \
+              -configuration "${{ github.event.inputs.build_configuration }}" \
+              -archivePath "$ARCHIVE_PATH" \
+              clean archive \
+              DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
+              CODE_SIGN_STYLE=Automatic \
+              ONLY_ACTIVE_ARCH=NO \
+              -allowProvisioningUpdates \
+              -showBuildTimingSummary
+          else
+            xcodebuild \
+              -project "${{ steps.discover.outputs.path }}" \
+              -scheme "${{ env.SCHEME }}" \
+              -configuration "${{ github.event.inputs.build_configuration }}" \
+              -archivePath "$ARCHIVE_PATH" \
+              clean archive \
+              DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
+              CODE_SIGN_STYLE=Automatic \
+              ONLY_ACTIVE_ARCH=NO \
+              -allowProvisioningUpdates \
+              -showBuildTimingSummary
+          fi
+
+      # --- Export IPA ---
+      - name: Export IPA
+        run: |
+          set -e
+          ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
+          EXPORT_PATH="$PWD/build/export"
+          mkdir -p "$EXPORT_PATH"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath "$EXPORT_PATH" \
+            -allowProvisioningUpdates
+          ls -la "$EXPORT_PATH"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ env.APP_NAME }}
+          path: |
+            build/${{ env.APP_NAME }}.xcarchive
+            build/export/*.ipa
+            build/export/*.dSYM.zip
+            build/export/*.plist
+            build/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      # --- App Store Connect upload (iTMSTransporter + API key) ---
+      - name: Write ASC API private key to file
+        run: |
+          mkdir -p "$HOME/.private_keys"
+          echo "${APPSTORE_API_PRIVATE_KEY}" > "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+          chmod 600 "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+        env:
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+
+      - name: Upload to TestFlight
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          IPA_PATH="$(ls build/export/*.ipa | head -n 1)"
+          if [ -z "$IPA_PATH" ]; then
+            echo "No IPA produced" >&2
+            exit 1
+          fi
+          xcrun iTMSTransporter -m upload \
+            -assetFile "$IPA_PATH" \
+            -apiKey "${APPSTORE_API_KEY_ID}" \
+            -apiIssuer "${APPSTORE_API_ISSUER_ID}" \
+            -v informational
