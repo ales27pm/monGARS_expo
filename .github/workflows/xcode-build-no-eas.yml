@@ -298,6 +298,7 @@ jobs:
             echo "🔑 Setting up code signing..."
 
             WORK_KEYCHAIN="build.keychain"
+            WORK_KEYCHAIN_PATH="$HOME/Library/Keychains/${WORK_KEYCHAIN}-db"
             PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
             PROFILE_PATH="$PROFILE_DIR/profile.mobileprovision"
 
@@ -305,7 +306,8 @@ jobs:
             security default-keychain -s "$WORK_KEYCHAIN"
             security unlock-keychain -p actions "$WORK_KEYCHAIN"
             security set-keychain-settings -t 3600 -u "$WORK_KEYCHAIN"
-            security list-keychain -d user -s "$WORK_KEYCHAIN"
+            mapfile -t EXISTING_KEYCHAINS < <(security list-keychains -d user | tr -d '"' | sed 's/^ *//')
+            security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
 
             CERTIFICATE_PATH=$(mktemp)
             echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
@@ -332,10 +334,10 @@ jobs:
 
             BUNDLE_ID="${APP_IDENTIFIER#*.}"
 
-            SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$WORK_KEYCHAIN" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$WORK_KEYCHAIN_PATH" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
             if [ -z "$SIGNING_IDENTITY" ]; then
               echo "::error::No signing identity found after importing certificate."
-              security find-identity -v -p codesigning "$WORK_KEYCHAIN" || true
+              security find-identity -v -p codesigning "$WORK_KEYCHAIN_PATH" || true
               exit 1
             fi
 
@@ -349,7 +351,8 @@ jobs:
               echo "profile_path=$PROFILE_PATH"
               echo "signing_identity=$SIGNING_IDENTITY"
               echo "signing_certificate_type=$SIGNING_CERT_TYPE"
-              echo "keychain=$WORK_KEYCHAIN"
+              echo "keychain=$WORK_KEYCHAIN_PATH"
+              echo "keychain_name=$WORK_KEYCHAIN"
             } >> "$GITHUB_OUTPUT"
 
             echo "✅ Code signing configured"
@@ -385,6 +388,7 @@ jobs:
             fi
 
             echo "🔐 Building with code signing for device"
+            DEFAULT_KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
@@ -398,7 +402,7 @@ jobs:
               PROVISIONING_PROFILE="$PROFILE_UUID" \
               CODE_SIGN_STYLE=Manual \
               CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-              OTHER_CODE_SIGN_FLAGS="--keychain ${CUSTOM_KEYCHAIN:-build.keychain}" \
+              OTHER_CODE_SIGN_FLAGS="--keychain ${CUSTOM_KEYCHAIN:-$DEFAULT_KEYCHAIN_PATH}" \
               archive \
               -allowProvisioningUpdates
             echo "✅ Archive created successfully"
