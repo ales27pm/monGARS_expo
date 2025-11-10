@@ -19,9 +19,9 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useModelStore } from "../state/modelStore";
-import { vectorStore } from "../utils/vector-store";
 import { useMlxChat } from "../hooks/useMlxChat";
 import { isNativeModuleUnavailableError } from "../utils/nativeModuleError";
+import { configureSemanticMemoryEmbedding, getGlobalMemory, SemanticMemory } from "../utils/semantic-memory";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -85,6 +85,8 @@ export default function ChatScreen() {
   const [llm, setLlm] = useState<any>(null);
   const [chatMode, setChatMode] = useState<"native" | "cloud">("native");
   const [fallbackActivated, setFallbackActivated] = useState(false);
+  const [memory, setMemory] = useState<SemanticMemory | null>(null);
+  const conversationIdRef = useRef<string>(`${Date.now()}`);
 
   const {
     ready: cloudReady,
@@ -100,6 +102,34 @@ export default function ChatScreen() {
   useEffect(() => {
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getGlobalMemory()
+      .then((instance) => {
+        if (isMounted) {
+          setMemory(instance);
+        }
+      })
+      .catch((error) => {
+        console.error("[ChatScreen] Failed to initialize semantic memory:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (chatMode === "native" && llm) {
+      configureSemanticMemoryEmbedding({ type: "on-device", llm })
+        .catch((error) => console.error("[ChatScreen] Failed to enable on-device semantic memory:", error));
+    } else if (chatMode === "cloud") {
+      configureSemanticMemoryEmbedding({ type: "cloud" })
+        .catch((error) => console.error("[ChatScreen] Failed to enable cloud semantic memory:", error));
+    }
+  }, [chatMode, llm]);
 
   useEffect(() => {
     if (chatMode === "cloud") {
@@ -141,14 +171,14 @@ export default function ChatScreen() {
     }, 100);
   };
 
-  const sendWithCloud = async (userMessage: string) => {
+  const sendWithCloud = async (userMessage: string): Promise<string | null> => {
     if (!cloudReady) {
       setModal({
         visible: true,
         title: "Cloud Chat Not Ready",
         message: cloudError ?? "Cloud fallback is not ready yet. Check your OpenAI API key configuration.",
       });
-      return;
+      return null;
     }
 
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
@@ -159,13 +189,16 @@ export default function ChatScreen() {
       const response = await sendCloudMessage(userMessage);
       setMessages((prev) => [...prev, { role: "assistant", content: response.trim() }]);
       scrollToBottom();
-    } catch (error: any) {
+      return response.trim();
+    } catch (error) {
+      const message = (error as Error | null | undefined)?.message ?? String(error);
       setModal({
         visible: true,
         title: "Generation Failed",
-        message: `Failed to generate response: ${error?.message ?? String(error)}`,
+        message: `Failed to generate response: ${message}`,
       });
       setMessages((prev) => prev.slice(0, -1));
+      return null;
     } finally {
       setIsGenerating(false);
     }
@@ -210,13 +243,29 @@ export default function ChatScreen() {
 
       setChatMode("native");
       setLlm(llmInstance);
+      try {
+        await configureSemanticMemoryEmbedding({ type: "on-device", llm: llmInstance });
+      } catch (configurationError) {
+        console.error(
+          "[ChatScreen] Failed to configure semantic memory for on-device mode:",
+          configurationError,
+        );
+      }
       return llmInstance;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to load LLM:", error);
       setIsModelLoaded(false);
 
       if (isNativeModuleUnavailableError(error)) {
         setChatMode("cloud");
+        try {
+          await configureSemanticMemoryEmbedding({ type: "cloud" });
+        } catch (configurationError) {
+          console.error(
+            "[ChatScreen] Failed to configure semantic memory for cloud fallback:",
+            configurationError,
+          );
+        }
 
         if (!fallbackActivated) {
           setFallbackActivated(true);
@@ -231,10 +280,11 @@ export default function ChatScreen() {
         return null;
       }
 
+      const message = (error as Error | null | undefined)?.message || "Failed to initialize model.";
       setModal({
         visible: true,
         title: "Native Module Not Available",
-        message: error?.message || "Failed to initialize model.",
+        message,
       });
       throw error;
     }
@@ -248,9 +298,34 @@ export default function ChatScreen() {
 
     setInputText("");
     Keyboard.dismiss();
+    const conversationId = conversationIdRef.current;
+
+    const persistConversation = async (assistantResponse: string, source: "native" | "cloud") => {
+      if (!settings.enableVectorMemory || !assistantResponse) {
+        return;
+      }
+
+      try {
+        const memoryInstance = memory ?? (await getGlobalMemory().catch(() => null));
+        if (memoryInstance) {
+          if (!memory) {
+            setMemory(memoryInstance);
+          }
+          await memoryInstance.addConversationMessage(userMessage, "user", conversationId);
+          await memoryInstance.addConversationMessage(assistantResponse, "assistant", conversationId);
+        }
+      } catch (embeddingError) {
+        console.log(`Failed to store ${source} conversation in semantic memory:`, embeddingError);
+      }
+    };
 
     if (chatMode === "cloud") {
-      await sendWithCloud(userMessage);
+      const response = await sendWithCloud(userMessage);
+
+      if (response) {
+        await persistConversation(response, "cloud");
+      }
+
       return;
     }
 
@@ -284,7 +359,10 @@ export default function ChatScreen() {
     }
 
     if (!llmInstance) {
-      await sendWithCloud(userMessage);
+      const response = await sendWithCloud(userMessage);
+      if (response) {
+        await persistConversation(response, "cloud");
+      }
       return;
     }
 
@@ -308,42 +386,14 @@ export default function ChatScreen() {
       setMessages((prev) => [...prev, { role: "assistant", content: response }]);
       scrollToBottom();
 
-      // Store in vector memory for RAG
-      if (chatMode === "native" && settings.enableVectorMemory) {
-        try {
-          const userEmbedding = await llmInstance.embed(userMessage);
-          const assistantEmbedding = await llmInstance.embed(response);
-
-          const conversationId = Date.now().toString();
-
-          await vectorStore.addEmbedding({
-            text: userMessage,
-            vector: userEmbedding,
-            timestamp: Date.now(),
-            metadata: {
-              role: "user",
-              conversationId,
-            },
-          });
-
-          await vectorStore.addEmbedding({
-            text: response,
-            vector: assistantEmbedding,
-            timestamp: Date.now(),
-            metadata: {
-              role: "assistant",
-              conversationId,
-            },
-          });
-        } catch (embeddingError) {
-          console.log("Failed to generate embeddings:", embeddingError);
-        }
-      }
-    } catch (error: any) {
+      // Store in semantic memory for RAG
+      await persistConversation(response, "native");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       setModal({
         visible: true,
         title: "Generation Failed",
-        message: `Failed to generate response: ${error?.message ?? String(error)}`,
+        message: `Failed to generate response: ${errorMessage}`,
       });
       // Remove the user message if generation failed
       setMessages((prev) => prev.slice(0, -1));
@@ -354,6 +404,7 @@ export default function ChatScreen() {
 
   const handleClearChat = () => {
     setMessages([]);
+    conversationIdRef.current = `${Date.now()}`;
   };
 
   const statusIndicatorColor =
