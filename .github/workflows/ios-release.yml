@@ -8,21 +8,56 @@ on:
         required: true
         default: "Release"
 
+permissions:
+  contents: read
+
 env:
-  # === App details ===
+  # === App details (update as needed) ===
   APP_NAME: monGARS
   BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup
   SCHEME: offllm-app-store-fixer
   EXPORT_METHOD: app-store
   TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-permissions:
-  contents: read
-
 jobs:
-  build-and-upload:
+  preflight:
+    name: Preflight (secrets & environment)
     runs-on: macos-14
-    timeout-minutes: 60
+    steps:
+      - name: Check core secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+
+          req_secrets=("IOS_P12_BASE64" "IOS_P12_PASSWORD" "IOS_PROVISIONING_PROFILE_BASE64" \
+                       "APPLE_TEAM_ID" "APPSTORE_API_KEY_ID" "APPSTORE_API_ISSUER_ID" "APPSTORE_API_PRIVATE_KEY")
+          for key in "${req_secrets[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error title=Missing secret::$key is not set in repository secrets."
+              missing=1
+            else
+              echo "✔ $key present"
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::One or more required secrets are missing. Add them and re-run."
+            exit 1
+          fi
+        env:
+          IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+  build-and-upload:
+    name: Build & Upload to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 70
+    needs: preflight
 
     steps:
       - name: Checkout
@@ -34,44 +69,50 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      # --- JS deps if RN/Expo present (safe no-op otherwise) ---
-      - name: Setup Node
+      # ---------- JS deps: safe & optional ----------
+      - name: Setup Node (for RN/Expo projects)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml', '**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install JS deps (if package.json exists)
+      - name: Install JS deps (only if needed)
+        shell: bash
         run: |
-            if [ -f package.json ]; then
-              if [ -f pnpm-lock.yaml ]; then
-                corepack enable
-                pnpm i --frozen-lockfile
-              elif [ -f yarn.lock ]; then
-                corepack enable
-                yarn install --frozen-lockfile
-              else
-                npm ci
-              fi
-            fi
-
-      # --- CocoaPods (safe no-op if ios/ not present) ---
-      - name: Install CocoaPods
-        run: |
-          if [ -d ios ]; then
-            gem install cocoapods --no-document
-            cd ios && pod install --repo-update
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "No package.json at repo root — skipping JS deps."
+            exit 0
+          fi
+          echo "Detected package.json, choosing package manager…"
+          if [ -f pnpm-lock.yaml ]; then
+            echo "Using pnpm with frozen lockfile"
+            corepack enable
+            pnpm i --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            echo "Using yarn with frozen lockfile"
+            corepack enable
+            yarn install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            echo "Using npm ci (lockfile present)"
+            npm ci
+          else
+            echo "No lockfile found — falling back to npm install (non-frozen)"
+            npm install --no-audit --fund=false
           fi
 
-      # --- Import signing assets ---
+      # ---------- CocoaPods: only if Podfile exists ----------
+      - name: Install CocoaPods (if Podfile exists)
+        shell: bash
+        run: |
+          set -e
+          if [ -f ios/Podfile ]; then
+            gem install cocoapods --no-document
+            cd ios && pod install --repo-update
+          else
+            echo "No ios/Podfile — skipping pod install."
+          fi
+
+      # ---------- Import signing assets ----------
       - name: Import signing certificate (.p12)
         uses: apple-actions/import-codesign-certs@v2
         with:
@@ -79,25 +120,25 @@ jobs:
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
 
       - name: Install provisioning profile
-        run: |
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "${IOS_PROVISIONING_PROFILE_BASE64}" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
+        shell: bash
         env:
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles"
 
-      # --- Discover workspace/project at runtime ---
-      - name: Discover Xcode workspace or project
+      # ---------- Discover workspace/project automatically ----------
+      - name: Discover Xcode workspace/project
         id: discover
         shell: bash
         run: |
           set -euo pipefail
-          # Prefer things inside ios/
           ROOT="."
           if [ -d "ios" ]; then ROOT="ios"; fi
-
           WORKSPACE=$(find "$ROOT" -maxdepth 2 -name "*.xcworkspace" | head -n 1 || true)
           PROJECT=$(find "$ROOT" -maxdepth 2 -name "*.xcodeproj" | head -n 1 || true)
-
           if [ -n "$WORKSPACE" ]; then
             echo "kind=workspace" >> $GITHUB_OUTPUT
             echo "path=$WORKSPACE" >> $GITHUB_OUTPUT
@@ -108,8 +149,8 @@ jobs:
             echo "::error::Could not find any .xcworkspace or .xcodeproj under $ROOT"
             exit 1
           fi
+          echo "Discovered: kind=$(cat $GITHUB_OUTPUT | sed -n 's/^kind=//p'), path=$(cat $GITHUB_OUTPUT | sed -n 's/^path=//p')"
 
-      # --- Export options for App Store ---
       - name: Create exportOptions.plist
         run: |
           cat > exportOptions.plist <<'PLIST'
@@ -118,27 +159,31 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store</string>
-            <key>teamID</key><string>${{ env.TEAM_ID }}</string>
             <key>manageAppVersionAndBuildNumber</key><true/>
             <key>signingStyle</key><string>automatic</string>
-            <key>destination</key><string>export</string>
             <key>stripSwiftSymbols</key><true/>
             <key>thinning</key><string>&lt;none&gt;</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>${{ env.TEAM_ID }}</string>
           </dict>
           </plist>
           PLIST
 
-      # --- Optional: bump build number automatically ---
-      - name: Auto-increment build number
+      - name: Auto-increment build number (best-effort)
+        shell: bash
         run: |
+          set -e
           INFO_PLIST=$(find . -name "*-Info.plist" | head -n 1 || true)
           if [ -n "$INFO_PLIST" ]; then
             NEW_BUILD=$((1000 + GITHUB_RUN_NUMBER))
+            echo "Setting CFBundleVersion to $NEW_BUILD on $INFO_PLIST"
             /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$INFO_PLIST" || true
+          else
+            echo "No Info.plist found for bump — continuing."
           fi
 
-      # --- Archive ---
       - name: Xcode archive
+        shell: bash
         run: |
           set -e
           ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
@@ -168,8 +213,8 @@ jobs:
               -showBuildTimingSummary
           fi
 
-      # --- Export IPA ---
       - name: Export IPA
+        shell: bash
         run: |
           set -e
           ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
@@ -180,39 +225,45 @@ jobs:
             -exportOptionsPlist exportOptions.plist \
             -exportPath "$EXPORT_PATH" \
             -allowProvisioningUpdates
+          echo "Exported files:"
           ls -la "$EXPORT_PATH"
 
-      - name: Upload build artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build-${{ env.APP_NAME }}
+          name: ios-${{ env.APP_NAME }}-${{ github.run_number }}
           path: |
             build/${{ env.APP_NAME }}.xcarchive
             build/export/*.ipa
             build/export/*.dSYM.zip
             build/export/*.plist
-            build/*.log
           if-no-files-found: warn
           retention-days: 14
 
-      # --- App Store Connect upload (iTMSTransporter + API key) ---
-      - name: Write ASC API private key to file
-        run: |
-          mkdir -p "$HOME/.private_keys"
-          echo "${APPSTORE_API_PRIVATE_KEY}" > "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
-          chmod 600 "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+      # ---------- App Store Connect upload ----------
+      - name: Write ASC API private key
+        shell: bash
         env:
           APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.private_keys"
+          echo "$APPSTORE_API_PRIVATE_KEY" > "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+          chmod 600 "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+          echo "Saved key to $HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
 
-      - name: Upload to TestFlight
+      - name: Upload to TestFlight (iTMSTransporter)
+        shell: bash
         env:
           APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
         run: |
-          IPA_PATH="$(ls build/export/*.ipa | head -n 1)"
+          set -e
+          IPA_PATH="$(ls build/export/*.ipa | head -n 1 || true)"
           if [ -z "$IPA_PATH" ]; then
-            echo "No IPA produced" >&2
+            echo "::error::No IPA produced. Check build/export/ contents."
+            ls -la build/export/ || true
             exit 1
           fi
           xcrun iTMSTransporter -m upload \
