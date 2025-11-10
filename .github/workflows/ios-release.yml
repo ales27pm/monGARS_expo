@@ -7,6 +7,10 @@ on:
         description: "Xcode configuration"
         required: true
         default: "Release"
+      scheme:
+        description: "Override Xcode scheme (optional)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -15,7 +19,6 @@ env:
   # === App details (update as needed) ===
   APP_NAME: monGARS
   BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup
-  SCHEME: offllm-app-store-fixer
   EXPORT_METHOD: app-store
   TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
@@ -151,6 +154,49 @@ jobs:
           fi
           echo "Discovered: kind=$(cat $GITHUB_OUTPUT | sed -n 's/^kind=//p'), path=$(cat $GITHUB_OUTPUT | sed -n 's/^path=//p')"
 
+      - name: Detect Xcode scheme
+        id: detect_scheme
+        shell: bash
+        env:
+          SCHEME_OVERRIDE: ${{ github.event.inputs.scheme }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SCHEME_OVERRIDE:-}" ]; then
+            echo "Using scheme override from workflow dispatch input: ${SCHEME_OVERRIDE}"
+            SCHEME="$SCHEME_OVERRIDE"
+          else
+            TARGET_PATH="${{ steps.discover.outputs.path }}"
+            TARGET_KIND="${{ steps.discover.outputs.kind }}"
+            if [ -z "$TARGET_PATH" ] || [ -z "$TARGET_KIND" ]; then
+              echo "::error::Unable to detect project/workspace path from previous step."
+              exit 1
+            fi
+
+            TARGET_DIR=$(dirname "$TARGET_PATH")
+            BASENAME=$(basename "$TARGET_PATH")
+            cd "$TARGET_DIR"
+
+            if [ "$TARGET_KIND" = "workspace" ]; then
+              CONTAINER_FLAG="-workspace"
+              CONTAINER_NAME="${BASENAME%.xcworkspace}"
+            else
+              CONTAINER_FLAG="-project"
+              CONTAINER_NAME="${BASENAME%.xcodeproj}"
+            fi
+
+            echo "Inspecting ${TARGET_KIND} $BASENAME for schemes"
+            REPO_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+            SCHEME=$(xcodebuild -list -json "$CONTAINER_FLAG" "$BASENAME" | \
+              python3 "$REPO_ROOT/.github/scripts/detect_scheme.py" --candidate "$CONTAINER_NAME")
+            if [ -z "$SCHEME" ]; then
+              echo "::error::Failed to auto-detect an app scheme. Provide one via the workflow input."
+              exit 1
+            fi
+            echo "Auto-detected scheme: $SCHEME"
+          fi
+
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+
       - name: Create exportOptions.plist
         run: |
           cat > exportOptions.plist <<'PLIST'
@@ -190,7 +236,7 @@ jobs:
           if [ "${{ steps.discover.outputs.kind }}" = "workspace" ]; then
             xcodebuild \
               -workspace "${{ steps.discover.outputs.path }}" \
-              -scheme "${{ env.SCHEME }}" \
+              -scheme "${{ steps.detect_scheme.outputs.scheme }}" \
               -configuration "${{ github.event.inputs.build_configuration }}" \
               -archivePath "$ARCHIVE_PATH" \
               clean archive \
@@ -202,7 +248,7 @@ jobs:
           else
             xcodebuild \
               -project "${{ steps.discover.outputs.path }}" \
-              -scheme "${{ env.SCHEME }}" \
+              -scheme "${{ steps.detect_scheme.outputs.scheme }}" \
               -configuration "${{ github.event.inputs.build_configuration }}" \
               -archivePath "$ARCHIVE_PATH" \
               clean archive \
