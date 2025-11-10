@@ -71,7 +71,7 @@ class InMemoryMMKV implements MMKVLike {
     return Array.from(this.store.keys());
   }
 
-  recrypt(): void {
+  recrypt(_key?: string): void {
     // No-op for in-memory fallback; encryption is not simulated.
   }
 }
