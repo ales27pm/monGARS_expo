@@ -6,19 +6,31 @@ import { ModelConfig, ModelDownloadProgress } from "../types/models";
  * This eliminates the need to bundle large models with the app
  */
 
-const MODELS_DIR = `${FileSystem.documentDirectory}models/`;
-
 export class ModelDownloadService {
-  private downloadResumables: Map<string, FileSystem.DownloadResumable> =
-    new Map();
+  private downloadResumables: Map<string, FileSystem.DownloadResumable> = new Map();
+  private readonly modelsDir: string | null;
+
+  constructor() {
+    const baseDir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+    this.modelsDir = baseDir ? `${baseDir}models/` : null;
+  }
+
+  private assertModelsDir(): string {
+    if (!this.modelsDir) {
+      throw new Error("No writable directory available for storing models on this platform.");
+    }
+
+    return this.modelsDir;
+  }
 
   /**
    * Initialize the models directory
    */
   async initialize(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(MODELS_DIR);
+    const modelsDir = this.assertModelsDir();
+    const dirInfo = await FileSystem.getInfoAsync(modelsDir);
     if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(MODELS_DIR, { intermediates: true });
+      await FileSystem.makeDirectoryAsync(modelsDir, { intermediates: true });
     }
   }
 
@@ -26,7 +38,7 @@ export class ModelDownloadService {
    * Get the local file path for a model
    */
   getModelPath(model: ModelConfig): string {
-    return `${MODELS_DIR}${model.filename}`;
+    return `${this.assertModelsDir()}${model.filename}`;
   }
 
   /**
@@ -60,10 +72,7 @@ export class ModelDownloadService {
   /**
    * Download a model with progress tracking
    */
-  async downloadModel(
-    model: ModelConfig,
-    onProgress?: (progress: ModelDownloadProgress) => void
-  ): Promise<string> {
+  async downloadModel(model: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
     await this.initialize();
 
     const url = this.getHuggingFaceUrl(model);
@@ -79,23 +88,20 @@ export class ModelDownloadService {
     console.log(`Downloading model: ${model.name} from ${url}`);
 
     const callback = (downloadProgress: FileSystem.DownloadProgressData) => {
+      const totalBytes = downloadProgress.totalBytesExpectedToWrite;
+      const downloadedBytes = downloadProgress.totalBytesWritten;
+
+      const progressPercentage = totalBytes && totalBytes > 0 ? Math.min((downloadedBytes / totalBytes) * 100, 100) : 0;
+
       const progress: ModelDownloadProgress = {
-        totalBytes: downloadProgress.totalBytesExpectedToWrite,
-        downloadedBytes: downloadProgress.totalBytesWritten,
-        progress:
-          (downloadProgress.totalBytesWritten /
-            downloadProgress.totalBytesExpectedToWrite) *
-          100,
+        totalBytes,
+        downloadedBytes,
+        progress: progressPercentage,
       };
       onProgress?.(progress);
     };
 
-    const downloadResumable = FileSystem.createDownloadResumable(
-      url,
-      localPath,
-      {},
-      callback
-    );
+    const downloadResumable = FileSystem.createDownloadResumable(url, localPath, {}, callback);
 
     this.downloadResumables.set(model.filename, downloadResumable);
 
@@ -129,10 +135,7 @@ export class ModelDownloadService {
   /**
    * Resume a paused download
    */
-  async resumeDownload(
-    model: ModelConfig,
-    onProgress?: (progress: ModelDownloadProgress) => void
-  ): Promise<string> {
+  async resumeDownload(model: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
     const downloadResumable = this.downloadResumables.get(model.filename);
     if (!downloadResumable) {
       // If no resumable exists, start fresh download
@@ -182,11 +185,12 @@ export class ModelDownloadService {
    */
   async getDownloadedModels(): Promise<string[]> {
     await this.initialize();
-    const dirInfo = await FileSystem.getInfoAsync(MODELS_DIR);
+    const modelsDir = this.assertModelsDir();
+    const dirInfo = await FileSystem.getInfoAsync(modelsDir);
     if (!dirInfo.exists) {
       return [];
     }
-    const files = await FileSystem.readDirectoryAsync(MODELS_DIR);
+    const files = await FileSystem.readDirectoryAsync(modelsDir);
     return files.filter((file) => file.endsWith(".gguf") || file.endsWith(".bin"));
   }
 
@@ -198,7 +202,7 @@ export class ModelDownloadService {
     let totalSize = 0;
 
     for (const file of files) {
-      const path = `${MODELS_DIR}${file}`;
+      const path = `${this.assertModelsDir()}${file}`;
       const fileInfo = await FileSystem.getInfoAsync(path);
       if (fileInfo.exists && "size" in fileInfo) {
         totalSize += fileInfo.size;
@@ -212,9 +216,10 @@ export class ModelDownloadService {
    * Clear all downloaded models
    */
   async clearAllModels(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(MODELS_DIR);
+    const modelsDir = this.assertModelsDir();
+    const dirInfo = await FileSystem.getInfoAsync(modelsDir);
     if (dirInfo.exists) {
-      await FileSystem.deleteAsync(MODELS_DIR, { idempotent: true });
+      await FileSystem.deleteAsync(modelsDir, { idempotent: true });
       await this.initialize();
       console.log("All models cleared");
     }
