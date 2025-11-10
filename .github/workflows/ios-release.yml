@@ -176,12 +176,15 @@ jobs:
           set -euo pipefail
           IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
           if [ -z "$IDENTITY" ]; then
-            echo "::error::No signing identity found in the login keychain. Verify the imported certificate."
+            echo "::warning::No signing identity found in the login keychain after importing certificates. Falling back to automatic codesigning."
             security find-identity -v -p codesigning || true
-            exit 1
+            echo "identity=" >> "$GITHUB_OUTPUT"
+            echo "style=automatic" >> "$GITHUB_OUTPUT"
+          else
+            echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
+            echo "style=manual" >> "$GITHUB_OUTPUT"
+            echo "Using signing identity: $IDENTITY"
           fi
-          echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
-          echo "Using signing identity: $IDENTITY"
 
       # ---------- Discover workspace/project automatically ----------
       - name: Discover Xcode workspace/project
@@ -249,27 +252,40 @@ jobs:
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
 
       - name: Create exportOptions.plist
+        env:
+          SIGNING_STYLE: ${{ steps.signing_identity.outputs.style }}
+          PROFILE_SPECIFIER: ${{ steps.profile_metadata.outputs.specifier }}
+          TEAM_ID: ${{ env.TEAM_ID }}
+          BUNDLE_ID: ${{ env.BUNDLE_ID }}
         run: |
-          cat > exportOptions.plist <<'PLIST'
+          set -euo pipefail
+          STYLE="${SIGNING_STYLE:-manual}"
+          STYLE_LOWER=$(printf '%s' "$STYLE" | tr '[:upper:]' '[:lower:]')
+
+          cat > exportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store</string>
             <key>manageAppVersionAndBuildNumber</key><true/>
-            <key>signingStyle</key><string>manual</string>
+            <key>signingStyle</key><string>${STYLE_LOWER}</string>
             <key>stripSwiftSymbols</key><true/>
             <key>thinning</key><string>&lt;none&gt;</string>
             <key>destination</key><string>export</string>
-            <key>teamID</key><string>${{ env.TEAM_ID }}</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>${{ env.BUNDLE_ID }}</key>
-              <string>${{ steps.profile_metadata.outputs.specifier }}</string>
-            </dict>
+            <key>teamID</key><string>${TEAM_ID}</string>
           </dict>
           </plist>
           PLIST
+
+          if [ "$STYLE_LOWER" = "manual" ]; then
+            if [ -z "${PROFILE_SPECIFIER:-}" ] || [ -z "${BUNDLE_ID:-}" ]; then
+              echo "::error::Provisioning profile information missing for manual signing."
+              exit 1
+            fi
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" exportOptions.plist
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${BUNDLE_ID} string ${PROFILE_SPECIFIER}" exportOptions.plist
+          fi
 
       - name: Auto-increment build number (best-effort)
         shell: bash
@@ -286,52 +302,67 @@ jobs:
 
       - name: Xcode archive
         shell: bash
+        env:
+          SIGNING_STYLE: ${{ steps.signing_identity.outputs.style }}
+          SIGNING_IDENTITY: ${{ steps.signing_identity.outputs.identity }}
+          PROFILE_SPECIFIER: ${{ steps.profile_metadata.outputs.specifier }}
+          PROFILE_UUID: ${{ steps.profile_metadata.outputs.uuid }}
+          BUNDLE_ID: ${{ env.BUNDLE_ID }}
         run: |
-          set -e
+          set -euo pipefail
           ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
-          if [ -z "${{ steps.profile_metadata.outputs.uuid }}" ] || [ -z "${{ steps.profile_metadata.outputs.specifier }}" ]; then
-            echo "::error::Provisioning profile metadata missing — cannot continue."
-            exit 1
-          fi
+          STYLE="${SIGNING_STYLE:-manual}"
+          STYLE_LOWER=$(printf '%s' "$STYLE" | tr '[:upper:]' '[:lower:]')
 
-          if [ -z "${{ steps.signing_identity.outputs.identity }}" ]; then
-            echo "::error::Signing identity missing — cannot continue."
-            exit 1
+          if [ "$STYLE_LOWER" = "manual" ]; then
+            if [ -z "${PROFILE_UUID:-}" ] || [ -z "${PROFILE_SPECIFIER:-}" ]; then
+              echo "::error::Provisioning profile metadata missing — cannot continue with manual codesigning."
+              exit 1
+            fi
+            if [ -z "${SIGNING_IDENTITY:-}" ]; then
+              echo "::error::Signing identity missing — cannot continue with manual codesigning."
+              exit 1
+            fi
           fi
 
           if [ "${{ steps.discover.outputs.kind }}" = "workspace" ]; then
-            xcodebuild \
-              -workspace "${{ steps.discover.outputs.path }}" \
-              -scheme "${{ steps.detect_scheme.outputs.scheme }}" \
-              -configuration "${{ github.event.inputs.build_configuration }}" \
-              -archivePath "$ARCHIVE_PATH" \
-              clean archive \
-              DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-              CODE_SIGN_STYLE=Manual \
-              CODE_SIGN_IDENTITY="${{ steps.signing_identity.outputs.identity }}" \
-              PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile_metadata.outputs.specifier }}" \
-              PROVISIONING_PROFILE="${{ steps.profile_metadata.outputs.uuid }}" \
-              PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
-              ONLY_ACTIVE_ARCH=NO \
-              -allowProvisioningUpdates \
-              -showBuildTimingSummary
+            CONTAINER_FLAG="-workspace"
           else
-            xcodebuild \
-              -project "${{ steps.discover.outputs.path }}" \
-              -scheme "${{ steps.detect_scheme.outputs.scheme }}" \
-              -configuration "${{ github.event.inputs.build_configuration }}" \
-              -archivePath "$ARCHIVE_PATH" \
-              clean archive \
-              DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-              CODE_SIGN_STYLE=Manual \
-              CODE_SIGN_IDENTITY="${{ steps.signing_identity.outputs.identity }}" \
-              PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile_metadata.outputs.specifier }}" \
-              PROVISIONING_PROFILE="${{ steps.profile_metadata.outputs.uuid }}" \
-              PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
-              ONLY_ACTIVE_ARCH=NO \
-              -allowProvisioningUpdates \
-              -showBuildTimingSummary
+            CONTAINER_FLAG="-project"
           fi
+
+          declare -a CMD=(
+            "xcodebuild"
+            "$CONTAINER_FLAG" "${{ steps.discover.outputs.path }}"
+            "-scheme" "${{ steps.detect_scheme.outputs.scheme }}"
+            "-configuration" "${{ github.event.inputs.build_configuration }}"
+            "-archivePath" "$ARCHIVE_PATH"
+            "clean" "archive"
+            "DEVELOPMENT_TEAM=${{ env.TEAM_ID }}"
+            "ONLY_ACTIVE_ARCH=NO"
+            "-allowProvisioningUpdates"
+            "-showBuildTimingSummary"
+          )
+
+          if [ "$STYLE_LOWER" = "manual" ]; then
+            CMD+=(
+              "CODE_SIGN_STYLE=Manual"
+              "CODE_SIGN_IDENTITY=${SIGNING_IDENTITY}"
+              "PROVISIONING_PROFILE_SPECIFIER=${PROFILE_SPECIFIER}"
+              "PROVISIONING_PROFILE=${PROFILE_UUID}"
+            )
+            if [ -n "${BUNDLE_ID:-}" ]; then
+              CMD+=("PRODUCT_BUNDLE_IDENTIFIER=${BUNDLE_ID}")
+            fi
+          else
+            CMD+=("CODE_SIGN_STYLE=Automatic")
+            if [ -n "${BUNDLE_ID:-}" ]; then
+              CMD+=("PRODUCT_BUNDLE_IDENTIFIER=${BUNDLE_ID}")
+            fi
+          fi
+
+          echo "Running: ${CMD[*]}"
+          "${CMD[@]}"
 
       - name: Export IPA
         shell: bash
