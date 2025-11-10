@@ -22,6 +22,24 @@ jobs:
     name: Build iOS with Native Turbo Modules
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE != '' ? secrets.APPLE_CERTIFICATE : secrets.IOS_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' ? secrets.APPLE_CERTIFICATE_PASSWORD : secrets.IOS_P12_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE != '' ? secrets.APPLE_PROVISIONING_PROFILE : secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+      EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
+      EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+      EXPO_ASC_APP_ID: ${{ secrets.EXPO_ASC_APP_ID }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_PAT: ${{ secrets.GH_PAT }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
     steps:
       - name: 📥 Checkout repository
@@ -102,28 +120,71 @@ jobs:
           echo "scheme=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
 
       - name: 🔑 Setup signing (if credentials provided)
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        id: setup_signing
         run: |
+          set -euo pipefail
+
           if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
             echo "🔑 Setting up code signing..."
 
-            # Create keychain
-            security create-keychain -p actions build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p actions build.keychain
-            security set-keychain-settings -t 3600 -u build.keychain
+            WORK_KEYCHAIN="build.keychain"
+            WORK_KEYCHAIN_PATH="$HOME/Library/Keychains/${WORK_KEYCHAIN}-db"
+            PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+            PROFILE_PATH="$PROFILE_DIR/profile.mobileprovision"
 
-            # Import certificate
-            echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+            ORIGINAL_KEYCHAIN=$(security default-keychain -d user | tr -d '"')
+            security create-keychain -p actions "$WORK_KEYCHAIN"
+            security default-keychain -s "$WORK_KEYCHAIN"
+            security unlock-keychain -p actions "$WORK_KEYCHAIN"
+            security set-keychain-settings -t 3600 -u "$WORK_KEYCHAIN"
+            mapfile -t EXISTING_KEYCHAINS < <(security list-keychains -d user | tr -d '"' | sed 's/^ *//')
+            security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
 
-            # Import provisioning profile
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-            echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            CERTIFICATE_PATH=$(mktemp)
+            echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+            security import "$CERTIFICATE_PATH" -k "$WORK_KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -A >/tmp/codesign-import.log 2>&1
+            security set-key-partition-list -S apple-tool:,apple: -s -k actions "$WORK_KEYCHAIN"
+
+            mkdir -p "$PROFILE_DIR"
+            echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PROFILE_PATH"
+
+            PROFILE_PLIST=$(mktemp)
+            trap 'rm -f "$CERTIFICATE_PATH" "$PROFILE_PLIST"; security default-keychain -d user -s "$ORIGINAL_KEYCHAIN" 2>/dev/null || true; security delete-keychain "$WORK_KEYCHAIN" 2>/dev/null || true' EXIT
+            security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+
+            TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST" 2>/dev/null || true)
+            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST" 2>/dev/null || true)
+            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST" 2>/dev/null || true)
+            APP_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST" 2>/dev/null || true)
+
+            if [ -z "$TEAM_ID" ] || [ -z "$PROFILE_NAME" ] || [ -z "$PROFILE_UUID" ] || [ -z "$APP_IDENTIFIER" ]; then
+              echo "::error::Failed to extract required metadata from provisioning profile."
+              cat "$PROFILE_PLIST"
+              exit 1
+            fi
+
+            BUNDLE_ID="${APP_IDENTIFIER#*.}"
+
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$WORK_KEYCHAIN_PATH" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
+            if [ -z "$SIGNING_IDENTITY" ]; then
+              echo "::error::No signing identity found after importing certificate."
+              security find-identity -v -p codesigning "$WORK_KEYCHAIN_PATH" || true
+              exit 1
+            fi
+
+            SIGNING_CERT_TYPE=$(echo "$SIGNING_IDENTITY" | awk -F': ' '{print $1}' | xargs)
+
+            {
+              echo "team_id=$TEAM_ID"
+              echo "profile_name=$PROFILE_NAME"
+              echo "profile_uuid=$PROFILE_UUID"
+              echo "bundle_id=$BUNDLE_ID"
+              echo "profile_path=$PROFILE_PATH"
+              echo "signing_identity=$SIGNING_IDENTITY"
+              echo "signing_certificate_type=$SIGNING_CERT_TYPE"
+              echo "keychain=$WORK_KEYCHAIN_PATH"
+              echo "keychain_name=$WORK_KEYCHAIN"
+            } >> "$GITHUB_OUTPUT"
 
             echo "✅ Code signing configured"
           else
@@ -132,8 +193,16 @@ jobs:
 
       - name: 🏗️ Build with Xcode (Native Turbo Modules)
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
+          PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
+          PROFILE_UUID: ${{ steps.setup_signing.outputs.profile_uuid }}
+          BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
+          SIGNING_IDENTITY: ${{ steps.setup_signing.outputs.signing_identity }}
+          SIGNING_CERTIFICATE_TYPE: ${{ steps.setup_signing.outputs.signing_certificate_type }}
+          CUSTOM_KEYCHAIN: ${{ steps.setup_signing.outputs.keychain }}
         run: |
+          set -euo pipefail
+
           echo "🚀 Building iOS app with Native Turbo Modules..."
           cd ios
 
@@ -147,8 +216,14 @@ jobs:
 
           # Check if we have signing credentials
           if [ -n "$APPLE_CERTIFICATE" ]; then
+            if [ -z "${TEAM_ID:-}" ] || [ -z "${PROFILE_SPECIFIER:-}" ] || [ -z "${PROFILE_UUID:-}" ] || [ -z "${BUNDLE_ID:-}" ] || [ -z "${SIGNING_IDENTITY:-}" ]; then
+              echo "::error::Signing metadata missing even though certificate secret is set."
+              exit 1
+            fi
+
             echo "🔐 Building with code signing for device"
             # Build archive for device (requires signing)
+            DEFAULT_KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
@@ -156,6 +231,13 @@ jobs:
               -sdk iphoneos \
               -destination generic/platform=iOS \
               -archivePath "./build/App.xcarchive" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER" \
+              PROVISIONING_PROFILE="$PROFILE_UUID" \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+              OTHER_CODE_SIGN_FLAGS="--keychain ${CUSTOM_KEYCHAIN:-$DEFAULT_KEYCHAIN_PATH}" \
               archive \
               -allowProvisioningUpdates
             echo "✅ Archive created successfully with native modules compiled"
@@ -174,9 +256,17 @@ jobs:
 
       - name: 📦 Export Archive to IPA
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
+          PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
+          BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
+          SIGNING_CERTIFICATE_TYPE: ${{ steps.setup_signing.outputs.signing_certificate_type }}
         run: |
           if [ -n "$APPLE_CERTIFICATE" ]; then
+            if [ -z "${TEAM_ID:-}" ] || [ -z "${PROFILE_SPECIFIER:-}" ] || [ -z "${BUNDLE_ID:-}" ] || [ -z "${SIGNING_CERTIFICATE_TYPE:-}" ]; then
+              echo "::error::Missing signing metadata for export."
+              exit 1
+            fi
+
             echo "📦 Exporting archive to IPA..."
             cd ios
 
@@ -188,6 +278,17 @@ jobs:
           <dict>
               <key>method</key>
               <string>app-store</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>signingCertificate</key>
+              <string>${SIGNING_CERTIFICATE_TYPE}</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${BUNDLE_ID}</key>
+                  <string>${PROFILE_SPECIFIER}</string>
+              </dict>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
@@ -210,8 +311,6 @@ jobs:
           fi
 
       - name: 📦 Create simulator build
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "📦 Creating simulator build package..."
