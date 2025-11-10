@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       model_name:
-        description: 'Model to download and include'
+        description: "Model to download and include"
         required: true
-        default: 'qwen2-0.5b'
+        default: "qwen2-0.5b"
         type: choice
         options:
           - qwen2-0.5b
@@ -16,14 +16,14 @@ on:
           - all
           - none
       scheme:
-        description: 'Xcode scheme to build (leave empty for auto-detect)'
+        description: "Xcode scheme to build (leave empty for auto-detect)"
         required: false
-        default: ''
+        default: ""
         type: string
       configuration:
-        description: 'Build configuration'
+        description: "Build configuration"
         required: false
-        default: 'Release'
+        default: "Release"
         type: choice
         options:
           - Debug
@@ -35,7 +35,7 @@ env:
 jobs:
   build-with-xcode:
     name: Build iOS App with Xcode
-    runs-on: macos-15  # macOS 15 with Xcode 16.2
+    runs-on: macos-15 # macOS 15 with Xcode 16.2
     timeout-minutes: 90
 
     steps:
@@ -69,7 +69,7 @@ jobs:
         if: ${{ inputs.model_name != 'none' }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 📦 Install Python dependencies
         if: ${{ inputs.model_name != 'none' }}
@@ -163,7 +163,7 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -271,28 +271,69 @@ jobs:
           echo "✅ Using scheme: $SCHEME"
 
       - name: 🔑 Setup signing (if credentials provided)
+        id: setup_signing
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
+          set -euo pipefail
+
           if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
             echo "🔑 Setting up code signing..."
 
-            # Create keychain
-            security create-keychain -p actions build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p actions build.keychain
-            security set-keychain-settings -t 3600 -u build.keychain
+            WORK_KEYCHAIN="build.keychain"
+            PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+            PROFILE_PATH="$PROFILE_DIR/profile.mobileprovision"
 
-            # Import certificate
+            security create-keychain -p actions "$WORK_KEYCHAIN"
+            security default-keychain -s "$WORK_KEYCHAIN"
+            security unlock-keychain -p actions "$WORK_KEYCHAIN"
+            security set-keychain-settings -t 3600 -u "$WORK_KEYCHAIN"
+
             echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+            security import certificate.p12 -k "$WORK_KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/tmp/codesign-import.log 2>&1
+            security set-key-partition-list -S apple-tool:,apple: -s -k actions "$WORK_KEYCHAIN"
 
-            # Import provisioning profile
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-            echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            mkdir -p "$PROFILE_DIR"
+            echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PROFILE_PATH"
+
+            PROFILE_PLIST=$(mktemp)
+            trap 'rm -f certificate.p12 "$PROFILE_PLIST"' EXIT
+            security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+
+            TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST" 2>/dev/null || true)
+            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST" 2>/dev/null || true)
+            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST" 2>/dev/null || true)
+            APP_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST" 2>/dev/null || true)
+
+            if [ -z "$TEAM_ID" ] || [ -z "$PROFILE_NAME" ] || [ -z "$PROFILE_UUID" ] || [ -z "$APP_IDENTIFIER" ]; then
+              echo "::error::Failed to extract required metadata from provisioning profile."
+              cat "$PROFILE_PLIST"
+              exit 1
+            fi
+
+            BUNDLE_ID="${APP_IDENTIFIER#*.}"
+
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$WORK_KEYCHAIN" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
+            if [ -z "$SIGNING_IDENTITY" ]; then
+              echo "::error::No signing identity found after importing certificate."
+              security find-identity -v -p codesigning "$WORK_KEYCHAIN" || true
+              exit 1
+            fi
+
+            SIGNING_CERT_TYPE=$(echo "$SIGNING_IDENTITY" | awk -F': ' '{print $1}' | xargs)
+
+            {
+              echo "team_id=$TEAM_ID"
+              echo "profile_name=$PROFILE_NAME"
+              echo "profile_uuid=$PROFILE_UUID"
+              echo "bundle_id=$BUNDLE_ID"
+              echo "profile_path=$PROFILE_PATH"
+              echo "signing_identity=$SIGNING_IDENTITY"
+              echo "signing_certificate_type=$SIGNING_CERT_TYPE"
+              echo "keychain=$WORK_KEYCHAIN"
+            } >> "$GITHUB_OUTPUT"
 
             echo "✅ Code signing configured"
           else
@@ -302,22 +343,32 @@ jobs:
       - name: 🏗️ Build with Xcode
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
+          PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
+          PROFILE_UUID: ${{ steps.setup_signing.outputs.profile_uuid }}
+          BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
+          SIGNING_IDENTITY: ${{ steps.setup_signing.outputs.signing_identity }}
+          SIGNING_CERTIFICATE_TYPE: ${{ steps.setup_signing.outputs.signing_certificate_type }}
+          CUSTOM_KEYCHAIN: ${{ steps.setup_signing.outputs.keychain }}
         run: |
+          set -euo pipefail
+
           echo "🚀 Building iOS app with Xcode..."
           cd ios
 
-          # Find the workspace
           WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
           echo "📁 Workspace: $WORKSPACE"
 
-          # Use detected scheme
           SCHEME="${{ steps.detect_scheme.outputs.scheme }}"
           echo "📱 Scheme: $SCHEME"
 
-          # Check if we have signing credentials
           if [ -n "$APPLE_CERTIFICATE" ]; then
+            if [ -z "${TEAM_ID:-}" ] || [ -z "${PROFILE_SPECIFIER:-}" ] || [ -z "${PROFILE_UUID:-}" ] || [ -z "${BUNDLE_ID:-}" ] || [ -z "${SIGNING_IDENTITY:-}" ]; then
+              echo "::error::Signing metadata missing even though certificate secret is set."
+              exit 1
+            fi
+
             echo "🔐 Building with code signing for device"
-            # Build archive for device (requires signing)
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
@@ -325,12 +376,18 @@ jobs:
               -sdk iphoneos \
               -destination generic/platform=iOS \
               -archivePath "./build/App.xcarchive" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_SPECIFIER" \
+              PROVISIONING_PROFILE="$PROFILE_UUID" \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+              OTHER_CODE_SIGN_FLAGS="--keychain ${CUSTOM_KEYCHAIN:-build.keychain}" \
               archive \
               -allowProvisioningUpdates
             echo "✅ Archive created successfully"
           else
             echo "⚠️ Building without code signing (simulator only)"
-            # Build for simulator (no archive, just build)
             xcodebuild \
               -workspace "$WORKSPACE" \
               -scheme "$SCHEME" \
@@ -344,8 +401,17 @@ jobs:
       - name: 📦 Export Archive to IPA
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
+          PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
+          BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
+          SIGNING_CERTIFICATE_TYPE: ${{ steps.setup_signing.outputs.signing_certificate_type }}
         run: |
           if [ -n "$APPLE_CERTIFICATE" ]; then
+            if [ -z "${TEAM_ID:-}" ] || [ -z "${PROFILE_SPECIFIER:-}" ] || [ -z "${BUNDLE_ID:-}" ] || [ -z "${SIGNING_CERTIFICATE_TYPE:-}" ]; then
+              echo "::error::Missing signing metadata for export."
+              exit 1
+            fi
+
             echo "📦 Exporting archive to IPA..."
             cd ios
 
@@ -357,6 +423,17 @@ jobs:
           <dict>
               <key>method</key>
               <string>app-store</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>signingCertificate</key>
+              <string>${SIGNING_CERTIFICATE_TYPE}</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${BUNDLE_ID}</key>
+                  <string>${PROFILE_SPECIFIER}</string>
+              </dict>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
