@@ -37,6 +37,10 @@ jobs:
     name: Build iOS App with Xcode
     runs-on: macos-15 # macOS 15 with Xcode 16.2
     timeout-minutes: 90
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE || secrets.IOS_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_CERTIFICATE_PASSWORD || secrets.IOS_P12_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE != '' && secrets.APPLE_PROVISIONING_PROFILE || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
 
     steps:
       - name: 📥 Checkout repository
@@ -272,10 +276,6 @@ jobs:
 
       - name: 🔑 Setup signing (if credentials provided)
         id: setup_signing
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
           set -euo pipefail
 
@@ -342,7 +342,6 @@ jobs:
 
       - name: 🏗️ Build with Xcode
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
           PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
           PROFILE_UUID: ${{ steps.setup_signing.outputs.profile_uuid }}
@@ -400,7 +399,7 @@ jobs:
 
       - name: 📦 Export Archive to IPA
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
           TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
           PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
           BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
@@ -457,7 +456,7 @@ jobs:
 
       - name: 📦 Create simulator build
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "📦 Creating simulator build package..."

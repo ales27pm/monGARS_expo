@@ -22,6 +22,10 @@ jobs:
     name: Build iOS with Native Turbo Modules
     runs-on: macos-15
     timeout-minutes: 90
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE || secrets.IOS_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_CERTIFICATE_PASSWORD || secrets.IOS_P12_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE != '' && secrets.APPLE_PROVISIONING_PROFILE || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
 
     steps:
       - name: 📥 Checkout repository
@@ -102,10 +106,6 @@ jobs:
           echo "scheme=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
 
       - name: 🔑 Setup signing (if credentials provided)
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
           if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
             echo "🔑 Setting up code signing..."
@@ -131,8 +131,6 @@ jobs:
           fi
 
       - name: 🏗️ Build with Xcode (Native Turbo Modules)
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           echo "🚀 Building iOS app with Native Turbo Modules..."
           cd ios
@@ -174,7 +172,7 @@ jobs:
 
       - name: 📦 Export Archive to IPA
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
         run: |
           if [ -n "$APPLE_CERTIFICATE" ]; then
             echo "📦 Exporting archive to IPA..."
@@ -211,7 +209,7 @@ jobs:
 
       - name: 📦 Create simulator build
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "📦 Creating simulator build package..."
