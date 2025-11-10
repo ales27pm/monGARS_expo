@@ -14,6 +14,10 @@ import { vectorStore, VectorStore } from "./vector-store";
 import { chunkText, TextChunk } from "./text-chunking";
 import { EmbeddingStorageStats, SemanticSearchOptions } from "../types/embeddings";
 import { getGlobalLLM } from "./on-device-llm";
+import { extractErrorMessage, isNativeModuleUnavailableError } from "./nativeModuleError";
+
+const DEFAULT_CLOUD_EMBEDDING_MODEL = "text-embedding-3-small";
+const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 
 const FALLBACK_VECTOR_SIZE = 384;
 const STOP_WORDS = new Set([
@@ -71,6 +75,27 @@ function normalizeVector(vector: number[]): number[] {
   return vector.map((value) => value / norm);
 }
 
+function matchVectorDimensions(vector: number[], targetLength: number): number[] {
+  if (vector.length === targetLength) {
+    return vector;
+  }
+
+  if (targetLength <= 0) {
+    return [];
+  }
+
+  if (vector.length > targetLength) {
+    return normalizeVector(vector.slice(0, targetLength));
+  }
+
+  const padded = new Array(targetLength).fill(0);
+  for (let i = 0; i < Math.min(vector.length, targetLength); i += 1) {
+    padded[i] = vector[i];
+  }
+
+  return normalizeVector(padded);
+}
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -112,6 +137,175 @@ function fallbackEmbedding(text: string): number[] {
   }
 
   return normalizeVector(vector);
+}
+
+export function createFallbackEmbeddingFunction(): (text: string) => Promise<number[]> {
+  return async (text: string) => fallbackEmbedding(text);
+}
+
+function getCloudEmbeddingConfig(): {
+  apiKey: string | null;
+  baseUrl: string;
+  model: string;
+} {
+  const apiKey = process.env.EXPO_PUBLIC_MONGARS_OPENAI_API_KEY ?? null;
+  const baseUrl = process.env.EXPO_PUBLIC_MONGARS_OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL;
+  const model = process.env.EXPO_PUBLIC_MONGARS_OPENAI_EMBEDDING_MODEL ?? DEFAULT_CLOUD_EMBEDDING_MODEL;
+
+  return { apiKey, baseUrl, model };
+}
+
+export function createCloudEmbeddingFunction(): ((text: string) => Promise<number[]>) | null {
+  const { apiKey } = getCloudEmbeddingConfig();
+
+  if (!apiKey || apiKey.trim().length === 0) {
+    return null;
+  }
+
+  return async (text: string) => {
+    const { apiKey: runtimeKey, baseUrl, model } = getCloudEmbeddingConfig();
+
+    if (!runtimeKey) {
+      throw new Error("OpenAI API key not configured for cloud embeddings.");
+    }
+
+    const response = await fetch(`${baseUrl.replace(/\/$/, "")}/embeddings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${runtimeKey}`,
+      },
+      body: JSON.stringify({
+        input: text,
+        model,
+      }),
+    });
+
+    if (!response.ok) {
+      let errorDetail: string | undefined;
+
+      try {
+        const data = await response.json();
+        errorDetail = data?.error?.message;
+      } catch (parseError) {
+        errorDetail = undefined;
+      }
+
+      const reason = errorDetail ? `${response.status} ${errorDetail}` : `${response.status}`;
+      throw new Error(`Cloud embedding request failed: ${reason}`);
+    }
+
+    const data = await response.json();
+    const embedding = data?.data?.[0]?.embedding;
+
+    if (!Array.isArray(embedding) || embedding.length === 0) {
+      throw new Error("Cloud embedding response did not include a valid embedding vector.");
+    }
+
+    return normalizeVector(embedding.map((value: unknown) => Number(value) || 0));
+  };
+}
+
+function shouldFallbackToHashEmbeddings(error: unknown): boolean {
+  if (isNativeModuleUnavailableError(error)) {
+    return true;
+  }
+
+  const message = extractErrorMessage(error).toLowerCase();
+
+  if (!message) {
+    return false;
+  }
+
+  const recoverablePatterns = [
+    "model not initialized",
+    "call initializemodel",
+    "initialize model()",
+    "initllama",
+    "failed to load the model",
+    "context is null",
+    "embedding vector",
+  ];
+
+  return recoverablePatterns.some((pattern) => message.includes(pattern));
+}
+
+function createResilientEmbeddingFunction(
+  onDeviceEmbedding: ((text: string) => Promise<number[]>) | null,
+  fallbackEmbeddingFn: (text: string) => Promise<number[]>,
+  cloudEmbeddingFn: ((text: string) => Promise<number[]>) | null = null,
+): (text: string) => Promise<number[]> {
+  let expectedLength: number | null = null;
+  let hasLoggedNativeFallback = false;
+  let hasLoggedCloudFallback = false;
+
+  const ensureVector = (vector: number[]): number[] => {
+    if (!Array.isArray(vector) || vector.length === 0) {
+      throw new Error("Embedding provider returned an empty vector.");
+    }
+
+    expectedLength = expectedLength ?? vector.length;
+    return expectedLength !== vector.length ? matchVectorDimensions(vector, expectedLength) : normalizeVector(vector);
+  };
+
+  const tryCloudEmbedding = async (text: string, reason?: string): Promise<number[]> => {
+    const provider = cloudEmbeddingFn;
+
+    if (!provider) {
+      const fallbackVector = await fallbackEmbeddingFn(text);
+      return ensureVector(fallbackVector);
+    }
+
+    if (!hasLoggedCloudFallback) {
+      const context = reason ? ` (${reason})` : "";
+      console.warn(
+        `[SemanticMemory] Falling back to cloud embeddings${context}. Vectors will be generated via OpenAI before storage.`,
+      );
+      hasLoggedCloudFallback = true;
+    }
+
+    try {
+      const cloudVector = await provider(text);
+      return ensureVector(cloudVector);
+    } catch (cloudError) {
+      console.error("[SemanticMemory] Cloud embedding failed:", cloudError);
+      const fallbackVector = await fallbackEmbeddingFn(text);
+      return ensureVector(fallbackVector);
+    }
+  };
+
+  return async (text: string) => {
+    if (onDeviceEmbedding) {
+      try {
+        const vector = await onDeviceEmbedding(text);
+        return ensureVector(vector);
+      } catch (error) {
+        const message = extractErrorMessage(error);
+
+        if (!shouldFallbackToHashEmbeddings(error)) {
+          console.error("[SemanticMemory] Unexpected embedding failure:", error);
+          throw error instanceof Error ? error : new Error(message || "Unknown embedding error");
+        }
+
+        if (!hasLoggedNativeFallback) {
+          const details = message ? ` (${message})` : "";
+          console.warn(
+            `[SemanticMemory] On-device embeddings unavailable${details}. Attempting cloud embeddings as fallback.`,
+          );
+          hasLoggedNativeFallback = true;
+        }
+
+        return tryCloudEmbedding(text, message);
+      }
+    }
+
+    if (cloudEmbeddingFn) {
+      return tryCloudEmbedding(text);
+    }
+
+    const fallbackVector = await fallbackEmbeddingFn(text);
+    return ensureVector(fallbackVector);
+  };
 }
 
 async function tryCreateOnDeviceEmbedding(): Promise<((text: string) => Promise<number[]>) | null> {
@@ -414,16 +608,27 @@ export async function createSemanticMemory(): Promise<SemanticMemory> {
     console.error("[SemanticMemory] Failed to initialize vector store:", error);
   }
 
+  const fallbackEmbeddingFn = createFallbackEmbeddingFunction();
   const onDeviceEmbedding = await tryCreateOnDeviceEmbedding();
+  const cloudEmbeddingFn = createCloudEmbeddingFunction();
+
   if (onDeviceEmbedding) {
-    memory.setEmbeddingFunction(onDeviceEmbedding);
+    memory.setEmbeddingFunction(createResilientEmbeddingFunction(onDeviceEmbedding, fallbackEmbeddingFn, cloudEmbeddingFn));
     return memory;
   }
 
-  memory.setEmbeddingFunction(async (text: string) => fallbackEmbedding(text));
+  if (cloudEmbeddingFn) {
+    memory.setEmbeddingFunction(createResilientEmbeddingFunction(null, fallbackEmbeddingFn, cloudEmbeddingFn));
+    console.warn(
+      "[SemanticMemory] On-device embeddings unavailable. Using cloud embeddings via OpenAI for semantic memory.",
+    );
+    return memory;
+  }
+
+  memory.setEmbeddingFunction(createResilientEmbeddingFunction(null, fallbackEmbeddingFn));
   console.warn(
     "[SemanticMemory] Falling back to lightweight hash-based embeddings. " +
-      "Load an on-device embedding model for higher quality results.",
+      "Configure OpenAI credentials or load an on-device embedding model for higher quality results.",
   );
 
   return memory;
@@ -439,4 +644,45 @@ export async function getGlobalMemory(): Promise<SemanticMemory> {
     globalMemoryInstance = await createSemanticMemory();
   }
   return globalMemoryInstance;
+}
+
+type EmbeddingConfiguration =
+  | {
+      type: "on-device";
+      llm: { embed(text: string): Promise<number[]> };
+    }
+  | { type: "cloud" }
+  | { type: "hash" };
+
+export async function configureSemanticMemoryEmbedding(config: EmbeddingConfiguration): Promise<void> {
+  const memory = await getGlobalMemory();
+  const fallbackEmbeddingFn = createFallbackEmbeddingFunction();
+  const cloudEmbeddingFn = createCloudEmbeddingFunction();
+
+  if (config.type === "on-device") {
+    const onDeviceEmbedding = async (text: string) => {
+      const vector = await config.llm.embed(text);
+      return normalizeVector(vector);
+    };
+
+    memory.setEmbeddingFunction(
+      createResilientEmbeddingFunction(onDeviceEmbedding, fallbackEmbeddingFn, cloudEmbeddingFn),
+    );
+    return;
+  }
+
+  if (config.type === "cloud") {
+    if (!cloudEmbeddingFn) {
+      console.warn(
+        "[SemanticMemory] Cloud embedding requested but OpenAI credentials are missing. Falling back to hash embeddings.",
+      );
+      memory.setEmbeddingFunction(createResilientEmbeddingFunction(null, fallbackEmbeddingFn));
+      return;
+    }
+
+    memory.setEmbeddingFunction(createResilientEmbeddingFunction(null, fallbackEmbeddingFn, cloudEmbeddingFn));
+    return;
+  }
+
+  memory.setEmbeddingFunction(createResilientEmbeddingFunction(null, fallbackEmbeddingFn));
 }
