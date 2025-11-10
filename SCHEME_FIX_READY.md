@@ -3,7 +3,7 @@
 ## ✅ Issue Fixed (Committed Locally)
 
 ### Problem:
-Scheme detection was selecting **"ComputableLayout"** (a library) instead of **"offLLMAppStoreFixer"** (your actual app).
+Scheme detection was selecting **"ComputableLayout"** (a library) instead of **"MonGARS"** (your actual app).
 
 From the logs:
 ```
@@ -12,12 +12,12 @@ From the logs:
 ```
 
 ### Root Cause:
-The workflow was filtering schemes alphabetically and "ComputableLayout" came before "offLLMAppStoreFixer" after basic filtering.
+The workflow was filtering schemes alphabetically and "ComputableLayout" came before "MonGARS" after basic filtering.
 
 ### Solution Implemented:
 
 **New Detection Strategy:**
-1. **First**: Try exact match with workspace name (`offLLMAppStoreFixer`)
+1. **First**: Try exact match with workspace name (`MonGARS`)
 2. **Fallback**: Comprehensive filtering of all known library schemes
 3. **Debug**: Shows all schemes for troubleshooting
 
@@ -66,7 +66,7 @@ You need a fresh GitHub token:
 When you run the workflow again:
 
 ```
-📱 Scheme: offLLMAppStoreFixer  ✅ (correct!)
+📱 Scheme: MonGARS  ✅ (correct!)
 ```
 
 Instead of:
@@ -85,13 +85,13 @@ Schemes:
     boost-boost_privacy
     ComputableLayout          ← Was detecting this
     ...
-    offLLMAppStoreFixer       ← Should detect this!
-    Pods-offLLMAppStoreFixer
+    MonGARS       ← Should detect this!
+    Pods-MonGARS
     ...
 ```
 
 The new logic will:
-1. Search for exact match: `offLLMAppStoreFixer` ✅ FOUND
+1. Search for exact match: `MonGARS` ✅ FOUND
 2. Use that scheme
 3. Build succeeds
 

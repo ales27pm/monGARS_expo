@@ -73,7 +73,7 @@ jobs:
       - name: Setup Node (for RN/Expo projects)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install JS deps (only if needed)
         shell: bash

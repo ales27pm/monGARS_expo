@@ -21,7 +21,7 @@ The WebTurboModule provides comprehensive web scraping, fetching, and manipulati
 ## Installation
 
 The module is already implemented in:
-- Native: `/ios/offLLMAppStoreFixer/NativeModules/WebTurboModule.mm`
+- Native: `/ios/MonGARS/NativeModules/WebTurboModule.mm`
 - TypeScript: `/src/native-modules/WebModule.ts`
 
 ---

@@ -139,13 +139,13 @@ ios/
 │       └── Intermediates.noindex/    (build cache)
 ├── build/                            ❌ Missing (needs commit)
 │   └── generated/                    (codegen outputs)
-├── offLLMAppStoreFixer/              ✅ Present
+├── MonGARS/              ✅ Present
 │   ├── AppDelegate.swift
 │   ├── Info.plist
 │   ├── Images.xcassets/
 │   └── ...
-├── offLLMAppStoreFixer.xcodeproj/    ✅ Present
-└── offLLMAppStoreFixer.xcworkspace/  ✅ Present
+├── MonGARS.xcodeproj/    ✅ Present
+└── MonGARS.xcworkspace/  ✅ Present
 ```
 
 ## Action Required

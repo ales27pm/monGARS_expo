@@ -15,6 +15,7 @@ As of this update, ML models are **downloaded at runtime** by users, not bundled
 ### 📱 User Experience
 
 Users can:
+
 - Browse available ML models in the app
 - See model details (size, quality, recommendations)
 - Download models with progress tracking
@@ -47,12 +48,12 @@ Users can:
 
 Pre-configured models optimized for mobile (defined in `src/types/models.ts`):
 
-| Model | Size | Description | Recommended |
-|-------|------|-------------|-------------|
-| Qwen2 0.5B | 326 MB | Fastest, great for older devices | ✅ |
-| Llama 3.2 1B | 730 MB | Best balance of quality and speed | ✅ |
-| SmolLM2 1.7B | 1.1 GB | Higher quality, needs more RAM | - |
-| Phi-3 Mini | 2.3 GB | Highest quality, needs 6GB+ RAM | - |
+| Model        | Size   | Description                       | Recommended |
+| ------------ | ------ | --------------------------------- | ----------- |
+| Qwen2 0.5B   | 326 MB | Fastest, great for older devices  | ✅          |
+| Llama 3.2 1B | 730 MB | Best balance of quality and speed | ✅          |
+| SmolLM2 1.7B | 1.1 GB | Higher quality, needs more RAM    | -           |
+| Phi-3 Mini   | 2.3 GB | Highest quality, needs 6GB+ RAM   | -           |
 
 ### Usage
 
@@ -61,9 +62,9 @@ import { useModelStore } from "./state/modelStore";
 import { modelDownloadService } from "./services/modelDownloadService";
 
 // In your component
-const activeModel = useModelStore(s => s.activeModel);
-const downloadModel = useModelStore(s => s.downloadModel);
-const isModelDownloaded = useModelStore(s => s.isModelDownloaded);
+const activeModel = useModelStore((s) => s.activeModel);
+const downloadModel = useModelStore((s) => s.downloadModel);
+const isModelDownloaded = useModelStore((s) => s.isModelDownloaded);
 
 // Download a model
 await downloadModel(model, (progress) => {
@@ -92,6 +93,7 @@ import ModelManagementScreen from "../screens/ModelManagementScreen";
 ## Workflow Changes
 
 ### Old Approach (Removed)
+
 - ❌ Download models during GitHub Actions workflow
 - ❌ Commit 400MB+ files to repository with Git LFS
 - ❌ Pay for GitHub LFS storage and bandwidth
@@ -99,6 +101,7 @@ import ModelManagementScreen from "../screens/ModelManagementScreen";
 - ❌ Bundle models with app binary
 
 ### New Approach (Current)
+
 - ✅ Build app without models (fast, ~5 minutes)
 - ✅ Users download models on first launch or on-demand
 - ✅ Models stored in app's document directory
@@ -108,13 +111,14 @@ import ModelManagementScreen from "../screens/ModelManagementScreen";
 ### Updated Workflows
 
 **`build-ios-simplified.yml`** - New streamlined build workflow
+
 - No model downloading steps
 - No Git LFS operations
 - No model commits
 - Fast, simple builds
 
 **Legacy Workflows** - Kept for reference but deprecated:
-- `build-for-vibecode.yml` - Has model download steps (deprecated)
+
 - `deploy-macos-native.yml` - Has model download steps (deprecated)
 - `download-models.yml` - Reusable model workflow (deprecated)
 - `deploy-modular.yml` - Modular workflow (deprecated)
@@ -122,11 +126,13 @@ import ModelManagementScreen from "../screens/ModelManagementScreen";
 ## Storage Considerations
 
 ### On-Device Storage
+
 - Models stored in: `FileSystem.documentDirectory + 'models/'`
 - Users can delete models anytime to free space
 - App shows storage usage in Model Library screen
 
 ### GitHub Storage
+
 - ✅ No longer needed - models not in repository
 - Can remove Git LFS configuration if desired
 - `.gitattributes` can be removed or kept for future use
@@ -136,6 +142,7 @@ import ModelManagementScreen from "../screens/ModelManagementScreen";
 If you have the old approach with models in the repository:
 
 1. **Remove models from repository:**
+
    ```bash
    git rm -r assets/models/*.gguf
    git commit -m "Remove bundled models - now downloaded at runtime"
@@ -155,16 +162,19 @@ If you have the old approach with models in the repository:
 ## Troubleshooting
 
 ### Models won't download
+
 - Check internet connection (required for first download)
 - Verify HuggingFace URLs are accessible
 - Check device storage space
 
 ### Models not found after download
+
 - Ensure you're using `modelDownloadService.getModelPath(model)`
 - Check file permissions in document directory
 - Verify model completed download (check progress = 100%)
 
 ### Download cancelled unexpectedly
+
 - Check app wasn't killed during download
 - Verify stable internet connection
 - Try download again (service handles partial downloads)
@@ -172,6 +182,7 @@ If you have the old approach with models in the repository:
 ## Future Enhancements
 
 Potential improvements:
+
 - Resume incomplete downloads automatically
 - Background downloads
 - Download from alternative sources (CDN, P2P)

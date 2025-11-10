@@ -74,12 +74,12 @@ Updated with required permissions:
 
 ## 🔧 Configuration Updates
 
-1. **Bridging Header** (`offLLMAppStoreFixer-Bridging-Header.h`)
+1. **Bridging Header** (`MonGARS-Bridging-Header.h`)
    - Imports React Native bridge
    - Imports SensorsTurboModule.h
 
 2. **Native Modules Directory**
-   - All `.mm` files in `/ios/offLLMAppStoreFixer/NativeModules/`
+   - All `.mm` files in `/ios/MonGARS/NativeModules/`
    - Header files where needed
 
 3. **TypeScript Exports**

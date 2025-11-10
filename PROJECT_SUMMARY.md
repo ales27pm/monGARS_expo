@@ -132,7 +132,7 @@ Each includes:
 
 ### 1. Native Layer (Objective-C++)
 ```
-ios/offLLMAppStoreFixer/NativeModules/
+ios/MonGARS/NativeModules/
 ├── [21 TurboModule implementations]
 ├── Full iOS framework integration
 └── Event emitters for streaming data

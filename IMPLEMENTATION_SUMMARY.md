@@ -9,6 +9,7 @@ Successfully transformed the app from bundling ML models to downloading them at 
 ## 🎯 What Changed
 
 ### Before (Bundled Models)
+
 - ❌ 400MB+ app size
 - ❌ 30+ minute CI/CD builds
 - ❌ GitHub LFS costs ($5-50/month)
@@ -16,6 +17,7 @@ Successfully transformed the app from bundling ML models to downloading them at 
 - ❌ Users forced to download all models
 
 ### After (Runtime Download)
+
 - ✅ ~50MB app size (87% reduction)
 - ✅ 5 minute CI/CD builds (83% faster)
 - ✅ Zero GitHub LFS costs
@@ -27,9 +29,11 @@ Successfully transformed the app from bundling ML models to downloading them at 
 ## 📦 What Was Built
 
 ### 1. Model Download Service
+
 **File:** `src/services/modelDownloadService.ts`
 
 Features:
+
 - Downloads models from HuggingFace
 - Progress tracking (bytes, percentage, speed)
 - Pause/resume/cancel support
@@ -38,7 +42,7 @@ Features:
 
 ```typescript
 // Example usage
-import { modelDownloadService } from './services/modelDownloadService';
+import { modelDownloadService } from "./services/modelDownloadService";
 
 await modelDownloadService.downloadModel(model, (progress) => {
   console.log(`${progress.progress}% - ${progress.downloadedBytes}/${progress.totalBytes} bytes`);
@@ -46,9 +50,11 @@ await modelDownloadService.downloadModel(model, (progress) => {
 ```
 
 ### 2. Model State Management
+
 **File:** `src/state/modelStore.ts`
 
 Features:
+
 - Zustand store with AsyncStorage persistence
 - Tracks downloaded models
 - Manages active model selection
@@ -57,17 +63,19 @@ Features:
 
 ```typescript
 // Example usage
-import { useModelStore } from './state/modelStore';
+import { useModelStore } from "./state/modelStore";
 
-const activeModel = useModelStore(s => s.activeModel);
-const downloadModel = useModelStore(s => s.downloadModel);
-const isDownloaded = useModelStore(s => s.isModelDownloaded(model));
+const activeModel = useModelStore((s) => s.activeModel);
+const downloadModel = useModelStore((s) => s.downloadModel);
+const isDownloaded = useModelStore((s) => s.isModelDownloaded(model));
 ```
 
 ### 3. Model Management UI
+
 **File:** `src/screens/ModelManagementScreen.tsx`
 
 Features:
+
 - Beautiful, Apple HIG-compliant design
 - Model cards with download buttons
 - Real-time progress indicators
@@ -77,9 +85,11 @@ Features:
 - Clear all models option
 
 ### 4. Simplified CI/CD Workflow
+
 **File:** `.github/workflows/build-ios-simplified.yml`
 
 Changes:
+
 - Removed all model download steps
 - Removed Git LFS operations
 - Removed model commit/push steps
@@ -106,6 +116,7 @@ Changes:
 ### For Developers (Deployment)
 
 1. **Use the new simplified workflow:**
+
    ```
    Go to: GitHub Actions → "Build & Deploy iOS (Simplified)"
    Click: "Run workflow"
@@ -163,7 +174,7 @@ import { useModelStore } from "./state/modelStore";
 import { modelDownloadService } from "./services/modelDownloadService";
 
 function YourLLMComponent() {
-  const activeModel = useModelStore(s => s.activeModel);
+  const activeModel = useModelStore((s) => s.activeModel);
 
   const generateText = async (prompt: string) => {
     if (!activeModel) {
@@ -187,13 +198,15 @@ function YourLLMComponent() {
 You can now remove the old model-bundling infrastructure:
 
 ### Remove Old Workflows (Optional)
+
 These are deprecated but kept for reference:
-- `.github/workflows/build-for-vibecode.yml`
+
 - `.github/workflows/deploy-macos-native.yml`
 - `.github/workflows/download-models.yml`
 - `.github/workflows/deploy-modular.yml`
 
 ### Remove Git LFS (Optional)
+
 Since models are no longer in the repository:
 
 ```bash
@@ -213,6 +226,7 @@ git push origin main
 ## 🎨 UI Preview
 
 The Model Management screen features:
+
 - **Header card** with storage stats and active model
 - **Model cards** with:
   - Model name and recommended badge
@@ -223,6 +237,7 @@ The Model Management screen features:
 - **Clear all button** to free up space
 
 Design follows Apple Human Interface Guidelines with:
+
 - Clean white cards on gray background
 - Blue accent colors
 - Smooth animations
@@ -233,19 +248,20 @@ Design follows Apple Human Interface Guidelines with:
 
 ## 📊 Impact Metrics
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| App Size | 400+ MB | ~50 MB | 87% smaller |
-| Build Time | 30+ min | ~5 min | 83% faster |
-| GitHub Storage | $5-50/mo | $0 | 100% savings |
-| User Control | None | Full | ∞% better |
-| Update Flexibility | Rebuild required | Instant | ∞% faster |
+| Metric             | Before           | After   | Improvement  |
+| ------------------ | ---------------- | ------- | ------------ |
+| App Size           | 400+ MB          | ~50 MB  | 87% smaller  |
+| Build Time         | 30+ min          | ~5 min  | 83% faster   |
+| GitHub Storage     | $5-50/mo         | $0      | 100% savings |
+| User Control       | None             | Full    | ∞% better    |
+| Update Flexibility | Rebuild required | Instant | ∞% faster    |
 
 ---
 
 ## 🔮 Future Enhancements
 
 Potential improvements:
+
 1. **Background downloads** - Download while app is backgrounded
 2. **Auto-resume** - Resume interrupted downloads automatically
 3. **CDN/P2P** - Alternative download sources for faster speeds
@@ -268,6 +284,7 @@ Potential improvements:
 ## ✨ Success!
 
 You now have a modern, user-friendly ML app that:
+
 - Downloads quickly from App Store
 - Lets users manage their own models
 - Updates models without app updates

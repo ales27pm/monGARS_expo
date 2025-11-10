@@ -85,8 +85,8 @@ npx expo prebuild --platform ios --clean
 cd ios && pod install && cd ..
 
 # Build with Xcode
-xcodebuild -workspace ios/offLLMAppStoreFixer.xcworkspace \
-  -scheme offLLMAppStoreFixer \
+xcodebuild -workspace ios/MonGARS.xcworkspace \
+  -scheme MonGARS \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath build/App.xcarchive \

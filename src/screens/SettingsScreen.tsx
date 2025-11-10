@@ -4,14 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Modal,
-  Switch,
-  Pressable,
-} from "react-native";
+import { View, Text, ScrollView, Modal, Switch, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { MemoryStatsCard } from "../components/PrivacyUI";
@@ -51,19 +44,12 @@ function CustomModal({
           <View className="flex-row gap-3">
             {onConfirm && (
               <View className="flex-1 bg-gray-200 rounded-lg overflow-hidden">
-                <Text
-                  onPress={onClose}
-                  className="text-gray-700 font-semibold text-center py-3"
-                >
+                <Text onPress={onClose} className="text-gray-700 font-semibold text-center py-3">
                   {cancelText}
                 </Text>
               </View>
             )}
-            <View
-              className={`flex-1 rounded-lg overflow-hidden ${
-                isDestructive ? "bg-red-500" : "bg-blue-500"
-              }`}
-            >
+            <View className={`flex-1 rounded-lg overflow-hidden ${isDestructive ? "bg-red-500" : "bg-blue-500"}`}>
               <Text
                 onPress={() => {
                   if (onConfirm) {
@@ -115,17 +101,22 @@ export default function SettingsScreen() {
 
   // Load memory stats
   useEffect(() => {
-    loadMemoryStats();
-    loadSettings();
+    void loadMemoryStats();
+    void loadSettings();
   }, []);
 
-  const loadMemoryStats = () => {
-    const stats = vectorStore.getStats();
-    setMemoryStats({
-      totalMemories: stats.totalEmbeddings,
-      storageSize: stats.storageSize,
-      conversationCount: stats.conversationCount,
-    });
+  const loadMemoryStats = async () => {
+    try {
+      await vectorStore.waitUntilReady();
+      const stats = vectorStore.getStats();
+      setMemoryStats({
+        totalMemories: stats.totalEmbeddings,
+        storageSize: stats.storageSize,
+        conversationCount: stats.conversationCount,
+      });
+    } catch (error) {
+      console.warn("Unable to load memory statistics:", error);
+    }
   };
 
   const loadSettings = async () => {
@@ -170,21 +161,30 @@ export default function SettingsScreen() {
     setModal({
       visible: true,
       title: "Clear All Memory",
-      message:
-        "This will delete all stored embeddings and conversation history. This action cannot be undone.",
+      message: "This will delete all stored embeddings and conversation history. This action cannot be undone.",
       isDestructive: true,
-      onConfirm: () => {
-        vectorStore.clearAll();
-        setMemoryStats({
-          totalMemories: 0,
-          storageSize: 0,
-          conversationCount: 0,
-        });
-        setModal({
-          visible: true,
-          title: "Memory Cleared",
-          message: "All conversation memory has been deleted.",
-        });
+      onConfirm: async () => {
+        try {
+          await vectorStore.waitUntilReady();
+          vectorStore.clearAll();
+          setMemoryStats({
+            totalMemories: 0,
+            storageSize: 0,
+            conversationCount: 0,
+          });
+          setModal({
+            visible: true,
+            title: "Memory Cleared",
+            message: "All conversation memory has been deleted.",
+          });
+        } catch (error) {
+          console.warn("Failed to clear stored memories:", error);
+          setModal({
+            visible: true,
+            title: "Unable to Clear Memory",
+            message: "The secure storage layer is not available right now. Please try again later.",
+          });
+        }
       },
     });
   };
@@ -194,19 +194,13 @@ export default function SettingsScreen() {
       <ScrollView className="flex-1 px-4 py-4">
         {/* Header */}
         <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            Settings
-          </Text>
-          <Text className="text-gray-600">
-            Manage your app settings and data
-          </Text>
+          <Text className="text-2xl font-bold text-gray-900 mb-2">Settings</Text>
+          <Text className="text-gray-600">Manage your app settings and data</Text>
         </View>
 
         {/* Active Model */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Active Model
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Active Model</Text>
 
           <View className="bg-white rounded-lg border border-gray-200 p-4">
             <View className="flex-row items-center justify-between">
@@ -231,9 +225,7 @@ export default function SettingsScreen() {
 
         {/* Memory Stats */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Memory & Storage
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Memory & Storage</Text>
 
           <MemoryStatsCard
             totalMemories={memoryStats.totalMemories}
@@ -245,16 +237,12 @@ export default function SettingsScreen() {
 
         {/* Model Settings */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Model Configuration
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Model Configuration</Text>
 
           <View className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-base font-medium text-gray-900">
-                  GPU Layers
-                </Text>
+                <Text className="text-base font-medium text-gray-900">GPU Layers</Text>
                 <Text className="text-sm text-gray-600">{gpuLayers}</Text>
               </View>
               <Text className="text-xs text-gray-500 mb-2">
@@ -281,9 +269,7 @@ export default function SettingsScreen() {
 
             <View className="mb-4 pt-4 border-t border-gray-200">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-base font-medium text-gray-900">
-                  Context Size
-                </Text>
+                <Text className="text-base font-medium text-gray-900">Context Size</Text>
                 <Text className="text-sm text-gray-600">{contextSize}</Text>
               </View>
               <Text className="text-xs text-gray-500 mb-2">
@@ -294,72 +280,82 @@ export default function SettingsScreen() {
                   onPress={() => setContextSize(512)}
                   className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 512 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${contextSize === 512 ? "text-white" : "text-gray-700"}`}>512</Text>
+                  <Text className={`text-center font-medium ${contextSize === 512 ? "text-white" : "text-gray-700"}`}>
+                    512
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setContextSize(1024)}
                   className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 1024 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${contextSize === 1024 ? "text-white" : "text-gray-700"}`}>1024</Text>
+                  <Text className={`text-center font-medium ${contextSize === 1024 ? "text-white" : "text-gray-700"}`}>
+                    1024
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setContextSize(2048)}
                   className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 2048 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${contextSize === 2048 ? "text-white" : "text-gray-700"}`}>2048</Text>
+                  <Text className={`text-center font-medium ${contextSize === 2048 ? "text-white" : "text-gray-700"}`}>
+                    2048
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setContextSize(4096)}
                   className={`flex-1 px-3 py-2 rounded-lg ${contextSize === 4096 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${contextSize === 4096 ? "text-white" : "text-gray-700"}`}>4096</Text>
+                  <Text className={`text-center font-medium ${contextSize === 4096 ? "text-white" : "text-gray-700"}`}>
+                    4096
+                  </Text>
                 </Pressable>
               </View>
             </View>
 
             <View className="mb-4 pt-4 border-t border-gray-200">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-base font-medium text-gray-900">
-                  Max Tokens
-                </Text>
+                <Text className="text-base font-medium text-gray-900">Max Tokens</Text>
                 <Text className="text-sm text-gray-600">{maxTokens}</Text>
               </View>
-              <Text className="text-xs text-gray-500 mb-2">
-                Maximum response length
-              </Text>
+              <Text className="text-xs text-gray-500 mb-2">Maximum response length</Text>
               <View className="flex-row items-center gap-2">
                 <Pressable
                   onPress={() => setMaxTokens(128)}
                   className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 128 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${maxTokens === 128 ? "text-white" : "text-gray-700"}`}>128</Text>
+                  <Text className={`text-center font-medium ${maxTokens === 128 ? "text-white" : "text-gray-700"}`}>
+                    128
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setMaxTokens(256)}
                   className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 256 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${maxTokens === 256 ? "text-white" : "text-gray-700"}`}>256</Text>
+                  <Text className={`text-center font-medium ${maxTokens === 256 ? "text-white" : "text-gray-700"}`}>
+                    256
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setMaxTokens(512)}
                   className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 512 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${maxTokens === 512 ? "text-white" : "text-gray-700"}`}>512</Text>
+                  <Text className={`text-center font-medium ${maxTokens === 512 ? "text-white" : "text-gray-700"}`}>
+                    512
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setMaxTokens(1024)}
                   className={`flex-1 px-3 py-2 rounded-lg ${maxTokens === 1024 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${maxTokens === 1024 ? "text-white" : "text-gray-700"}`}>1024</Text>
+                  <Text className={`text-center font-medium ${maxTokens === 1024 ? "text-white" : "text-gray-700"}`}>
+                    1024
+                  </Text>
                 </Pressable>
               </View>
             </View>
 
             <View className="pt-4 border-t border-gray-200">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-base font-medium text-gray-900">
-                  Temperature
-                </Text>
+                <Text className="text-base font-medium text-gray-900">Temperature</Text>
                 <Text className="text-sm text-gray-600">{temperature.toFixed(1)}</Text>
               </View>
               <Text className="text-xs text-gray-500 mb-2">
@@ -370,31 +366,41 @@ export default function SettingsScreen() {
                   onPress={() => setTemperature(0.1)}
                   className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.1 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${temperature === 0.1 ? "text-white" : "text-gray-700"}`}>0.1</Text>
+                  <Text className={`text-center font-medium ${temperature === 0.1 ? "text-white" : "text-gray-700"}`}>
+                    0.1
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setTemperature(0.5)}
                   className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.5 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${temperature === 0.5 ? "text-white" : "text-gray-700"}`}>0.5</Text>
+                  <Text className={`text-center font-medium ${temperature === 0.5 ? "text-white" : "text-gray-700"}`}>
+                    0.5
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setTemperature(0.7)}
                   className={`flex-1 px-3 py-2 rounded-lg ${temperature === 0.7 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${temperature === 0.7 ? "text-white" : "text-gray-700"}`}>0.7</Text>
+                  <Text className={`text-center font-medium ${temperature === 0.7 ? "text-white" : "text-gray-700"}`}>
+                    0.7
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setTemperature(1.0)}
                   className={`flex-1 px-3 py-2 rounded-lg ${temperature === 1.0 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${temperature === 1.0 ? "text-white" : "text-gray-700"}`}>1.0</Text>
+                  <Text className={`text-center font-medium ${temperature === 1.0 ? "text-white" : "text-gray-700"}`}>
+                    1.0
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setTemperature(1.5)}
                   className={`flex-1 px-3 py-2 rounded-lg ${temperature === 1.5 ? "bg-blue-500" : "bg-gray-200"}`}
                 >
-                  <Text className={`text-center font-medium ${temperature === 1.5 ? "text-white" : "text-gray-700"}`}>1.5</Text>
+                  <Text className={`text-center font-medium ${temperature === 1.5 ? "text-white" : "text-gray-700"}`}>
+                    1.5
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -403,19 +409,13 @@ export default function SettingsScreen() {
 
         {/* App Settings */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            App Settings
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">App Settings</Text>
 
           <View className="bg-white rounded-lg border border-gray-200">
             <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
               <View className="flex-1 mr-3">
-                <Text className="text-base font-medium text-gray-900 mb-1">
-                  Auto-save Conversations
-                </Text>
-                <Text className="text-xs text-gray-600">
-                  Automatically save chat history
-                </Text>
+                <Text className="text-base font-medium text-gray-900 mb-1">Auto-save Conversations</Text>
+                <Text className="text-xs text-gray-600">Automatically save chat history</Text>
               </View>
               <Switch
                 value={autoSaveConversations}
@@ -427,12 +427,8 @@ export default function SettingsScreen() {
 
             <View className="flex-row items-center justify-between p-4">
               <View className="flex-1 mr-3">
-                <Text className="text-base font-medium text-gray-900 mb-1">
-                  Enable Vector Memory
-                </Text>
-                <Text className="text-xs text-gray-600">
-                  Use embeddings for better context recall
-                </Text>
+                <Text className="text-base font-medium text-gray-900 mb-1">Enable Vector Memory</Text>
+                <Text className="text-xs text-gray-600">Use embeddings for better context recall</Text>
               </View>
               <Switch
                 value={enableVectorMemory}
@@ -446,17 +442,13 @@ export default function SettingsScreen() {
 
         {/* Privacy Information */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Privacy & Security
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Privacy & Security</Text>
 
           <View className="bg-white rounded-lg border border-gray-200 p-4">
             <View className="flex-row items-start mb-3">
               <Ionicons name="shield-checkmark" size={24} color="#10b981" />
               <View className="flex-1 ml-3">
-                <Text className="text-base font-medium text-gray-900 mb-1">
-                  100% On-Device
-                </Text>
+                <Text className="text-base font-medium text-gray-900 mb-1">100% On-Device</Text>
                 <Text className="text-sm text-gray-600">
                   All AI processing happens locally. No data is sent to the cloud.
                 </Text>
@@ -466,9 +458,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-start mb-3">
               <Ionicons name="cloud-offline" size={24} color="#10b981" />
               <View className="flex-1 ml-3">
-                <Text className="text-base font-medium text-gray-900 mb-1">
-                  Offline Capable
-                </Text>
+                <Text className="text-base font-medium text-gray-900 mb-1">Offline Capable</Text>
                 <Text className="text-sm text-gray-600">
                   Works without an internet connection after models are downloaded.
                 </Text>
@@ -478,12 +468,8 @@ export default function SettingsScreen() {
             <View className="flex-row items-start">
               <Ionicons name="lock-closed" size={24} color="#10b981" />
               <View className="flex-1 ml-3">
-                <Text className="text-base font-medium text-gray-900 mb-1">
-                  Private by Design
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  Your conversations are stored locally with encryption.
-                </Text>
+                <Text className="text-base font-medium text-gray-900 mb-1">Private by Design</Text>
+                <Text className="text-sm text-gray-600">Your conversations are stored locally with encryption.</Text>
               </View>
             </View>
           </View>
@@ -491,9 +477,7 @@ export default function SettingsScreen() {
 
         {/* About */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            About
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">About</Text>
 
           <View className="bg-white rounded-lg border border-gray-200 p-4">
             <View className="mb-3">
@@ -503,16 +487,12 @@ export default function SettingsScreen() {
 
             <View className="mb-3">
               <Text className="text-sm text-gray-600 mb-1">Framework</Text>
-              <Text className="text-base font-medium text-gray-900">
-                Expo SDK 53 + React Native 0.76.7
-              </Text>
+              <Text className="text-base font-medium text-gray-900">Expo SDK 53 + React Native 0.76.7</Text>
             </View>
 
             <View>
               <Text className="text-sm text-gray-600 mb-1">LLM Runtime</Text>
-              <Text className="text-base font-medium text-gray-900">
-                llama.rn (llama.cpp)
-              </Text>
+              <Text className="text-base font-medium text-gray-900">llama.rn (llama.cpp)</Text>
             </View>
           </View>
         </View>
@@ -520,9 +500,7 @@ export default function SettingsScreen() {
         {/* Footer */}
         <View className="items-center py-6">
           <Ionicons name="heart" size={24} color="#ef4444" />
-          <Text className="text-xs text-gray-500 text-center mt-2">
-            Built with Vibecode
-          </Text>
+          <Text className="text-xs text-gray-500 text-center mt-2">Built with Vibecode</Text>
         </View>
       </ScrollView>
 

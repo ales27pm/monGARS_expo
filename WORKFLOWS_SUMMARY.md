@@ -8,8 +8,9 @@ Completely rewrote all GitHub Actions workflows from scratch with two powerful d
 
 ## 🎯 The Two New Workflows
 
-### 1️⃣ Build & Prepare for Vibecode Deployment
-**File:** `.github/workflows/build-for-vibecode.yml`
+### 1️⃣ Build & Prepare for MonGARS Deployment
+
+**File:** _Create `.github/workflows/build-for-mongars.yml` to mirror this pipeline_
 
 **Perfect for:** Most users, testing, flexibility, cost savings
 
@@ -35,6 +36,7 @@ Completely rewrote all GitHub Actions workflows from scratch with two powerful d
 ---
 
 ### 2️⃣ Full Automated macOS Deployment
+
 **File:** `.github/workflows/deploy-macos-native.yml`
 
 **Perfect for:** Full automation, CI/CD pipelines, hands-off deployment
@@ -61,25 +63,26 @@ Completely rewrote all GitHub Actions workflows from scratch with two powerful d
 
 ## 📊 Feature Comparison
 
-| Feature | Workflow 1 (Vibecode) | Workflow 2 (macOS) |
-|---------|----------------------|-------------------|
-| **Downloads models** | ✅ Yes | ✅ Yes |
-| **Commits models to repo** | ✅ Yes | ✅ Yes |
-| **Builds iOS app** | ✅ Yes (EAS) | ✅ Yes (EAS on macOS) |
+| Feature                     | Workflow 1 (Vibecode) | Workflow 2 (macOS)       |
+| --------------------------- | --------------------- | ------------------------ |
+| **Downloads models**        | ✅ Yes                | ✅ Yes                   |
+| **Commits models to repo**  | ✅ Yes                | ✅ Yes                   |
+| **Builds iOS app**          | ✅ Yes (EAS)          | ✅ Yes (EAS on macOS)    |
 | **Compiles native modules** | ✅ Yes (on EAS macOS) | ✅ Yes (on GitHub macOS) |
-| **GitHub runner** | ubuntu-latest | macos-14 (M1) |
-| **GitHub cost** | ~$0.04 | ~$2.40 |
-| **Manual steps** | Yes (submit) | No (optional) |
-| **Automation level** | Semi-automated | Fully automated |
-| **Flexibility** | High | Medium |
-| **Control** | High | Medium |
-| **Best for** | Testing, flexibility | Production CI/CD |
+| **GitHub runner**           | ubuntu-latest         | macos-14 (M1)            |
+| **GitHub cost**             | ~$0.04                | ~$2.40                   |
+| **Manual steps**            | Yes (submit)          | No (optional)            |
+| **Automation level**        | Semi-automated        | Fully automated          |
+| **Flexibility**             | High                  | Medium                   |
+| **Control**                 | High                  | Medium                   |
+| **Best for**                | Testing, flexibility  | Production CI/CD         |
 
 ---
 
 ## 🗑️ What Was Removed
 
 Deleted old workflows that were confusing or redundant:
+
 - ❌ `build-and-deploy.yml` - Replaced by new workflows
 - ❌ `download-models-only.yml` - Functionality merged into new workflows
 
@@ -88,9 +91,11 @@ Deleted old workflows that were confusing or redundant:
 ## 📚 New Documentation
 
 Created comprehensive guide:
+
 - **[WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md)** - Complete instructions for both workflows
 
 Updated existing docs:
+
 - **[README.md](./README.md)** - Updated workflow section
 - All documentation now references the new workflows
 
@@ -101,6 +106,7 @@ Updated existing docs:
 ### Option 1: Build for Vibecode (Recommended)
 
 1. **Go to GitHub Actions:**
+
    ```
    https://github.com/YOUR_USERNAME/YOUR_REPO/actions
    ```
@@ -126,6 +132,7 @@ Updated existing docs:
 ### Option 2: Full Automated (Advanced)
 
 1. **Go to GitHub Actions:**
+
    ```
    https://github.com/YOUR_USERNAME/YOUR_REPO/actions
    ```
@@ -147,6 +154,7 @@ Updated existing docs:
 ## 🎯 Which Should You Use?
 
 ### Use Workflow 1 (Build for Vibecode) if:
+
 - ✅ You want to save money (~$0.04 vs $2.40)
 - ✅ You want to test the build before submitting
 - ✅ You need flexibility
@@ -154,6 +162,7 @@ Updated existing docs:
 - ✅ **This is recommended for most use cases**
 
 ### Use Workflow 2 (Full Automated) if:
+
 - ✅ You want zero manual steps
 - ✅ You have a mature CI/CD pipeline
 - ✅ You don't need to review builds before submission
@@ -165,6 +174,7 @@ Updated existing docs:
 ## 💰 Cost Analysis
 
 ### Workflow 1: Build for Vibecode
+
 ```
 GitHub Actions (ubuntu):     $0.04
 EAS Build:                   $0.00 (free tier) or $29/month
@@ -173,6 +183,7 @@ Total per deployment:        ~$0.04
 ```
 
 ### Workflow 2: Full Automated macOS
+
 ```
 GitHub Actions (macOS):      $2.40
 EAS Build:                   $0.00 (free tier) or $29/month
@@ -222,9 +233,11 @@ Total per deployment:        ~$2.40
 ## 🔐 Required Secrets
 
 ### For Workflow 1 (Minimum):
+
 - `EXPO_TOKEN` - Get from EAS CLI
 
 ### For Workflow 2 (For Auto-Submit):
+
 - `EXPO_TOKEN` - Get from EAS CLI
 - `APPLE_ID` - Your Apple ID email
 - `APPLE_APP_SPECIFIC_PASSWORD` - From appleid.apple.com
@@ -254,12 +267,14 @@ All the details you need:
 ## ✅ What's Different From Before
 
 ### Old Workflows (Deleted):
+
 - ❌ Multiple confusing workflow files
 - ❌ Unclear which one to use
 - ❌ Incomplete documentation
 - ❌ Missing features
 
 ### New Workflows (Now):
+
 - ✅ Two clear, purpose-built workflows
 - ✅ Complete documentation
 - ✅ All features included
@@ -274,6 +289,7 @@ All the details you need:
 ### Example 1: Quick Production Deploy (Recommended)
 
 **Use: Workflow 1**
+
 ```bash
 # 1. Trigger on GitHub:
 #    - Workflow: "Build & Prepare for Vibecode Deployment"
@@ -295,6 +311,7 @@ eas submit --platform ios --latest
 ### Example 2: Fully Automated Deploy
 
 **Use: Workflow 2**
+
 ```bash
 # 1. Trigger on GitHub:
 #    - Workflow: "Full Automated iOS Deployment"
@@ -329,6 +346,7 @@ You now have **two powerful, production-ready workflows**:
 2. **Full Automated macOS** - Fully automated, great for CI/CD
 
 Both workflows:
+
 - ✅ Download and commit ML models
 - ✅ Build iOS apps with proper native compilation
 - ✅ Handle everything automatically

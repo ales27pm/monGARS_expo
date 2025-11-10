@@ -84,7 +84,7 @@ export class AIAgent {
       "ocr_text_recognition",
       "haptic_feedback",
       "biometric_auth",
-      "clipboard_operations"
+      "clipboard_operations",
     ];
   }
 
@@ -97,7 +97,7 @@ export class AIAgent {
     this.context.conversationHistory.push({
       role: "user",
       content: userRequest,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Get current device state for context
@@ -110,12 +110,12 @@ export class AIAgent {
     const reasoning = await this.llmClient.chat([
       {
         role: "system",
-        content: this.getSystemPrompt()
+        content: this.getSystemPrompt(),
       },
       {
         role: "user",
-        content: reasoningPrompt
-      }
+        content: reasoningPrompt,
+      },
     ]);
 
     // Parse LLM response into structured decision
@@ -138,14 +138,14 @@ export class AIAgent {
         results.push({
           tool: toolUse.tool,
           success: true,
-          result
+          result,
         });
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         results.push({
           tool: toolUse.tool,
           success: false,
-          error: errorMessage
+          error: errorMessage,
         });
       }
     }
@@ -166,10 +166,7 @@ export class AIAgent {
         return await CustomModules.BrightnessModule.setBrightness(params.level);
 
       case "sensor_data":
-        return await CustomModules.SensorsModule.getSensorData(
-          params.type,
-          params.duration
-        );
+        return await CustomModules.SensorsModule.getSensorData(params.type, params.duration);
 
       case "device_info":
         return await CustomModules.DeviceInfoModule.getDeviceInfo();
@@ -185,7 +182,7 @@ export class AIAgent {
           params.endDate,
           params.durationSeconds,
           params.location,
-          params.notes
+          params.notes,
         );
 
       case "take_photo":
@@ -198,10 +195,7 @@ export class AIAgent {
         return await CustomModules.LocationModule.getCurrentLocation();
 
       case "send_sms":
-        return await CustomModules.MessagesModule.sendMessage(
-          params.phoneNumber,
-          params.body
-        );
+        return await CustomModules.MessagesModule.sendMessage(params.phoneNumber, params.body);
 
       case "compose_email":
         return await CustomModules.MailComposerModule.composeMail(params);
@@ -243,25 +237,13 @@ export class AIAgent {
         return await CustomModules.MLXModule.loadModel(params.modelId, params.options);
 
       case "mlx_generate":
-        return await CustomModules.MLXModule.generate(
-          params.modelId,
-          params.prompt,
-          params.options
-        );
+        return await CustomModules.MLXModule.generate(params.modelId, params.prompt, params.options);
 
       case "mlx_chat_session":
-        return await CustomModules.MLXModule.createChatSession(
-          params.modelId,
-          params.sessionId,
-          params.systemPrompt
-        );
+        return await CustomModules.MLXModule.createChatSession(params.modelId, params.sessionId, params.systemPrompt);
 
       case "mlx_chat_respond":
-        return await CustomModules.MLXModule.chatRespond(
-          params.sessionId,
-          params.message,
-          params.options
-        );
+        return await CustomModules.MLXModule.chatRespond(params.sessionId, params.message, params.options);
 
       case "mlx_recommended_models":
         return await CustomModules.MLXModule.getRecommendedModels();
@@ -278,13 +260,13 @@ export class AIAgent {
     try {
       const [deviceInfo, batteryInfo] = await Promise.all([
         CustomModules.DeviceInfoModule.getDeviceInfo(),
-        CustomModules.BatteryModule.getBatteryInfo()
+        CustomModules.BatteryModule.getBatteryInfo(),
       ]);
 
       return {
         device: deviceInfo,
         battery: batteryInfo,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error("Failed to gather device context:", error);
@@ -334,11 +316,19 @@ Respond with a JSON object containing:
    */
   private formatCapabilitiesForPrompt(): string {
     const capabilities = {
-      "Device": ["battery_monitoring", "brightness_control", "sensor_data", "device_info", "flashlight_control"],
-      "Communication": ["calendar_event", "take_photo", "find_contacts", "get_location", "send_sms", "compose_email"],
-      "Media": ["pick_photo", "web_fetch", "web_scrape"],
-      "Advanced": ["text_to_speech", "speech_to_text", "ocr_recognize", "haptic_feedback", "biometric_auth", "clipboard_get", "clipboard_set"],
-      "AI/ML": ["mlx_load_model", "mlx_generate", "mlx_chat_session", "mlx_chat_respond", "mlx_recommended_models"]
+      Device: ["battery_monitoring", "brightness_control", "sensor_data", "device_info", "flashlight_control"],
+      Communication: ["calendar_event", "take_photo", "find_contacts", "get_location", "send_sms", "compose_email"],
+      Media: ["pick_photo", "web_fetch", "web_scrape"],
+      Advanced: [
+        "text_to_speech",
+        "speech_to_text",
+        "ocr_recognize",
+        "haptic_feedback",
+        "biometric_auth",
+        "clipboard_get",
+        "clipboard_set",
+      ],
+      "AI/ML": ["mlx_load_model", "mlx_generate", "mlx_chat_session", "mlx_chat_respond", "mlx_recommended_models"],
     };
 
     return Object.entries(capabilities)
@@ -380,7 +370,7 @@ Provide your decision in the specified JSON format.`;
       return {
         reasoning: parsed.reasoning || "No reasoning provided",
         toolsToUse: parsed.toolsToUse || [],
-        expectedOutcome: parsed.expectedOutcome || "Task will be executed"
+        expectedOutcome: parsed.expectedOutcome || "Task will be executed",
       };
     } catch (error) {
       console.error("Failed to parse LLM response:", error);
@@ -389,7 +379,7 @@ Provide your decision in the specified JSON format.`;
       return {
         reasoning: "Failed to parse structured decision",
         toolsToUse: [],
-        expectedOutcome: "Please try rephrasing your request"
+        expectedOutcome: "Please try rephrasing your request",
       };
     }
   }
@@ -415,7 +405,7 @@ Provide your decision in the specified JSON format.`;
     this.context.conversationHistory.push({
       role: "assistant",
       content: summary,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return { decision, results, summary };
@@ -424,18 +414,14 @@ Provide your decision in the specified JSON format.`;
   /**
    * Summarize execution results for user
    */
-  private async summarizeResults(
-    originalRequest: string,
-    decision: AgentDecision,
-    results: any[]
-  ): Promise<string> {
-    const successCount = results.filter(r => r.success).length;
-    const failureCount = results.filter(r => !r.success).length;
+  private async summarizeResults(originalRequest: string, decision: AgentDecision, results: any[]): Promise<string> {
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
 
     const summaryPrompt = `Original Request: "${originalRequest}"
 
 Execution Results:
-${results.map(r => `- ${r.tool}: ${r.success ? "Success" : "Failed"}`).join("\n")}
+${results.map((r) => `- ${r.tool}: ${r.success ? "Success" : "Failed"}`).join("\n")}
 
 ${decision.reasoning}
 
@@ -443,7 +429,7 @@ Create a brief, natural language summary for the user explaining what was done a
 
     const summary = await this.llmClient.chat([
       { role: "system", content: "You are a helpful assistant summarizing task execution results." },
-      { role: "user", content: summaryPrompt }
+      { role: "user", content: summaryPrompt },
     ]);
 
     return summary.content;
@@ -469,28 +455,41 @@ export class IntelligentScenarios {
     const battery = await CustomModules.BatteryModule.getBatteryInfo();
 
     if (battery.level < 20) {
-      await CustomModules.SpeechModule.speak(
-        "Your battery is low. Please charge your device.",
-        { rate: 0.5 }
-      );
+      await CustomModules.SpeechModule.speak("Your battery is low. Please charge your device.", { rate: 0.5 });
       return;
     }
 
     // Increase brightness for morning
     await CustomModules.BrightnessModule.setBrightness(0.8);
 
-    // Get weather
-    const weather = await CustomModules.WebModule.fetch(
-      "https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_KEY"
-    );
+    // Get weather (only if API key configured)
+    const weatherApiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+    if (weatherApiKey) {
+      try {
+        const weather = await CustomModules.WebModule.fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${weatherApiKey}`,
+        );
 
-    const weatherData = JSON.parse(weather.body);
+        const weatherData = JSON.parse(weather.body);
 
-    // Speak morning briefing
-    await CustomModules.SpeechModule.speak(
-      `Good morning! The temperature is ${weatherData.main.temp} degrees. Have a great day!`,
-      { rate: 0.5, pitch: 1.0 }
-    );
+        // Speak morning briefing
+        await CustomModules.SpeechModule.speak(
+          `Good morning! The temperature is ${weatherData.main.temp} degrees. Have a great day!`,
+          { rate: 0.5, pitch: 1.0 },
+        );
+      } catch (error) {
+        console.warn("Morning routine weather fetch failed:", error);
+        await CustomModules.SpeechModule.speak(
+          "Good morning! Weather information is unavailable right now, but your device is ready to go.",
+          { rate: 0.5, pitch: 1.0 },
+        );
+      }
+    } else {
+      await CustomModules.SpeechModule.speak(
+        "Good morning! Configure a weather API key to include weather updates in this routine.",
+        { rate: 0.5, pitch: 1.0 },
+      );
+    }
 
     // Haptic confirmation
     await CustomModules.HapticsModule.notification("success");
@@ -517,10 +516,7 @@ export class IntelligentScenarios {
     await CustomModules.ClipboardModule.setString(extractedText);
 
     // Confirm with speech
-    await CustomModules.SpeechModule.speak(
-      `Scanned document. Copied to clipboard.`,
-      { rate: 0.6 }
-    );
+    await CustomModules.SpeechModule.speak(`Scanned document. Copied to clipboard.`, { rate: 0.6 });
 
     // Success haptic
     await CustomModules.HapticsModule.notification("success");
@@ -532,14 +528,9 @@ export class IntelligentScenarios {
    * Scenario: Smart Location Reminder
    * Uses: location, contacts, calendar, biometrics, haptics
    */
-  async createLocationReminder(
-    contactName: string,
-    message: string
-  ): Promise<void> {
+  async createLocationReminder(contactName: string, message: string): Promise<void> {
     // Authenticate
-    await CustomModules.BiometricsModule.authenticate(
-      "Authenticate to create reminder"
-    );
+    await CustomModules.BiometricsModule.authenticate("Authenticate to create reminder");
 
     // Get current location
     const location = await CustomModules.LocationModule.getCurrentLocation();
@@ -558,7 +549,7 @@ export class IntelligentScenarios {
       undefined,
       3600,
       `${location.latitude}, ${location.longitude}`,
-      `Message for ${contacts[0].givenName} ${contacts[0].familyName}`
+      `Message for ${contacts[0].givenName} ${contacts[0].familyName}`,
     );
 
     // Haptic confirmation
@@ -577,20 +568,16 @@ export class IntelligentScenarios {
     const topLinks = searchResults.links.slice(0, 5);
 
     // Scrape each link
-    const articles = await Promise.all(
-      topLinks.map(link =>
-        CustomModules.WebModule.scrapeWebpage(link.href, {})
-      )
-    );
+    const articles = await Promise.all(topLinks.map((link) => CustomModules.WebModule.scrapeWebpage(link.href, {})));
 
     // Compile research
     const research = {
       topic,
-      sources: articles.map(a => ({
+      sources: articles.map((a) => ({
         title: a.title,
         url: a.url,
-        summary: a.text.substring(0, 500)
-      }))
+        summary: a.text.substring(0, 500),
+      })),
     };
 
     // Copy JSON to clipboard
@@ -599,7 +586,7 @@ export class IntelligentScenarios {
     // Speak summary
     await CustomModules.SpeechModule.speak(
       `Research complete. Found ${articles.length} articles about ${topic}. Data copied to clipboard.`,
-      { rate: 0.6 }
+      { rate: 0.6 },
     );
 
     return research;
@@ -639,14 +626,9 @@ export class IntelligentScenarios {
    * Scenario: Contact Quick Actions
    * Uses: contacts, sms, email, location, biometrics
    */
-  async quickContactAction(
-    contactName: string,
-    action: "sms" | "email" | "share_location"
-  ): Promise<void> {
+  async quickContactAction(contactName: string, action: "sms" | "email" | "share_location"): Promise<void> {
     // Authenticate for sensitive action
-    await CustomModules.BiometricsModule.authenticate(
-      `Authenticate to ${action} ${contactName}`
-    );
+    await CustomModules.BiometricsModule.authenticate(`Authenticate to ${action} ${contactName}`);
 
     // Find contact
     const contacts = await CustomModules.ContactsModule.searchContacts(contactName);
@@ -662,7 +644,7 @@ export class IntelligentScenarios {
         if (contact.phoneNumbers.length > 0) {
           await CustomModules.MessagesModule.sendMessage(
             contact.phoneNumbers[0],
-            "Quick message sent via native module!"
+            "Quick message sent via native module!",
           );
         }
         break;
@@ -672,7 +654,7 @@ export class IntelligentScenarios {
           await CustomModules.MailComposerModule.composeMail({
             to: [contact.emailAddresses[0]],
             subject: "Hello",
-            body: "Sent via native module"
+            body: "Sent via native module",
           });
         }
         break;
@@ -682,7 +664,7 @@ export class IntelligentScenarios {
         if (contact.phoneNumbers.length > 0) {
           await CustomModules.MessagesModule.sendMessage(
             contact.phoneNumbers[0],
-            `My location: ${location.latitude}, ${location.longitude}`
+            `My location: ${location.latitude}, ${location.longitude}`,
           );
         }
         break;

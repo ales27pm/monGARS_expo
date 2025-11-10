@@ -1,0 +1,6 @@
+module Pods_MonGARS {
+  umbrella header "Pods-MonGARS-umbrella.h"
+
+  export *
+  module * { export * }
+}

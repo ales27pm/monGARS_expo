@@ -86,7 +86,7 @@ The workflow successfully:
 - ✅ Ran `expo prebuild` and regenerated `ios/` folder
 - ✅ Ran RN codegen (new architecture)
 - ✅ Completed `pod install` with `RCT_NEW_ARCH_ENABLED=1`
-- ✅ Linked 27 RN modules into offLLMAppStoreFixer
+- ✅ Linked 27 RN modules into MonGARS
 - ✅ **Generated Pods folder (~209 MB)**
 - ✅ Generated build artifacts
 

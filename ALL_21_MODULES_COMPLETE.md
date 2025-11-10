@@ -158,7 +158,7 @@ All modules use React Native's Turbo Module architecture:
 
 ### Implementation Structure
 ```
-ios/offLLMAppStoreFixer/NativeModules/
+ios/MonGARS/NativeModules/
 ├── [Module]TurboModule.h        // Header files
 ├── [Module]TurboModule.mm       // Objective-C++ implementation
 └── Info.plist                   // Permissions
@@ -304,7 +304,7 @@ Potential additions:
 ## Contributing
 
 When adding new modules:
-1. Create `.h` and `.mm` files in `ios/offLLMAppStoreFixer/NativeModules/`
+1. Create `.h` and `.mm` files in `ios/MonGARS/NativeModules/`
 2. Add TypeScript interface in `src/native-modules/[Module]Module.ts`
 3. Export from `src/native-modules/index.ts`
 4. Update AIAgent tools if applicable
@@ -323,7 +323,7 @@ npx expo prebuild --platform ios --clean
 # Build native modules
 cd ios
 pod install
-xcodebuild -workspace offLLMAppStoreFixer.xcworkspace -scheme offLLMAppStoreFixer
+xcodebuild -workspace MonGARS.xcworkspace -scheme MonGARS
 ```
 
 ## GitHub Actions

@@ -10,9 +10,125 @@
  * - Fully offline operation
  */
 
-import { vectorStore, VectorStore } from "../utils/vector-store";
-import { chunkText, TextChunk } from "../utils/text-chunking";
-import { Embedding, SemanticSearchOptions } from "../types/embeddings";
+import { vectorStore, VectorStore } from "./vector-store";
+import { chunkText, TextChunk } from "./text-chunking";
+import { EmbeddingStorageStats, SemanticSearchOptions } from "../types/embeddings";
+import { getGlobalLLM } from "./on-device-llm";
+
+const FALLBACK_VECTOR_SIZE = 384;
+const STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "but",
+  "by",
+  "for",
+  "from",
+  "has",
+  "have",
+  "if",
+  "in",
+  "into",
+  "is",
+  "it",
+  "of",
+  "on",
+  "or",
+  "such",
+  "that",
+  "the",
+  "their",
+  "then",
+  "there",
+  "these",
+  "they",
+  "this",
+  "to",
+  "was",
+  "were",
+  "will",
+  "with",
+]);
+
+function hashString(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function normalizeVector(vector: number[]): number[] {
+  const norm = Math.sqrt(vector.reduce((acc, value) => acc + value * value, 0));
+  if (!isFinite(norm) || norm === 0) {
+    return vector.map(() => 0);
+  }
+  return vector.map((value) => value / norm);
+}
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0 && !STOP_WORDS.has(token));
+}
+
+function fallbackEmbedding(text: string): number[] {
+  const tokens = tokenize(text);
+  const vector = new Array<number>(FALLBACK_VECTOR_SIZE).fill(0);
+
+  if (tokens.length === 0) {
+    return vector;
+  }
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const tokenHash = hashString(token);
+    const bucket = tokenHash % FALLBACK_VECTOR_SIZE;
+    vector[bucket] += 1;
+
+    if (index < tokens.length - 1) {
+      const nextToken = tokens[index + 1];
+      const bigramHash = hashString(`${token}_${nextToken}`);
+      const bigramBucket = bigramHash % FALLBACK_VECTOR_SIZE;
+      vector[bigramBucket] += 0.5;
+    }
+  }
+
+  const joined = tokens.join(" ");
+  for (let i = 0; i < joined.length - 2; i += 1) {
+    const trigram = joined.slice(i, i + 3);
+    const trigramHash = hashString(trigram);
+    const trigramBucket = trigramHash % FALLBACK_VECTOR_SIZE;
+    vector[trigramBucket] += 0.25;
+  }
+
+  return normalizeVector(vector);
+}
+
+async function tryCreateOnDeviceEmbedding(): Promise<((text: string) => Promise<number[]>) | null> {
+  try {
+    const llm = getGlobalLLM();
+    const info = llm.getModelInfo?.();
+    if (info?.isInitialized) {
+      return async (text: string) => {
+        const embedding = await llm.embed(text);
+        return normalizeVector(embedding);
+      };
+    }
+  } catch (error) {
+    console.warn("[SemanticMemory] On-device embedding unavailable:", error);
+  }
+  return null;
+}
 
 export interface MemoryEntry {
   /** Unique ID */
@@ -63,19 +179,18 @@ export class SemanticMemory {
     this.embeddingFunction = fn;
   }
 
+  hasEmbeddingFunction(): boolean {
+    return typeof this.embeddingFunction === "function";
+  }
+
   /**
    * Add a memory entry to the store
    * Automatically chunks long texts
    */
-  async addMemory(
-    text: string,
-    metadata?: MemoryEntry["metadata"],
-    chunkLongText: boolean = true
-  ): Promise<string[]> {
+  async addMemory(text: string, metadata?: MemoryEntry["metadata"], chunkLongText: boolean = true): Promise<string[]> {
     if (!this.embeddingFunction) {
-      throw new Error(
-        "Embedding function not set. Call setEmbeddingFunction() first or wait for model to load."
-      );
+      console.warn("Semantic memory is disabled because no embedding function is configured. Skipping memory storage.");
+      return [];
     }
 
     const timestamp = Date.now();
@@ -133,19 +248,13 @@ export class SemanticMemory {
   /**
    * Search memories by semantic similarity to a query
    */
-  async searchMemories(
-    query: string,
-    options?: SemanticSearchOptions
-  ): Promise<RetrievalResult[]> {
+  async searchMemories(query: string, options?: SemanticSearchOptions): Promise<RetrievalResult[]> {
     if (!this.embeddingFunction) {
-      throw new Error("Embedding function not set. Cannot perform search.");
+      console.warn("Semantic memory search skipped because no embedding function is configured.");
+      return [];
     }
 
-    const results = await this.store.searchByText(
-      query,
-      this.embeddingFunction,
-      options
-    );
+    const results = await this.store.searchByText(query, this.embeddingFunction, options);
 
     return results.map((result) => ({
       text: result.embedding.text,
@@ -170,20 +279,20 @@ export class SemanticMemory {
       minRelevance?: number;
       conversationId?: string;
       includeMetadata?: boolean;
-    } = {}
+    } = {},
   ): Promise<string> {
-    const {
-      maxResults = 5,
-      minRelevance = 0.7,
-      conversationId,
-      includeMetadata = false,
-    } = options;
+    const { maxResults = 5, minRelevance = 0.7, conversationId, includeMetadata = false } = options;
 
     const searchOptions: SemanticSearchOptions = {
       limit: maxResults,
       threshold: minRelevance,
       filter: conversationId ? { conversationId } : undefined,
     };
+
+    if (!this.embeddingFunction) {
+      console.warn("Semantic context retrieval skipped because no embedding function is configured.");
+      return "";
+    }
 
     const results = await this.searchMemories(query, searchOptions);
 
@@ -215,11 +324,7 @@ export class SemanticMemory {
   /**
    * Add a conversation message to memory
    */
-  async addConversationMessage(
-    message: string,
-    role: "user" | "assistant",
-    conversationId: string
-  ): Promise<string[]> {
+  async addConversationMessage(message: string, role: "user" | "assistant", conversationId: string): Promise<string[]> {
     return this.addMemory(message, {
       role,
       conversationId,
@@ -234,7 +339,7 @@ export class SemanticMemory {
   async getRelevantConversationHistory(
     query: string,
     conversationId: string,
-    maxMessages: number = 5
+    maxMessages: number = 5,
   ): Promise<RetrievalResult[]> {
     return this.searchMemories(query, {
       limit: maxMessages,
@@ -246,34 +351,40 @@ export class SemanticMemory {
   /**
    * Clear all memories (for privacy)
    */
-  clearAllMemories(): void {
+  async clearAllMemories(): Promise<void> {
+    await this.store.waitUntilReady();
     this.store.clearAll();
   }
 
   /**
    * Clear memories for a specific conversation
    */
-  clearConversation(conversationId: string): number {
+  async clearConversation(conversationId: string): Promise<number> {
+    await this.store.waitUntilReady();
     return this.store.deleteByFilter({ conversationId });
   }
 
   /**
    * Get memory statistics
    */
-  getStats() {
+  async getStats(): Promise<EmbeddingStorageStats> {
+    await this.store.waitUntilReady();
     return this.store.getStats();
   }
 
   /**
    * Export memories (for backup/transfer)
    */
-  async exportMemories(): Promise<MemoryEntry[]> {
-    const stats = this.store.getStats();
-    const memories: MemoryEntry[] = [];
+  async exportMemories(filter?: Record<string, any>): Promise<MemoryEntry[]> {
+    await this.store.waitUntilReady();
+    const embeddings = this.store.listEmbeddings(filter);
 
-    // This is a simplified export - in production, you'd iterate through all IDs
-    // For now, return empty array as placeholder
-    return memories;
+    return embeddings.map((embedding) => ({
+      id: embedding.id,
+      text: embedding.text,
+      timestamp: embedding.timestamp,
+      metadata: embedding.metadata,
+    }));
   }
 
   /**
@@ -295,11 +406,25 @@ export class SemanticMemory {
  * This is a placeholder - will be implemented when ONNX models are available
  */
 export async function createSemanticMemory(): Promise<SemanticMemory> {
-  // TODO: Load embedding model and create embedding function
-  // For now, return instance without embedding function
-  // User must call setEmbeddingFunction() after model is loaded
-
   const memory = new SemanticMemory();
+
+  try {
+    await vectorStore.waitUntilReady();
+  } catch (error) {
+    console.error("[SemanticMemory] Failed to initialize vector store:", error);
+  }
+
+  const onDeviceEmbedding = await tryCreateOnDeviceEmbedding();
+  if (onDeviceEmbedding) {
+    memory.setEmbeddingFunction(onDeviceEmbedding);
+    return memory;
+  }
+
+  memory.setEmbeddingFunction(async (text: string) => fallbackEmbedding(text));
+  console.warn(
+    "[SemanticMemory] Falling back to lightweight hash-based embeddings. " +
+      "Load an on-device embedding model for higher quality results.",
+  );
 
   return memory;
 }
