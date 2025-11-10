@@ -123,14 +123,65 @@ jobs:
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
 
       - name: Install provisioning profile
+        id: install_profile
         shell: bash
         env:
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles"
+          DEST_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$DEST_DIR"
+          PROFILE_PATH="$DEST_DIR/appstore.mobileprovision"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          echo "profile_path=$PROFILE_PATH" >> "$GITHUB_OUTPUT"
+          ls -la "$DEST_DIR"
+
+      - name: Extract provisioning profile metadata
+        id: profile_metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ steps.install_profile.outputs.profile_path }}" ]; then
+            echo "::error::Provisioning profile path missing from previous step."
+            exit 1
+          fi
+
+          PROFILE_PLIST=$(mktemp)
+          security cms -D -i "${{ steps.install_profile.outputs.profile_path }}" > "$PROFILE_PLIST"
+
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          APP_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST")
+
+          if [ -z "$APP_IDENTIFIER" ]; then
+            echo "::error::Could not read application-identifier from provisioning profile."
+            cat "$PROFILE_PLIST"
+            exit 1
+          fi
+
+          BUNDLE_ID="${APP_IDENTIFIER#*.}"
+
+          echo "uuid=$PROFILE_UUID" >> "$GITHUB_OUTPUT"
+          echo "specifier=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
+          echo "bundle_id=$BUNDLE_ID" >> "$GITHUB_OUTPUT"
+
+          echo "Detected provisioning profile:" "UUID=$PROFILE_UUID" "Name=$PROFILE_NAME" "BundleID=$BUNDLE_ID"
+
+          echo "BUNDLE_ID=$BUNDLE_ID" >> "$GITHUB_ENV"
+
+      - name: Detect signing identity
+        id: signing_identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1 || true)
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No signing identity found in the login keychain. Verify the imported certificate."
+            security find-identity -v -p codesigning || true
+            exit 1
+          fi
+          echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
+          echo "Using signing identity: $IDENTITY"
 
       # ---------- Discover workspace/project automatically ----------
       - name: Discover Xcode workspace/project
@@ -206,11 +257,16 @@ jobs:
           <dict>
             <key>method</key><string>app-store</string>
             <key>manageAppVersionAndBuildNumber</key><true/>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
             <key>stripSwiftSymbols</key><true/>
             <key>thinning</key><string>&lt;none&gt;</string>
             <key>destination</key><string>export</string>
             <key>teamID</key><string>${{ env.TEAM_ID }}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${{ env.BUNDLE_ID }}</key>
+              <string>${{ steps.profile_metadata.outputs.specifier }}</string>
+            </dict>
           </dict>
           </plist>
           PLIST
@@ -233,6 +289,16 @@ jobs:
         run: |
           set -e
           ARCHIVE_PATH="$PWD/build/${{ env.APP_NAME }}.xcarchive"
+          if [ -z "${{ steps.profile_metadata.outputs.uuid }}" ] || [ -z "${{ steps.profile_metadata.outputs.specifier }}" ]; then
+            echo "::error::Provisioning profile metadata missing — cannot continue."
+            exit 1
+          fi
+
+          if [ -z "${{ steps.signing_identity.outputs.identity }}" ]; then
+            echo "::error::Signing identity missing — cannot continue."
+            exit 1
+          fi
+
           if [ "${{ steps.discover.outputs.kind }}" = "workspace" ]; then
             xcodebuild \
               -workspace "${{ steps.discover.outputs.path }}" \
@@ -241,7 +307,11 @@ jobs:
               -archivePath "$ARCHIVE_PATH" \
               clean archive \
               DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-              CODE_SIGN_STYLE=Automatic \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="${{ steps.signing_identity.outputs.identity }}" \
+              PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile_metadata.outputs.specifier }}" \
+              PROVISIONING_PROFILE="${{ steps.profile_metadata.outputs.uuid }}" \
+              PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
               ONLY_ACTIVE_ARCH=NO \
               -allowProvisioningUpdates \
               -showBuildTimingSummary
@@ -253,7 +323,11 @@ jobs:
               -archivePath "$ARCHIVE_PATH" \
               clean archive \
               DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-              CODE_SIGN_STYLE=Automatic \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="${{ steps.signing_identity.outputs.identity }}" \
+              PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile_metadata.outputs.specifier }}" \
+              PROVISIONING_PROFILE="${{ steps.profile_metadata.outputs.uuid }}" \
+              PRODUCT_BUNDLE_IDENTIFIER="${{ env.BUNDLE_ID }}" \
               ONLY_ACTIVE_ARCH=NO \
               -allowProvisioningUpdates \
               -showBuildTimingSummary
