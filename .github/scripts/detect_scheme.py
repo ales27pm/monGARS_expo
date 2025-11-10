@@ -47,6 +47,7 @@ def _choose_scheme(schemes: Sequence[str], candidate: str) -> str:
     if candidate and candidate in schemes:
         return candidate
 
+    filtered: list[str] = []
     for scheme in schemes:
         if scheme in EXACT_EXCLUDES:
             continue
@@ -54,9 +55,9 @@ def _choose_scheme(schemes: Sequence[str], candidate: str) -> str:
             continue
         if any(token in scheme for token in CONTAINS_EXCLUDES):
             continue
-        return scheme
+        filtered.append(scheme)
 
-    return schemes[0] if schemes else ""
+    return filtered[0] if filtered else ""
 
 
 def main(argv: Iterable[str] | None = None) -> int:
