@@ -61,7 +61,7 @@ Many features are already available through Expo:
 ### Option 2: Implement Native Modules
 For features Expo doesn't cover or for maximum control:
 1. Copy source from offLLM repository
-2. Add to `ios/offLLMAppStoreFixer/NativeModules/`
+2. Add to `ios/MonGARS/NativeModules/`
 3. Update bridging header
 4. Add permissions to Info.plist
 5. Create TypeScript interfaces

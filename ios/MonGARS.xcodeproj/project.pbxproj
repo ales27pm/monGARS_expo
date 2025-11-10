@@ -11,25 +11,25 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */; };
-		672B333EAC6FAD695949E96A /* libPods-offLLMAppStoreFixer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5134247515B39804B8F90E58 /* libPods-offLLMAppStoreFixer.a */; };
+		672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5134247515B39804B8F90E58 /* libPods-MonGARS.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* offLLMAppStoreFixer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = offLLMAppStoreFixer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = offLLMAppStoreFixer/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = offLLMAppStoreFixer/Info.plist; sourceTree = "<group>"; };
-		4510606E239E7360F40D3A03 /* Pods-offLLMAppStoreFixer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.debug.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.debug.xcconfig"; sourceTree = "<group>"; };
-		4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-offLLMAppStoreFixer/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		5134247515B39804B8F90E58 /* libPods-offLLMAppStoreFixer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-offLLMAppStoreFixer.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A47C22CAADB98C128ECC2A1E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = offLLMAppStoreFixer/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = offLLMAppStoreFixer/SplashScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* MonGARS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MonGARS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MonGARS/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MonGARS/Info.plist; sourceTree = "<group>"; };
+		4510606E239E7360F40D3A03 /* Pods-MonGARS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.debug.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.debug.xcconfig"; sourceTree = "<group>"; };
+		4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MonGARS/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		5134247515B39804B8F90E58 /* libPods-MonGARS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MonGARS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A47C22CAADB98C128ECC2A1E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MonGARS/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MonGARS/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E9BBC8C4F388C3CFFD3D2EAD /* Pods-offLLMAppStoreFixer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-offLLMAppStoreFixer.release.xcconfig"; path = "Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer.release.xcconfig"; sourceTree = "<group>"; };
+		E9BBC8C4F388C3CFFD3D2EAD /* Pods-MonGARS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.release.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = offLLMAppStoreFixer/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* offLLMAppStoreFixer-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "offLLMAppStoreFixer-Bridging-Header.h"; path = "offLLMAppStoreFixer/offLLMAppStoreFixer-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MonGARS/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MonGARS-Bridging-Header.h"; path = "MonGARS/MonGARS-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,49 +37,49 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				672B333EAC6FAD695949E96A /* libPods-offLLMAppStoreFixer.a in Frameworks */,
+				672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* offLLMAppStoreFixer */ = {
+		13B07FAE1A68108700A75B9A /* MonGARS */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* offLLMAppStoreFixer-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				A47C22CAADB98C128ECC2A1E /* PrivacyInfo.xcprivacy */,
 			);
-			name = offLLMAppStoreFixer;
+			name = MonGARS;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5134247515B39804B8F90E58 /* libPods-offLLMAppStoreFixer.a */,
+				5134247515B39804B8F90E58 /* libPods-MonGARS.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		39227EE08FE71D8707BEBBF2 /* offLLMAppStoreFixer */ = {
+		39227EE08FE71D8707BEBBF2 /* MonGARS */ = {
 			isa = PBXGroup;
 			children = (
 				4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */,
 			);
-			name = offLLMAppStoreFixer;
+			name = MonGARS;
 			sourceTree = "<group>";
 		};
 		4343D5FEC960D7ACDDE7BC5C /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				4510606E239E7360F40D3A03 /* Pods-offLLMAppStoreFixer.debug.xcconfig */,
-				E9BBC8C4F388C3CFFD3D2EAD /* Pods-offLLMAppStoreFixer.release.xcconfig */,
+				4510606E239E7360F40D3A03 /* Pods-MonGARS.debug.xcconfig */,
+				E9BBC8C4F388C3CFFD3D2EAD /* Pods-MonGARS.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -95,7 +95,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* offLLMAppStoreFixer */,
+				13B07FAE1A68108700A75B9A /* MonGARS */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -110,7 +110,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* offLLMAppStoreFixer.app */,
+				13B07F961A680F5B00A75B9A /* MonGARS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -118,7 +118,7 @@
 		86B63C764EE7FCEF2CCED46E /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				39227EE08FE71D8707BEBBF2 /* offLLMAppStoreFixer */,
+				39227EE08FE71D8707BEBBF2 /* MonGARS */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -129,15 +129,15 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = offLLMAppStoreFixer/Supporting;
+			path = MonGARS/Supporting;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* offLLMAppStoreFixer */ = {
+		13B07F861A680F5B00A75B9A /* MonGARS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "offLLMAppStoreFixer" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MonGARS" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
 				49E83AD3AD39FA1DBD333C0F /* [Expo] Configure project */,
@@ -152,9 +152,9 @@
 			);
 			dependencies = (
 			);
-			name = offLLMAppStoreFixer;
-			productName = offLLMAppStoreFixer;
-			productReference = 13B07F961A680F5B00A75B9A /* offLLMAppStoreFixer.app */;
+			name = MonGARS;
+			productName = MonGARS;
+			productReference = 13B07F961A680F5B00A75B9A /* MonGARS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -170,7 +170,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "offLLMAppStoreFixer" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "MonGARS" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -183,7 +183,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* offLLMAppStoreFixer */,
+				13B07F861A680F5B00A75B9A /* MonGARS */,
 			);
 		};
 /* End PBXProject section */
@@ -233,7 +233,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-offLLMAppStoreFixer-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-MonGARS-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -257,7 +257,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-offLLMAppStoreFixer/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-MonGARS/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -265,7 +265,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-MonGARS/Pods-MonGARS-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
@@ -308,7 +308,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MonGARS/Pods-MonGARS-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		8B0027F7C7E3CBA859A83F77 /* [CP] Embed Pods Frameworks */ = {
@@ -317,7 +317,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-MonGARS/Pods-MonGARS-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/llama-rn/rnllama.framework/rnllama",
 			);
@@ -328,7 +328,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-offLLMAppStoreFixer/Pods-offLLMAppStoreFixer-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MonGARS/Pods-MonGARS-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -348,18 +348,18 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4510606E239E7360F40D3A03 /* Pods-offLLMAppStoreFixer.debug.xcconfig */;
+			baseConfigurationReference = 4510606E239E7360F40D3A03 /* Pods-MonGARS.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = offLLMAppStoreFixer/offLLMAppStoreFixer.entitlements;
+				CODE_SIGN_ENTITLEMENTS = MonGARS/MonGARS.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = offLLMAppStoreFixer/Info.plist;
+				INFOPLIST_FILE = MonGARS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -372,9 +372,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vibecode.offllmappstorefixer-iz6sup";
-				PRODUCT_NAME = offLLMAppStoreFixer;
-				SWIFT_OBJC_BRIDGING_HEADER = "offLLMAppStoreFixer/offLLMAppStoreFixer-Bridging-Header.h";
+                            PRODUCT_BUNDLE_IDENTIFIER = "com.mongars.app";
+				PRODUCT_NAME = MonGARS;
+				SWIFT_OBJC_BRIDGING_HEADER = "MonGARS/MonGARS-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -384,13 +384,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E9BBC8C4F388C3CFFD3D2EAD /* Pods-offLLMAppStoreFixer.release.xcconfig */;
+			baseConfigurationReference = E9BBC8C4F388C3CFFD3D2EAD /* Pods-MonGARS.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = offLLMAppStoreFixer/offLLMAppStoreFixer.entitlements;
+				CODE_SIGN_ENTITLEMENTS = MonGARS/MonGARS.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = offLLMAppStoreFixer/Info.plist;
+				INFOPLIST_FILE = MonGARS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -403,9 +403,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.vibecode.offllmappstorefixer-iz6sup";
-				PRODUCT_NAME = offLLMAppStoreFixer;
-				SWIFT_OBJC_BRIDGING_HEADER = "offLLMAppStoreFixer/offLLMAppStoreFixer-Bridging-Header.h";
+                            PRODUCT_BUNDLE_IDENTIFIER = "com.mongars.app";
+				PRODUCT_NAME = MonGARS;
+				SWIFT_OBJC_BRIDGING_HEADER = "MonGARS/MonGARS-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -539,7 +539,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "offLLMAppStoreFixer" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MonGARS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -548,7 +548,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "offLLMAppStoreFixer" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "MonGARS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

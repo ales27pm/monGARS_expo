@@ -12,7 +12,7 @@ November 7, 2025
 
 ### Native iOS Modules (Objective-C++)
 
-All modules located in `ios/offLLMAppStoreFixer/NativeModules/`:
+All modules located in `ios/MonGARS/NativeModules/`:
 
 #### 1. BatteryTurboModule.mm
 - **Purpose**: Monitor device battery level and charging state
@@ -184,7 +184,7 @@ RCT_EXPORT_METHOD(methodName:(params)resolver:(RCTPromiseResolveBlock)resolve re
 
 ### Bridging Header
 
-The `offLLMAppStoreFixer-Bridging-Header.h` includes:
+The `MonGARS-Bridging-Header.h` includes:
 - React Native bridge imports
 - Native module headers
 - Enables Objective-C++ to Swift interop
@@ -266,7 +266,7 @@ Potential additional modules from offLLM that could be implemented:
 
 ## Documentation
 
-- Native module source: `ios/offLLMAppStoreFixer/NativeModules/`
+- Native module source: `ios/MonGARS/NativeModules/`
 - TypeScript interfaces: `src/native-modules/`
 - Build workflow: `.github/workflows/build-native-modules-macos.yml`
 - Main README: Updated with native module information

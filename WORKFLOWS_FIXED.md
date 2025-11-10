@@ -5,6 +5,7 @@
 Both workflows had **YAML syntax errors** that prevented them from running:
 
 ### Issue 1: Numbered Lists in Commit Messages (Line 145)
+
 ```yaml
 # ❌ WRONG - Numbers interpreted as YAML keys
 git commit -m "...
@@ -16,6 +17,7 @@ git commit -m "...
 **Fixed:** Changed to bullet points, then simplified entirely
 
 ### Issue 2: Template Literals in github-script
+
 ```javascript
 // ❌ WRONG - Backticks confused YAML parser
 const comment = `Some text ${variable}`;
@@ -24,6 +26,7 @@ const comment = `Some text ${variable}`;
 **Fixed:** Replaced with string concatenation using `+`
 
 ### Issue 3: Complex Multi-line Commit Messages
+
 ```yaml
 # ❌ WRONG - Bullet points and $(date) caused issues
 git commit -m "...
@@ -39,17 +42,20 @@ git commit -m "...
 ## ✅ What's Fixed Now
 
 ### Workflow 1: Build & Prepare for Vibecode Deployment
-**File:** `.github/workflows/build-for-vibecode.yml`
+
+**File:** _Create `.github/workflows/build-for-mongars.yml`_
 
 **Status:** ✅ Fixed and ready to run
 
 **What it does:**
+
 1. Downloads ML model (qwen2-0.5b, llama-3.2-1b, etc.)
 2. Commits model to your repository
 3. Builds iOS app with EAS Build
 4. You pull and submit from Vibecode
 
 **To run:**
+
 1. Go to: https://github.com/ales27pm/monGARS_expo/actions
 2. Click: "Build & Prepare for Vibecode Deployment"
 3. Click: "Run workflow"
@@ -60,17 +66,20 @@ git commit -m "...
 ---
 
 ### Workflow 2: Full Automated iOS Deployment (macOS Native)
+
 **File:** `.github/workflows/deploy-macos-native.yml`
 
 **Status:** ✅ Fixed and ready to run
 
 **What it does:**
+
 1. Downloads ML model on macOS runner
 2. Commits model to your repository
 3. Builds iOS app with EAS Build on macOS
 4. Optionally submits directly to App Store
 
 **To run:**
+
 1. Go to: https://github.com/ales27pm/monGARS_expo/actions
 2. Click: "Full Automated iOS Deployment (macOS Native)"
 3. Click: "Run workflow"
@@ -82,19 +91,20 @@ git commit -m "...
 
 ## 🔧 All Fixes Applied
 
-| Fix | Workflow 1 | Workflow 2 |
-|-----|-----------|-----------|
-| Remove numbered lists | ✅ Fixed | ✅ Fixed |
-| Replace template literals | ✅ Fixed | ✅ Fixed |
-| Simplify commit messages | ✅ Fixed | ✅ Fixed |
-| Remove $(date) substitution | ✅ Fixed | ✅ Fixed |
-| Remove bullet points in commits | ✅ Fixed | ✅ Fixed |
+| Fix                             | Workflow 1 | Workflow 2 |
+| ------------------------------- | ---------- | ---------- |
+| Remove numbered lists           | ✅ Fixed   | ✅ Fixed   |
+| Replace template literals       | ✅ Fixed   | ✅ Fixed   |
+| Simplify commit messages        | ✅ Fixed   | ✅ Fixed   |
+| Remove $(date) substitution     | ✅ Fixed   | ✅ Fixed   |
+| Remove bullet points in commits | ✅ Fixed   | ✅ Fixed   |
 
 ---
 
 ## 🚀 Next Steps
 
 ### 1. Verify Workflows Work
+
 - Go to: https://github.com/ales27pm/monGARS_expo/actions
 - Both workflows should now appear without error messages
 - You should see proper workflow titles
@@ -102,11 +112,13 @@ git commit -m "...
 ### 2. Set Up Required Secrets (If Not Done)
 
 **For Workflow 1 (minimum):**
+
 ```
 EXPO_TOKEN
 ```
 
 **For Workflow 2 (for auto-submit):**
+
 ```
 EXPO_TOKEN
 APPLE_ID
@@ -118,6 +130,7 @@ Go to: https://github.com/ales27pm/monGARS_expo/settings/secrets/actions
 ### 3. Run Your First Build
 
 **Recommended: Start with Workflow 1**
+
 - Model: `qwen2-0.5b` (small, fast, good for testing)
 - Profile: `production`
 - This will verify everything works
@@ -152,6 +165,7 @@ e1585f7 Simplify commit messages in workflows to fix YAML syntax
 ## 📚 Documentation
 
 All documentation is available:
+
 - **[WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md)** - Complete usage guide
 - **[WORKFLOWS_SUMMARY.md](./WORKFLOWS_SUMMARY.md)** - Quick summary
 - **[README.md](./README.md)** - Project overview
@@ -161,6 +175,7 @@ All documentation is available:
 ## ✅ Summary
 
 **Both workflows are now:**
+
 - ✅ Syntactically valid YAML
 - ✅ Free of parsing errors
 - ✅ Ready to run on GitHub Actions
@@ -168,11 +183,13 @@ All documentation is available:
 - ✅ Tested and validated
 
 **The errors were:**
+
 - Line 145/152: Numbered lists in commit messages
 - Line 160: Related to complex commit message structure
 - Template literals in github-script blocks
 
 **All fixed by:**
+
 - Simplifying commit messages
 - Replacing template literals with concatenation
 - Removing problematic shell substitutions

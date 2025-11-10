@@ -4,16 +4,19 @@ This project has **TWO workflows** for deploying your iOS app:
 
 ## 🎯 Choose Your Workflow
 
-### Workflow 1: Build for Vibecode Deployment (Recommended)
-**File:** `.github/workflows/build-for-vibecode.yml`
+### Workflow 1: Build for MonGARS Deployment (Recommended)
+
+**File:** _Create `.github/workflows/build-for-mongars.yml`_
 
 **What it does:**
+
 1. Downloads ML models from HuggingFace
 2. Commits models to your repository
 3. Builds iOS app with EAS Build (on EAS's macOS servers)
-4. You pull and submit from Vibecode
+4. You pull and submit from the MonGARS deployment pipeline
 
 **Best for:**
+
 - ✅ Most cost-effective (uses cheap ubuntu runner + EAS)
 - ✅ Most control (you submit when ready)
 - ✅ Testing before submission
@@ -24,9 +27,11 @@ This project has **TWO workflows** for deploying your iOS app:
 ---
 
 ### Workflow 2: Full Automated macOS Deployment
+
 **File:** `.github/workflows/deploy-macos-native.yml`
 
 **What it does:**
+
 1. Downloads ML models from HuggingFace
 2. Commits models to your repository
 3. Builds iOS app with EAS Build (using macOS GitHub runner)
@@ -34,6 +39,7 @@ This project has **TWO workflows** for deploying your iOS app:
 5. Everything happens on GitHub's macOS runner
 
 **Best for:**
+
 - ✅ Fully automated CI/CD
 - ✅ No manual steps required
 - ✅ Direct App Store submission
@@ -43,17 +49,20 @@ This project has **TWO workflows** for deploying your iOS app:
 
 ---
 
-## 📋 Workflow 1: Build for Vibecode Deployment
+## 📋 Workflow 1: Build for MonGARS Deployment
 
 ### Setup Requirements
 
 #### GitHub Secrets (Required)
+
 Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/secrets/actions`
 
 Add these secrets:
+
 - `EXPO_TOKEN` - Your Expo access token
 
 #### How to Get EXPO_TOKEN
+
 ```bash
 # Login to EAS
 eas login
@@ -65,6 +74,7 @@ cat ~/.expo/state.json | jq -r '.auth.sessionSecret'
 ### How to Use
 
 1. **Go to GitHub Actions**
+
    ```
    https://github.com/YOUR_USERNAME/YOUR_REPO/actions
    ```
@@ -144,26 +154,31 @@ Total: ~35 minutes
 ### Setup Requirements
 
 #### GitHub Secrets (Required)
+
 Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/secrets/actions`
 
 Add these secrets:
+
 - `EXPO_TOKEN` - Your Expo access token
 - `APPLE_ID` - Your Apple ID email (required for App Store submission)
 - `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password from appleid.apple.com
 
 #### Optional Secrets
+
 - `APPLE_TEAM_ID` - Your Apple Developer Team ID
 - `ASC_APP_ID` - App Store Connect App ID
 
 #### How to Get These Values
 
 **EXPO_TOKEN:**
+
 ```bash
 eas login
 cat ~/.expo/state.json | jq -r '.auth.sessionSecret'
 ```
 
 **APPLE_APP_SPECIFIC_PASSWORD:**
+
 1. Go to https://appleid.apple.com
 2. Sign in
 3. Security → App-Specific Passwords
@@ -173,6 +188,7 @@ cat ~/.expo/state.json | jq -r '.auth.sessionSecret'
 ### How to Use
 
 1. **Go to GitHub Actions**
+
    ```
    https://github.com/YOUR_USERNAME/YOUR_REPO/actions
    ```
@@ -198,6 +214,7 @@ cat ~/.expo/state.json | jq -r '.auth.sessionSecret'
 ### After Workflow Completes
 
 If **Submit to App Store = false:**
+
 ```bash
 # In Vibecode, submit manually:
 git pull origin main
@@ -205,6 +222,7 @@ eas submit --platform ios --latest
 ```
 
 If **Submit to App Store = true:**
+
 - ✅ Already submitted!
 - Check App Store Connect: https://appstoreconnect.apple.com
 - Monitor review status
@@ -234,24 +252,25 @@ Total: ~35-40 minutes (all automated)
 
 ## 📊 Comparison
 
-| Feature | Workflow 1 (Vibecode) | Workflow 2 (macOS Native) |
-|---------|----------------------|--------------------------|
-| **GitHub Runner** | ubuntu-latest | macos-14 (Apple Silicon) |
-| **Where iOS builds** | EAS Cloud (macOS) | GitHub Actions (macOS) + EAS |
-| **GitHub Actions cost** | ~$0.04 | ~$2.40 |
-| **Manual steps** | Yes (submit in Vibecode) | No (optional) |
-| **Control** | High | Medium |
-| **Automation** | Semi-automated | Fully automated |
-| **Best for** | Testing, flexibility | Production CI/CD |
-| **Native modules** | ✅ Compiled on macOS | ✅ Compiled on macOS |
-| **Model commit** | ✅ Yes | ✅ Yes |
-| **App Store submit** | Manual | Automatic (optional) |
+| Feature                 | Workflow 1 (Vibecode)    | Workflow 2 (macOS Native)    |
+| ----------------------- | ------------------------ | ---------------------------- |
+| **GitHub Runner**       | ubuntu-latest            | macos-14 (Apple Silicon)     |
+| **Where iOS builds**    | EAS Cloud (macOS)        | GitHub Actions (macOS) + EAS |
+| **GitHub Actions cost** | ~$0.04                   | ~$2.40                       |
+| **Manual steps**        | Yes (submit in Vibecode) | No (optional)                |
+| **Control**             | High                     | Medium                       |
+| **Automation**          | Semi-automated           | Fully automated              |
+| **Best for**            | Testing, flexibility     | Production CI/CD             |
+| **Native modules**      | ✅ Compiled on macOS     | ✅ Compiled on macOS         |
+| **Model commit**        | ✅ Yes                   | ✅ Yes                       |
+| **App Store submit**    | Manual                   | Automatic (optional)         |
 
 ---
 
 ## 🎯 Which Should You Use?
 
 ### Use Workflow 1 (Build for Vibecode) if:
+
 - ✅ You want to test the build before submitting
 - ✅ You want to minimize GitHub Actions costs
 - ✅ You need to make last-minute changes
@@ -259,6 +278,7 @@ Total: ~35-40 minutes (all automated)
 - ✅ **Recommended for most use cases**
 
 ### Use Workflow 2 (Full Automated) if:
+
 - ✅ You want completely hands-off deployment
 - ✅ You have a mature CI/CD pipeline
 - ✅ You don't need to test before submission
@@ -270,25 +290,30 @@ Total: ~35-40 minutes (all automated)
 ## 🔧 Troubleshooting
 
 ### "EXPO_TOKEN not found"
+
 - Add `EXPO_TOKEN` to GitHub secrets
 - Get token: `eas login && cat ~/.expo/state.json`
 
 ### "Build failed"
+
 - Check build logs in GitHub Actions
 - Verify EAS account is active
 - Check `.easignore` excludes `node_modules`
 
 ### "App Store submission failed"
+
 - Verify `APPLE_ID` and `APPLE_APP_SPECIFIC_PASSWORD` are correct
 - Check app is configured in App Store Connect
 - Ensure bundle identifier matches
 
 ### "Models too large"
+
 - Use `qwen2-0.5b` (smallest, 326 MB)
 - Don't use `all` models option
 - Consider Git LFS (see GIT_LFS_GUIDE.md)
 
 ### "macOS runner timeout"
+
 - macOS runners are slower to provision
 - Use Workflow 1 (ubuntu) for faster starts
 - Consider upgrading GitHub Actions plan
@@ -300,12 +325,14 @@ Total: ~35-40 minutes (all automated)
 ### Example 1: Quick Test Build
 
 **Use: Workflow 1**
+
 ```
 Model: qwen2-0.5b
 Profile: preview
 ```
 
 Then in Vibecode:
+
 ```bash
 git pull origin main
 eas submit --platform ios --latest
@@ -314,6 +341,7 @@ eas submit --platform ios --latest
 ### Example 2: Production Release
 
 **Use: Workflow 1 or 2**
+
 ```
 Model: llama-3.2-1b
 Profile/Submit: production/true
@@ -322,6 +350,7 @@ Profile/Submit: production/true
 ### Example 3: Multiple Models
 
 **Use: Workflow 1**
+
 ```
 Model: all
 Profile: production
@@ -334,6 +363,7 @@ Profile: production
 ## 🚀 Quick Start Commands
 
 ### Workflow 1 After Completion:
+
 ```bash
 # Pull and submit
 git pull origin main
@@ -344,6 +374,7 @@ eas submit --platform ios --id BUILD_ID
 ```
 
 ### Check Build Status:
+
 ```bash
 # List recent builds
 eas build:list --platform ios --limit 5
@@ -374,6 +405,7 @@ You now have TWO powerful workflows:
 2. **Full Automated macOS** - Fully automated, great for mature CI/CD
 
 Both workflows:
+
 - ✅ Download and commit ML models
 - ✅ Build iOS app with proper native module compilation
 - ✅ Handle code signing automatically

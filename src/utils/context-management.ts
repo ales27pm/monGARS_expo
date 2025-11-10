@@ -71,17 +71,11 @@ export class ContextManager {
     }));
 
     // Separate system messages
-    const systemMessages = messagesWithTokens.filter(
-      (m) => m.role === "system"
-    );
-    const conversationMessages = messagesWithTokens.filter(
-      (m) => m.role !== "system"
-    );
+    const systemMessages = messagesWithTokens.filter((m) => m.role === "system");
+    const conversationMessages = messagesWithTokens.filter((m) => m.role !== "system");
 
     // Calculate system tokens
-    const systemTokens = this.options.includeSystem
-      ? systemMessages.reduce((sum, m) => sum + (m.tokens ?? 0), 0)
-      : 0;
+    const systemTokens = this.options.includeSystem ? systemMessages.reduce((sum, m) => sum + (m.tokens ?? 0), 0) : 0;
 
     const conversationLimit = availableTokens - systemTokens;
 
@@ -90,32 +84,20 @@ export class ContextManager {
 
     switch (this.options.overflowStrategy) {
       case "truncate-old":
-        fittedConversation = this.truncateOld(
-          conversationMessages,
-          conversationLimit
-        );
+        fittedConversation = this.truncateOld(conversationMessages, conversationLimit);
         break;
 
       case "truncate-middle":
-        fittedConversation = this.truncateMiddle(
-          conversationMessages,
-          conversationLimit
-        );
+        fittedConversation = this.truncateMiddle(conversationMessages, conversationLimit);
         break;
 
       case "summarize":
-        // TODO: Implement summarization (requires LLM call)
-        fittedConversation = this.truncateOld(
-          conversationMessages,
-          conversationLimit
-        );
+        // Summarization pipeline not yet implemented; fall back to truncation
+        fittedConversation = this.truncateOld(conversationMessages, conversationLimit);
         break;
 
       default:
-        fittedConversation = this.truncateOld(
-          conversationMessages,
-          conversationLimit
-        );
+        fittedConversation = this.truncateOld(conversationMessages, conversationLimit);
     }
 
     // Combine system + conversation
@@ -194,10 +176,7 @@ export class ContextManager {
     totalTokens: number;
     availableTokens: number;
   } {
-    const totalTokens = messages.reduce(
-      (sum, msg) => sum + (msg.tokens ?? estimateTokens(msg.content)),
-      0
-    );
+    const totalTokens = messages.reduce((sum, msg) => sum + (msg.tokens ?? estimateTokens(msg.content)), 0);
 
     const availableTokens = this.options.maxTokens - this.options.reserveTokens;
 
@@ -239,13 +218,9 @@ export class RAGContextBuilder {
       systemPrompt?: string;
       includeRelevanceScores?: boolean;
       maxContextLength?: number;
-    } = {}
+    } = {},
   ): string {
-    const {
-      systemPrompt,
-      includeRelevanceScores = false,
-      maxContextLength = 2000,
-    } = options;
+    const { systemPrompt, includeRelevanceScores = false, maxContextLength = 2000 } = options;
 
     let prompt = "";
 
@@ -292,11 +267,7 @@ export class RAGContextBuilder {
   /**
    * Build chat messages with RAG context
    */
-  static buildChatMessages(
-    messages: Message[],
-    retrievedContext: RetrievalResult[],
-    systemPrompt?: string
-  ): Message[] {
+  static buildChatMessages(messages: Message[], retrievedContext: RetrievalResult[], systemPrompt?: string): Message[] {
     const result: Message[] = [];
 
     // Add system prompt with RAG context
@@ -349,9 +320,7 @@ export const PROMPT_TEMPLATES = {
    * Conversation summarization
    */
   summarizeConversation: (messages: Message[]) => {
-    const conversation = messages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n");
+    const conversation = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
 
     return `Summarize this conversation, keeping the most important points:\n\n${conversation}\n\nSummary:`;
   },

@@ -80,7 +80,7 @@ The fix has been pushed to GitHub. Run the workflow again:
   ✅ Shows all schemes
 
 🔍 Detect scheme name
-  ✅ Auto-detects: offLLMAppStoreFixer
+  ✅ Auto-detects: MonGARS
 
 🏗️ Build with Xcode
   ⚠️ Building without code signing (simulator only)
@@ -88,7 +88,7 @@ The fix has been pushed to GitHub. Run the workflow again:
   ✅ Simulator build completed successfully
 
 📦 Create simulator build
-  ✅ Found app at: build/DerivedData/.../offLLMAppStoreFixer.app
+  ✅ Found app at: build/DerivedData/.../MonGARS.app
   ✅ Simulator build created: App-Simulator.zip
 
 📤 Upload IPA artifact
@@ -98,7 +98,7 @@ The fix has been pushed to GitHub. Run the workflow again:
 ### What You'll Get:
 
 After ~20-30 minutes:
-- **App-Simulator.zip** containing `offLLMAppStoreFixer.app`
+- **App-Simulator.zip** containing `MonGARS.app`
 - Can be installed in iOS Simulator
 - Includes all native modules (llama.rn compiled!)
 
@@ -112,7 +112,7 @@ unzip App-Simulator.zip
 xcrun simctl boot "iPhone 15 Pro"
 
 # Install app
-xcrun simctl install booted offLLMAppStoreFixer.app
+xcrun simctl install booted MonGARS.app
 
 # Launch simulator
 open -a Simulator

@@ -88,6 +88,7 @@ open ios/*.xcworkspace  # Opens in Xcode
 ```
 
 Then in Xcode:
+
 1. Select your target device/simulator
 2. Press Cmd+B to build or Cmd+R to build and run
 
@@ -121,12 +122,16 @@ xcodebuild -workspace ios/*.xcworkspace \
 ### Common Issues
 
 #### 1. "No scheme found" Error
+
 **Solution**: Open `ios/*.xcworkspace` in Xcode and ensure the scheme is shared:
+
 - Product → Scheme → Manage Schemes
 - Check "Shared" for your app's scheme
 
 #### 2. Pod Install Fails
+
 **Solution**:
+
 ```bash
 cd ios
 pod repo update
@@ -134,7 +139,9 @@ pod install --repo-update --verbose
 ```
 
 #### 3. "onGeometryChange not found" Error
+
 **Solution**: You need Xcode 16.2+ with iOS 18 SDK
+
 ```bash
 # Check Xcode version
 xcodebuild -version
@@ -144,7 +151,9 @@ sudo xcode-select -s /Applications/Xcode_16.2.app
 ```
 
 #### 4. Module 'React' not found
+
 **Solution**: Clean and reinstall pods
+
 ```bash
 cd ios
 rm -rf Pods Podfile.lock
@@ -154,7 +163,9 @@ npx react-native clean
 ```
 
 #### 5. Build Cache Issues
+
 **Solution**: Clean everything and rebuild
+
 ```bash
 # Clean Xcode cache
 rm -rf ~/Library/Developer/Xcode/DerivedData/*
@@ -174,7 +185,9 @@ pod install --repo-update
 If local builds are problematic, use the automated workflows:
 
 ### Option 1: Generate Native Files Workflow
+
 Commits all iOS native files to repository:
+
 ```
 1. Go to: GitHub Actions → "iOS — Generate Native Files & Commit"
 2. Run with: push_mode=direct_push, build_configuration=Release
@@ -183,7 +196,9 @@ Commits all iOS native files to repository:
 ```
 
 ### Option 2: EAS Cloud Build
+
 Build in the cloud without local Xcode:
+
 ```
 1. Go to: GitHub Actions → "Build & Deploy iOS (Simplified)"
 2. Run with: platform=eas-cloud, profile=production
@@ -194,12 +209,14 @@ Build in the cloud without local Xcode:
 ## Build Configurations
 
 ### Debug Build (Development)
+
 - Faster compilation
 - Includes debugging symbols
 - Larger binary size
 - Best for: Local testing, debugging
 
 ### Release Build (Production)
+
 - Optimized code
 - Smaller binary size
 - Slower compilation
@@ -208,9 +225,11 @@ Build in the cloud without local Xcode:
 ## After Successful Build
 
 ### If Building for Simulator
+
 The app will automatically install and run on the selected simulator.
 
 ### If Building for Device
+
 1. Archive the build: Product → Archive (in Xcode)
 2. Use Organizer to distribute to TestFlight or App Store
 3. Or use EAS Submit workflow for automated submission
@@ -218,19 +237,22 @@ The app will automatically install and run on the selected simulator.
 ## Environment Variables
 
 Ensure these are set (in `.env` file or Xcode build settings):
-- `EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY` - OpenAI API key
-- `EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY` - Anthropic API key
-- `EXPO_PUBLIC_VIBECODE_GROK_API_KEY` - Grok API key
-- `EXPO_PUBLIC_VIBECODE_PROJECT_ID` - Project identifier
+
+- `EXPO_PUBLIC_MONGARS_OPENAI_API_KEY` - OpenAI API key
+- `EXPO_PUBLIC_MONGARS_ANTHROPIC_API_KEY` - Anthropic API key
+- `EXPO_PUBLIC_MONGARS_GROK_API_KEY` - Grok API key
+- `EXPO_PUBLIC_MONGARS_PROJECT_ID` - Project identifier
 
 ## Performance Notes
 
 ### Build Times (Approximate)
+
 - **First build**: 10-20 minutes (includes pod install, codegen)
 - **Incremental builds**: 2-5 minutes (only changed files)
 - **Clean build**: 8-15 minutes (recompiles everything)
 
 ### Disk Space Requirements
+
 - **Source code**: ~500MB
 - **node_modules**: ~1GB
 - **ios/Pods**: ~500MB-1GB

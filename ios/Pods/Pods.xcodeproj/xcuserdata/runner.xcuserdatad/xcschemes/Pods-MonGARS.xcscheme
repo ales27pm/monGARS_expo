@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EB27D58F932C080AD524E2427EC1E759"
-               BuildableName = "libPods-offLLMAppStoreFixer.a"
-               BlueprintName = "Pods-offLLMAppStoreFixer"
+               BuildableName = "libPods-MonGARS.a"
+               BlueprintName = "Pods-MonGARS"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

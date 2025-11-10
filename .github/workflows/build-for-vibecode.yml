@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       model_name:
-        description: 'Model to download and include'
+        description: "Model to download and include"
         required: true
-        default: 'qwen2-0.5b'
+        default: "qwen2-0.5b"
         type: choice
         options:
           - qwen2-0.5b
@@ -15,9 +15,9 @@ on:
           - phi-3-mini
           - all
       profile:
-        description: 'EAS Build profile'
+        description: "EAS Build profile"
         required: true
-        default: 'production'
+        default: "production"
         type: choice
         options:
           - production
@@ -43,7 +43,7 @@ jobs:
       - name: 🐍 Setup Python for model downloads
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 📦 Install Python dependencies
         run: |
@@ -146,7 +146,7 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: 🥟 Setup Bun
         uses: oven-sh/setup-bun@v1

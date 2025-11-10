@@ -38,7 +38,7 @@ All modules implemented using React Native's New Architecture (Turbo Modules) fo
 ## 📦 Files Created
 
 ### Native Modules (iOS)
-- **Location**: `/ios/offLLMAppStoreFixer/NativeModules/`
+- **Location**: `/ios/MonGARS/NativeModules/`
 - **Total Files**: 20 files (.mm and .h)
 - **Language**: Objective-C++
 - **Architecture**: React Native Turbo Modules

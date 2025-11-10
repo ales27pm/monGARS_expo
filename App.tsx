@@ -10,7 +10,7 @@ Before telling the user to add them, check if you already have access to the req
 Directly access them with process.env.${key}
 
 Correct usage:
-process.env.EXPO_PUBLIC_VIBECODE_{key}
+process.env.EXPO_PUBLIC_MONGARS_{key}
 //directly access the key
 
 Incorrect usage:

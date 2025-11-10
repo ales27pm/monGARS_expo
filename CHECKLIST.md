@@ -17,15 +17,16 @@ Copy this checklist for each deployment. Check off items as you complete them.
 ## API Keys Setup (If Using Cloud LLMs)
 
 - [ ] Go to Vibecode app ENV tab
-- [ ] Add `EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY`
-- [ ] Add `EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY`
-- [ ] Add `EXPO_PUBLIC_VIBECODE_GROK_API_KEY`
-- [ ] Add `EXPO_PUBLIC_VIBECODE_PROJECT_ID`
+- [ ] Add `EXPO_PUBLIC_MONGARS_OPENAI_API_KEY`
+- [ ] Add `EXPO_PUBLIC_MONGARS_ANTHROPIC_API_KEY`
+- [ ] Add `EXPO_PUBLIC_MONGARS_GROK_API_KEY`
+- [ ] Add `EXPO_PUBLIC_MONGARS_PROJECT_ID`
 - [ ] Restart Expo dev server to load new keys
 
 ## Deployment - Option A: Optimized Workflow (Recommended)
 
 ### Step 1: Download Models (5 min)
+
 - [ ] Go to GitHub repository
 - [ ] Click **Actions** tab
 - [ ] Select **Download ML Models (No Build)** workflow
@@ -36,18 +37,21 @@ Copy this checklist for each deployment. Check off items as you complete them.
 - [ ] Wait for completion (green checkmark)
 
 ### Step 2: Pull to Vibecode (30 sec)
+
 - [ ] Open terminal in Vibecode
 - [ ] Run: `git pull origin main`
 - [ ] Verify models: `ls -lh ./assets/models/`
 - [ ] Should see .gguf files
 
 ### Step 3: Test Locally (Optional but Recommended)
+
 - [ ] Open Vibecode app
 - [ ] Test app functionality
 - [ ] Check logs for errors
 - [ ] Verify models load correctly
 
 ### Step 4: Build iOS App (25 min)
+
 - [ ] In Vibecode terminal, run:
   ```bash
   eas build --platform ios --profile production --non-interactive
@@ -59,6 +63,7 @@ Copy this checklist for each deployment. Check off items as you complete them.
 - [ ] Wait for build to complete
 
 ### Step 5: Submit to App Store (5 min)
+
 - [ ] After build completes, run:
   ```bash
   eas submit --platform ios --latest
@@ -71,6 +76,7 @@ Copy this checklist for each deployment. Check off items as you complete them.
 - [ ] Verify submission in App Store Connect
 
 ### Step 6: Post-Deployment
+
 - [ ] Test app on TestFlight
 - [ ] Check for crashes in Xcode Organizer
 - [ ] Submit for App Store review
@@ -84,6 +90,7 @@ Copy this checklist for each deployment. Check off items as you complete them.
 ## Deployment - Option B: Full Automation
 
 ### Step 1: Run Full Workflow (35 min)
+
 - [ ] Go to GitHub → Actions
 - [ ] Select **Download ML Models and Build iOS App**
 - [ ] Click **Run workflow**
@@ -95,12 +102,14 @@ Copy this checklist for each deployment. Check off items as you complete them.
 - [ ] Wait for completion (35 minutes)
 
 ### Step 2: Download Build
+
 - [ ] Go to Expo dashboard
 - [ ] Find your build
 - [ ] Download .ipa file
 - [ ] Or note build URL
 
 ### Step 3: Submit to App Store
+
 - [ ] If auto-submit failed, run:
   ```bash
   eas submit --platform ios --url BUILD_URL
@@ -115,6 +124,7 @@ Copy this checklist for each deployment. Check off items as you complete them.
 ## Deployment - Option C: Direct Download (No GitHub)
 
 ### Step 1: Download Model Directly (5-10 min)
+
 - [ ] In Vibecode terminal:
   ```bash
   pip3 install huggingface-hub
@@ -137,23 +147,27 @@ Copy this checklist for each deployment. Check off items as you complete them.
 ## Troubleshooting Checklist
 
 ### Build Fails
+
 - [ ] Check `.easignore` exists and contains `node_modules/`
 - [ ] Verify all dependencies install: `bun install`
 - [ ] Check EAS build logs: `eas build:view BUILD_ID`
 - [ ] Ensure no files exceed 100MB (or use Git LFS)
 
 ### Models Not Found
+
 - [ ] Run: `git pull origin main`
 - [ ] Check: `ls -lh ./assets/models/`
 - [ ] If missing, re-run GitHub Action
 - [ ] Or download directly with Python script
 
 ### Authentication Errors
+
 - [ ] Re-login: `eas logout && eas login`
 - [ ] Check: `eas whoami`
 - [ ] Verify `EXPO_TOKEN` in GitHub secrets
 
 ### App Store Submission Fails
+
 - [ ] Check Apple ID credentials
 - [ ] Verify app is configured in App Store Connect
 - [ ] Check bundle identifier matches
@@ -216,15 +230,15 @@ eas build:cancel BUILD_ID
 
 ## Time Estimates
 
-| Task | Estimated Time |
-|------|----------------|
-| GitHub Actions download | 5 min |
-| Git pull | 30 sec |
-| Direct model download | 5-10 min |
-| EAS build | 25 min |
-| App Store submit | 5 min |
-| TestFlight processing | 10-30 min |
-| App Store review | 1-3 days |
+| Task                    | Estimated Time |
+| ----------------------- | -------------- |
+| GitHub Actions download | 5 min          |
+| Git pull                | 30 sec         |
+| Direct model download   | 5-10 min       |
+| EAS build               | 25 min         |
+| App Store submit        | 5 min          |
+| TestFlight processing   | 10-30 min      |
+| App Store review        | 1-3 days       |
 
 ---
 
@@ -260,11 +274,11 @@ eas build:cancel BUILD_ID
 - [ ] Logs checked for errors
 - [ ] Team notified
 
-**Deployed by:** _______________
-**Date:** _______________
-**Build URL:** _______________
-**Model used:** _______________
-**Notes:** _______________
+**Deployed by:** ******\_\_\_******
+**Date:** ******\_\_\_******
+**Build URL:** ******\_\_\_******
+**Model used:** ******\_\_\_******
+**Notes:** ******\_\_\_******
 
 ---
 

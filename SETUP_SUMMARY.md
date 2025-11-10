@@ -110,7 +110,7 @@ ls ios/Pods
 ✅ ios/Podfile
 ✅ ios/Podfile.lock
 ✅ ios/Podfile.properties.json
-✅ ios/offLLMAppStoreFixer/ (app folder)
+✅ ios/MonGARS/ (app folder)
 ✅ ios/*.xcodeproj (Xcode project)
 ✅ ios/*.xcworkspace (Xcode workspace)
 ❌ ios/Pods/ (MISSING - needs commit)

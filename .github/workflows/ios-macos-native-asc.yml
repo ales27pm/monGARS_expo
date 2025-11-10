@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       model_name:
-        description: 'Model to download and include'
+        description: "Model to download and include"
         required: true
-        default: 'none'
+        default: "none"
         type: choice
         options: [qwen2-0.5b, llama-3.2-1b, smollm2-1.7b, phi-3-mini, all, none]
       upload_to_testflight:
-        description: 'Upload .ipa to App Store Connect (TestFlight)'
+        description: "Upload .ipa to App Store Connect (TestFlight)"
         type: boolean
         default: true
 
@@ -23,7 +23,7 @@ env:
 
 jobs:
   build-and-upload:
-    runs-on: macos-15
+    runs-on: macos-15 # macOS 15 image (Xcode 16.x toolchains)
     permissions:
       contents: write
       pull-requests: write
@@ -83,7 +83,7 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 📦 Python deps
         if: ${{ inputs.model_name != 'none' }}
@@ -161,7 +161,7 @@ jobs:
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
-          p12-password:   ${{ secrets.IOS_P12_PASSWORD }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
 
       - name: 📄 Install provisioning profile
         env:
@@ -250,7 +250,7 @@ jobs:
         if: ${{ inputs.upload_to_testflight }}
         env:
           APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-          APPSTORE_API_KEY_ID:     ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.private_keys"
@@ -260,8 +260,8 @@ jobs:
       - name: 🚀 Upload to TestFlight (iTMSTransporter)
         if: ${{ inputs.upload_to_testflight }}
         env:
-          APPSTORE_API_KEY_ID:     ${{ secrets.APPSTORE_API_KEY_ID }}
-          APPSTORE_API_ISSUER_ID:  ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
           IPA="${{ steps.eas.outputs.ipa || steps.findipa.outputs.ipa }}"

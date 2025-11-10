@@ -45,7 +45,7 @@ with_node \
   --no-warnings \
   --eval "require(require.resolve('expo-modules-autolinking', { paths: [require.resolve('expo/package.json')] }))(process.argv.slice(1))" \
   generate-modules-provider  \
-  --target "/Users/runner/work/monGARS_expo/monGARS_expo/ios/Pods/Target Support Files/Pods-offLLMAppStoreFixer/ExpoModulesProvider.swift" \
-  --entitlement "/Users/runner/work/monGARS_expo/monGARS_expo/ios/offLLMAppStoreFixer/offLLMAppStoreFixer.entitlements" \
+  --target "/Users/runner/work/monGARS_expo/monGARS_expo/ios/Pods/Target Support Files/Pods-MonGARS/ExpoModulesProvider.swift" \
+  --entitlement "/Users/runner/work/monGARS_expo/monGARS_expo/ios/MonGARS/MonGARS.entitlements" \
   --platform "apple" \
   --packages "@nandorojo/galeria" "expo" "expo-application" "expo-asset" "expo-battery" "expo-blur" "expo-brightness" "expo-cellular" "expo-clipboard" "expo-constants" "expo-crypto" "expo-dev-launcher" "expo-dev-menu" "expo-device" "expo-document-picker" "expo-eas-client" "expo-file-system" "expo-font" "expo-haptics" "expo-image" "expo-image-manipulator" "expo-insights" "expo-keep-awake" "expo-linear-gradient" "expo-linking" "expo-live-photo" "expo-mail-composer" "expo-network" "expo-secure-store" "expo-sharing" "expo-sms" "expo-speech" "expo-splash-screen" "expo-sqlite" "expo-symbols" "expo-system-ui" "expo-video" "expo-web-browser"

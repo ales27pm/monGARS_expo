@@ -20,7 +20,7 @@ run: |
 ```
 
 ### 2. **Scheme Auto-Detection** ✅ FIXED
-**Problem:** Build failed because workflow used wrong scheme name `offLLMAppStoreFixer`.
+**Problem:** Build failed because workflow used wrong scheme name `MonGARS`.
 
 **Solution:** Added automatic scheme detection:
 - Scheme input is now optional (empty by default)
@@ -104,11 +104,11 @@ Once pushed, run the workflow:
 
 ### The Original Error:
 ```
-SwiftEmitModule normal x86_64 Emitting module for offLLMAppStoreFixer
+SwiftEmitModule normal x86_64 Emitting module for MonGARS
 ```
 
 This happened because:
-1. Workflow used hardcoded scheme: `offLLMAppStoreFixer`
+1. Workflow used hardcoded scheme: `MonGARS`
 2. After `expo prebuild`, the actual scheme might be different
 3. Xcode couldn't find the scheme → Swift compilation failed
 

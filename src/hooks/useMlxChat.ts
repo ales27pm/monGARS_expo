@@ -30,9 +30,9 @@ export function useMlxChat(options?: UseMlxChatOptions) {
   const [isSending, setIsSending] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(100);
-  const [downloadStatus, setDownloadStatus] = useState<
-    "not_downloaded" | "downloading" | "downloaded" | "error"
-  >("downloaded");
+  const [downloadStatus, setDownloadStatus] = useState<"not_downloaded" | "downloading" | "downloaded" | "error">(
+    "downloaded",
+  );
 
   /**
    * Initialize the chat (using OpenAI API with fetch)
@@ -42,7 +42,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
       try {
         console.log("[useMlxChat] Initializing with fetch API - v2.0");
         // Check if OpenAI API key is available
-        const apiKey = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
+        const apiKey = process.env.EXPO_PUBLIC_MONGARS_OPENAI_API_KEY;
         if (!apiKey) {
           setError("OpenAI API key not configured. Please contact support.");
           setIsReady(false);
@@ -85,7 +85,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
 
       return messages;
     },
-    [history, options?.systemPrompt]
+    [history, options?.systemPrompt],
   );
 
   /**
@@ -114,7 +114,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
         const messages = buildMessages(userMessage);
 
         // Use fetch directly for better React Native compatibility
-        const apiKey = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
+        const apiKey = process.env.EXPO_PUBLIC_MONGARS_OPENAI_API_KEY;
         if (!apiKey) {
           throw new Error("OpenAI API key not configured");
         }
@@ -125,7 +125,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model: "gpt-4o-mini",
@@ -167,7 +167,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
         setIsSending(false);
       }
     },
-    [isReady, buildMessages, options?.maxTokens, options?.temperature]
+    [isReady, buildMessages, options?.maxTokens, options?.temperature],
   );
 
   /**
@@ -227,6 +227,6 @@ export function useMlxChat(options?: UseMlxChatOptions) {
       stop,
       reset,
       addSystemMessage,
-    ]
+    ],
   );
 }

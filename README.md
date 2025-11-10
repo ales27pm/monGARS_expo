@@ -9,6 +9,7 @@ A fully-featured AI application that runs entirely on your device with semantic 
 ## 🎯 Key Features
 
 ### Core Capabilities
+
 - ✅ **On-Device LLM Inference** - Run AI models locally with llama.rn
 - ✅ **Semantic Vector Memory** - Store and search memories with embeddings
 - ✅ **RAG System** - Retrieval-Augmented Generation for context-aware responses
@@ -20,6 +21,7 @@ A fully-featured AI application that runs entirely on your device with semantic 
 - ✅ **Conversation Memory** - Persistent chat history with semantic search
 
 ### Technical Stack
+
 - **Framework**: Expo SDK 53 + React Native 0.76.7 (New Architecture)
 - **LLM Runtime**: llama.rn (llama.cpp bindings)
 - **Native Modules**: Custom iOS Turbo Modules (Battery, Sensors, DeviceInfo, etc.)
@@ -62,7 +64,8 @@ A fully-featured AI application that runs entirely on your device with semantic 
 
 ### Native iOS Turbo Modules
 
-#### Custom Device Feature Modules (`ios/offLLMAppStoreFixer/NativeModules/`)
+#### Custom Device Feature Modules (`ios/MonGARS/NativeModules/`)
+
 - **BatteryTurboModule** - Battery level and charging state monitoring
 - **BrightnessTurboModule** - Screen brightness control
 - **SensorsTurboModule** - Accelerometer, gyroscope, and magnetometer data
@@ -70,6 +73,7 @@ A fully-featured AI application that runs entirely on your device with semantic 
 - **FlashlightTurboModule** - Flashlight/torch control
 
 All modules are:
+
 - ✅ Written in Objective-C++ for optimal performance
 - ✅ Using React Native New Architecture (Turbo Modules)
 - ✅ Compiled directly on macOS runners for native performance
@@ -78,6 +82,7 @@ All modules are:
 ### Implemented Systems
 
 #### 1. On-Device LLM (`src/utils/on-device-llm.ts`)
+
 - Model download from HuggingFace
 - GGUF format support
 - GPU acceleration (Metal/OpenCL)
@@ -87,6 +92,7 @@ All modules are:
 - Pre-configured models (Llama 3.2, Qwen2, SmolLM2, Phi-3)
 
 #### 2. Vector Storage (`src/utils/vector-store.ts`)
+
 - Fast vector operations with MMKV
 - Cosine similarity search
 - Encrypted storage
@@ -95,6 +101,7 @@ All modules are:
 - Storage statistics
 
 #### 3. Semantic Memory (`src/utils/semantic-memory.ts`)
+
 - RAG implementation
 - Conversation memory
 - Text chunking for long documents
@@ -102,6 +109,7 @@ All modules are:
 - Memory import/export
 
 #### 4. Context Management (`src/utils/context-management.ts`)
+
 - Token estimation
 - Context window fitting
 - Multiple overflow strategies
@@ -109,12 +117,14 @@ All modules are:
 - Prompt templates
 
 #### 5. Text Processing (`src/utils/text-chunking.ts`)
+
 - Sentence-aware chunking
 - Paragraph preservation
 - Overlap for context continuity
 - Chunk reconstruction
 
 #### 6. Vector Math (`src/utils/vector-math.ts`)
+
 - Cosine similarity
 - Euclidean distance
 - Dot product
@@ -123,6 +133,7 @@ All modules are:
 - Top-K search
 
 ### UI Components (`src/components/PrivacyUI.tsx`)
+
 - **OfflineIndicator** - Shows connection and model status
 - **ModelDownloadProgress** - Real-time download progress
 - **PrivacyBadge** - Privacy feature indicators
@@ -130,6 +141,7 @@ All modules are:
 - **MemoryStatsCard** - Storage statistics
 
 ### App Screens
+
 - **ModelsScreen** (`src/screens/ModelsScreen.tsx`) - Model selection, download, and management
 - **ChatScreen** (`src/screens/ChatScreen.tsx`) - Offline chat interface with on-device inference and settings integration
 - **SettingsScreen** (`src/screens/SettingsScreen.tsx`) - Comprehensive settings including:
@@ -150,6 +162,7 @@ All modules are:
 📖 **Complete Guide**: See [BUILDING.md](./BUILDING.md) for step-by-step instructions
 
 **Quick Summary**:
+
 - ✅ **EAS Build** (recommended): No Mac required, automated, creates installable .ipa
 - ✅ **Xcode Build**: Full control, local development, requires macOS
 - ⚠️ **Vibecode**: UI/UX preview only, native modules won't work
@@ -177,6 +190,7 @@ You have **two options** depending on how you want to test:
    - Wait ~15-25 minutes for build completion
 
 2. **Download the Build**:
+
    ```bash
    # Check build status
    eas build:list --platform ios --limit 5
@@ -202,6 +216,7 @@ You have **two options** depending on how you want to test:
    - Wait ~10-15 minutes
 
 2. **Pull into Vibecode**:
+
    ```bash
    git pull origin main
    ```
@@ -214,12 +229,14 @@ You have **two options** depending on how you want to test:
 **What the Workflows Do:**
 
 **EAS Build (Option 1)**:
+
 - ✅ Compiles native modules into actual binary
 - ✅ Creates installable .ipa file
 - ✅ Native AI inference actually works
 - ✅ Can be tested on real device/simulator
 
 **Native Setup (Option 2)**:
+
 - ✅ Generates iOS project files
 - ✅ Installs CocoaPods including llama.rn
 - ✅ Commits files to repository
@@ -229,6 +246,7 @@ You have **two options** depending on how you want to test:
 - ✅ Ready for Vibecode to pull and use
 
 **Current App Features:**
+
 - ✅ Complete 3-tab navigation (Models, Chat, Settings)
 - ✅ Model download UI
 - ✅ Chat interface with real LLM integration
@@ -236,6 +254,7 @@ You have **two options** depending on how you want to test:
 - ⚠️ Native modules require workflow run + pull
 
 **Expected Behavior in Vibecode:**
+
 - Models can be downloaded successfully
 - Settings can be configured
 - Chat interface shows "Native Module Required" warning
@@ -248,10 +267,11 @@ See [IOS_SETUP_STATUS.md](./IOS_SETUP_STATUS.md) for detailed instructions.
 The app requires API keys for cloud-based LLM features. Set these in the Vibecode app ENV tab:
 
 **Required Keys** (for cloud LLM features):
-- `EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY` - OpenAI API (GPT models, transcription, image generation)
-- `EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY` - Anthropic API (Claude models)
-- `EXPO_PUBLIC_VIBECODE_GROK_API_KEY` - Grok API (xAI models)
-- `EXPO_PUBLIC_VIBECODE_PROJECT_ID` - Vibecode internal project identifier
+
+- `EXPO_PUBLIC_MONGARS_OPENAI_API_KEY` - OpenAI API (GPT models, transcription, image generation)
+- `EXPO_PUBLIC_MONGARS_ANTHROPIC_API_KEY` - Anthropic API (Claude models)
+- `EXPO_PUBLIC_MONGARS_GROK_API_KEY` - Grok API (xAI models)
+- `EXPO_PUBLIC_MONGARS_PROJECT_ID` - MonGARS internal project identifier
 
 **Note**: On-device ML features work without API keys. Cloud features require authentication.
 
@@ -262,10 +282,11 @@ The app requires API keys for cloud-based LLM features. Set these in the Vibecod
 Choose one of two workflows:
 
 #### Workflow 1: Build & Prepare for Vibecode (Recommended)
-   - Downloads models + builds iOS app
-   - Commits everything to repository
-   - Pull in Vibecode and submit to App Store
-   - Most cost-effective and flexible
+
+- Downloads models + builds iOS app
+- Commits everything to repository
+- Pull in Vibecode and submit to App Store
+- Most cost-effective and flexible
 
 ```bash
 # 1. Run "Build & Prepare for Vibecode Deployment" on GitHub
@@ -278,10 +299,11 @@ eas submit --platform ios --latest
 ```
 
 #### Workflow 2: Full Automated macOS Deployment
-   - Downloads models + builds on macOS runner
-   - Optionally submits directly to App Store
-   - Fully automated, no manual steps
-   - Uses macOS GitHub runner
+
+- Downloads models + builds on macOS runner
+- Optionally submits directly to App Store
+- Fully automated, no manual steps
+- Uses macOS GitHub runner
 
 ```bash
 # 1. Run "Full Automated iOS Deployment" on GitHub
@@ -292,6 +314,7 @@ eas submit --platform ios --latest
 **See [WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md) for detailed instructions**
 
 **Option B: Direct Download in Vibecode**
+
 ```bash
 pip3 install huggingface-hub
 python3 -c "
@@ -306,6 +329,7 @@ hf_hub_download(
 ```
 
 **Option C: In-App Download** (requires implementation)
+
 ```typescript
 // Tap "Download" button in the app
 // Models download from HuggingFace to device
@@ -313,25 +337,30 @@ hf_hub_download(
 ```
 
 ### Initialize Model
+
 ```typescript
 // After download completes
 const llm = getGlobalLLM();
 await llm.initializeModel(selectedModel, {
-  gpuLayers: 99,      // Use GPU acceleration (configurable in settings)
-  contextSize: 2048,  // Context window (configurable in settings)
-  useMemoryLock: true // Recommended
+  gpuLayers: 99, // Use GPU acceleration (configurable in settings)
+  contextSize: 2048, // Context window (configurable in settings)
+  useMemoryLock: true, // Recommended
 });
 ```
 
 ### Start Chatting
+
 ```typescript
-const response = await llm.chat([
-  { role: "system", content: "You are a helpful assistant" },
-  { role: "user", content: "Hello!" }
-], {
-  maxTokens: 512,     // Configurable in settings
-  temperature: 0.7    // Configurable in settings
-});
+const response = await llm.chat(
+  [
+    { role: "system", content: "You are a helpful assistant" },
+    { role: "user", content: "Hello!" },
+  ],
+  {
+    maxTokens: 512, // Configurable in settings
+    temperature: 0.7, // Configurable in settings
+  },
+);
 ```
 
 ---
@@ -355,6 +384,7 @@ This workflow compiles all native iOS Turbo Modules using Xcode on GitHub Action
 ```
 
 **What this workflow does**:
+
 - ✅ Compiles all native Turbo Modules (Battery, Sensors, DeviceInfo, etc.)
 - ✅ Builds iOS app with Xcode on macOS-15 runner
 - ✅ Creates installable .ipa file
@@ -362,6 +392,7 @@ This workflow compiles all native iOS Turbo Modules using Xcode on GitHub Action
 - ✅ 100% free with GitHub Actions
 
 **Native modules included in build**:
+
 - BatteryTurboModule.mm
 - BrightnessTurboModule.mm
 - SensorsTurboModule.mm + .h
@@ -431,6 +462,7 @@ If submitting through Vibecode's "Publish to App Store" feature:
 See **[eas-credentials/README.md](./eas-credentials/README.md)** for detailed instructions.
 
 **Alternative**: Use EAS managed credentials by modifying `eas.json`:
+
 ```json
 "submit": {
   "production": {
@@ -464,12 +496,14 @@ The `.easignore` file excludes unnecessary files (node_modules, logs, etc.) from
 ### Privacy Labels (App Store)
 
 **Data Not Collected**:
+
 - ✅ No personal data collected
 - ✅ No usage data collected
 - ✅ No diagnostics collected
 - ✅ No identifiers collected
 
 **Permissions**:
+
 - Storage (for models and memory)
 
 ---
@@ -478,12 +512,12 @@ The `.easignore` file excludes unnecessary files (node_modules, logs, etc.) from
 
 ### By Model
 
-| Model | Size | RAM Required | Recommended For |
-|-------|------|--------------|-----------------|
-| Qwen2 0.5B | 326 MB | 2GB | Older devices, fast inference |
-| Llama 3.2 1B | 730 MB | 4GB | Best balance |
-| SmolLM2 1.7B | 1.1 GB | 6GB | Higher quality |
-| Phi-3 Mini | 2.3 GB | 8GB | Highest quality |
+| Model        | Size   | RAM Required | Recommended For               |
+| ------------ | ------ | ------------ | ----------------------------- |
+| Qwen2 0.5B   | 326 MB | 2GB          | Older devices, fast inference |
+| Llama 3.2 1B | 730 MB | 4GB          | Best balance                  |
+| SmolLM2 1.7B | 1.1 GB | 6GB          | Higher quality                |
+| Phi-3 Mini   | 2.3 GB | 8GB          | Highest quality               |
 
 ### Vector Storage
 
@@ -500,12 +534,14 @@ The `.easignore` file excludes unnecessary files (node_modules, logs, etc.) from
 The app now includes comprehensive settings accessible from the Settings tab:
 
 **Model Configuration** (saved to device):
+
 - **GPU Layers**: 0-99 (controls GPU acceleration)
 - **Context Size**: 512, 1024, 2048, or 4096 tokens
 - **Max Tokens**: 128, 256, 512, or 1024 tokens
 - **Temperature**: 0.1 to 1.5 (controls randomness)
 
 **App Preferences**:
+
 - **Auto-save Conversations**: Toggle conversation history
 - **Enable Vector Memory**: Toggle embeddings for RAG
 
@@ -524,7 +560,7 @@ export const RECOMMENDED_MODELS: ModelConfig[] = [
     quantization: "Q4_K_M",
     sizeInMB: 500,
     recommended: true,
-  }
+  },
 ];
 ```
 
@@ -562,11 +598,7 @@ memory.setEmbeddingFunction(async (text) => {
 });
 
 // Add user message to memory
-await memory.addConversationMessage(
-  userMessage,
-  "user",
-  conversationId
-);
+await memory.addConversationMessage(userMessage, "user", conversationId);
 
 // Get relevant context
 const context = await memory.getRelevantContext(userMessage, {
@@ -578,7 +610,7 @@ const context = await memory.getRelevantContext(userMessage, {
 // Include context in prompt
 const response = await llm.chat([
   { role: "system", content: `Context: ${context}` },
-  { role: "user", content: userMessage }
+  { role: "user", content: userMessage },
 ]);
 ```
 
@@ -589,11 +621,11 @@ const response = await llm.chat([
 const results = await memory.searchMemories("query", {
   limit: 10,
   threshold: 0.75,
-  filter: { category: "notes" }
+  filter: { category: "notes" },
 });
 
 // Results sorted by relevance
-results.forEach(result => {
+results.forEach((result) => {
   console.log(`${result.text} (${result.relevance})`);
 });
 ```
@@ -606,7 +638,7 @@ import { ContextManager, estimateTokens } from "./utils/context-management";
 const contextManager = new ContextManager({
   maxTokens: 2048,
   reserveTokens: 512,
-  overflowStrategy: "truncate-old"
+  overflowStrategy: "truncate-old",
 });
 
 const fittedMessages = contextManager.fitMessages(messages);
@@ -618,12 +650,12 @@ const fittedMessages = contextManager.fitMessages(messages);
 
 ### Inference Speed (iPhone 13 Pro)
 
-| Model | Tokens/sec | First Token | Quality |
-|-------|------------|-------------|---------|
-| Qwen2 0.5B | ~25 | ~200ms | Good |
-| Llama 3.2 1B | ~15 | ~300ms | Better |
-| SmolLM2 1.7B | ~10 | ~400ms | Best |
-| Phi-3 Mini | ~5 | ~600ms | Excellent |
+| Model        | Tokens/sec | First Token | Quality   |
+| ------------ | ---------- | ----------- | --------- |
+| Qwen2 0.5B   | ~25        | ~200ms      | Good      |
+| Llama 3.2 1B | ~15        | ~300ms      | Better    |
+| SmolLM2 1.7B | ~10        | ~400ms      | Best      |
+| Phi-3 Mini   | ~5         | ~600ms      | Excellent |
 
 ### Vector Search Performance
 
@@ -631,7 +663,7 @@ const fittedMessages = contextManager.fitMessages(messages);
 - 50,000 embeddings: <500ms
 - 100,000 embeddings: <1s
 
-*With MMKV on iPhone 13 Pro*
+_With MMKV on iPhone 13 Pro_
 
 ---
 
@@ -639,7 +671,8 @@ const fittedMessages = contextManager.fitMessages(messages);
 
 ### Common Issues
 
-**Build Error: "onGeometryChange" not available** *(Fixed)*
+**Build Error: "onGeometryChange" not available** _(Fixed)_
+
 ```
 The build was failing with "value of type 'some View' has no member 'onGeometryChange'"
 
@@ -653,7 +686,8 @@ marked as available in iOS 16.0 in expo-modules-core. The fix adds proper versio
 checking and fallback behavior.
 ```
 
-**GitHub Actions: "build:list command failed"** *(Fixed)*
+**GitHub Actions: "build:list command failed"** _(Fixed)_
+
 ```
 The EAS build:list command was failing when trying to retrieve build information.
 
@@ -668,6 +702,7 @@ This is a non-critical error - builds still succeed and can be submitted manuall
 ```
 
 **"Model not initialized"**
+
 ```typescript
 // Download and initialize model first
 await llm.downloadModel(RECOMMENDED_MODELS[0]);
@@ -675,15 +710,17 @@ await llm.initializeModel(RECOMMENDED_MODELS[0]);
 ```
 
 **"Out of memory"**
+
 ```typescript
 // Use smaller model or reduce context
 await llm.initializeModel(model, {
   contextSize: 1024,
-  gpuLayers: 0 // CPU only
+  gpuLayers: 0, // CPU only
 });
 ```
 
 **"Embedding function not set"**
+
 ```typescript
 // Set embedding function
 memory.setEmbeddingFunction(async (text) => {
@@ -692,6 +729,7 @@ memory.setEmbeddingFunction(async (text) => {
 ```
 
 **Xcode Version Mismatch in Local Builds**
+
 ```bash
 # If building locally with --local flag, ensure you have Xcode 16.2+ installed
 xcode-select --print-path
@@ -702,6 +740,7 @@ sudo xcode-select -s /Applications/Xcode_16.2.app
 ```
 
 **EXPO_TOKEN Authentication Issues**
+
 ```bash
 # If workflows fail with authentication errors:
 # 1. Check that EXPO_TOKEN is set in GitHub Secrets
@@ -717,6 +756,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
 ## 📚 Documentation
 
 ### Deployment & Workflow
+
 - **[WORKFLOWS_COMPLETE_GUIDE.md](./WORKFLOWS_COMPLETE_GUIDE.md)** - 🎯 Complete guide to both workflows (START HERE!)
 - **[CHECKLIST.md](./CHECKLIST.md)** - 📋 Step-by-step deployment checklist
 - **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - ⚡ Fast command reference
@@ -727,6 +767,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for more troubleshooting.
 - **[FAQ_NATIVE_BUILDS.md](./FAQ_NATIVE_BUILDS.md)** - ❓ Native module compilation FAQ
 
 ### Technical
+
 - **[VIBECODE_REQUIRED_PACKAGES.md](./VIBECODE_REQUIRED_PACKAGES.md)** - Package requirements for Vibecode
 
 ### Code Documentation
@@ -772,12 +813,14 @@ Built with Vibecode - AI-Powered App Development
 ## 🎓 Learn More
 
 ### Technologies Used
+
 - [llama.rn](https://github.com/mybigday/llama.rn) - React Native bindings for llama.cpp
 - [MMKV](https://github.com/mrousavy/react-native-mmkv) - Fast key-value storage
 - [Expo](https://expo.dev) - React Native development platform
 - [EAS Build](https://expo.dev/eas) - Cloud build service
 
 ### Resources
+
 - [GGUF Models](https://huggingface.co/models?library=gguf)
 - [Quantization Guide](https://huggingface.co/docs/optimum/concept_guides/quantization)
 - [RAG Tutorial](https://www.pinecone.io/learn/retrieval-augmented-generation/)
@@ -787,4 +830,3 @@ Built with Vibecode - AI-Powered App Development
 **Current Status**: ✅ Fully implemented with on-device ML, semantic memory, RAG, and privacy-first architecture. Ready for GitHub Actions deployment and App Store submission.
 
 **Your data never leaves your device. Your privacy is guaranteed.**
-

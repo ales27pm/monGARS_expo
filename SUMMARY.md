@@ -3,9 +3,11 @@
 ## ✅ What Was Fixed
 
 ### 1. EAS Build Archive Size Issue
+
 **Problem:** Project archive was 2.2 GB, exceeding the 2.0 GB limit
 
 **Solution:** Created `.easignore` file to exclude:
+
 - `node_modules/` (1.3 GB)
 - Development files (logs, cache)
 - Platform outputs (ios/, android/)
@@ -14,25 +16,30 @@
 **Result:** Archive reduced from 2.2 GB to <100 MB
 
 ### 2. LLM Authentication Issues
+
 **Problem:** Some LLMs need authentication but keys weren't documented
 
 **Solution:** Updated README with required API keys:
-- `EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY`
-- `EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY`
-- `EXPO_PUBLIC_VIBECODE_GROK_API_KEY`
-- `EXPO_PUBLIC_VIBECODE_PROJECT_ID`
+
+- `EXPO_PUBLIC_MONGARS_OPENAI_API_KEY`
+- `EXPO_PUBLIC_MONGARS_ANTHROPIC_API_KEY`
+- `EXPO_PUBLIC_MONGARS_GROK_API_KEY`
+- `EXPO_PUBLIC_MONGARS_PROJECT_ID`
 
 **Result:** Clear instructions on setting keys in Vibecode ENV tab
 
 ### 3. Optimized GitHub Actions Workflow
+
 **Problem:** Full build in GitHub Actions takes 35 minutes and uses lots of Actions minutes
 
 **Solution:** Created new `download-models-only.yml` workflow:
+
 - Downloads models (5 min)
 - Commits to repository
 - You pull and build from Vibecode (25 min)
 
 **Result:**
+
 - 83% reduction in GitHub Actions minutes (35 min → 6 min)
 - More control over build timing
 - Same final result
@@ -94,59 +101,66 @@ eas submit --platform ios --latest
 
 ## 📊 Comparison
 
-| Aspect | Old Workflow | New Workflow |
-|--------|-------------|--------------|
-| GitHub Actions time | 35 min | 6 min |
-| Total time | 35 min | 31 min |
-| Control | Low | High |
-| Flexibility | Low | High |
-| Cost | Higher | 83% lower |
-| Steps | 1 (automated) | 4 (manual) |
+| Aspect              | Old Workflow  | New Workflow |
+| ------------------- | ------------- | ------------ |
+| GitHub Actions time | 35 min        | 6 min        |
+| Total time          | 35 min        | 31 min       |
+| Control             | Low           | High         |
+| Flexibility         | Low           | High         |
+| Cost                | Higher        | 83% lower    |
+| Steps               | 1 (automated) | 4 (manual)   |
 
 ## 🎯 Recommendations
 
 ### For Development/Testing
+
 - Use new workflow (download-models-only.yml)
 - Download small model (qwen2-0.5b)
 - Build from Vibecode for more control
 
 ### For Production
+
 - Consider Git LFS for model files (see GIT_LFS_GUIDE.md)
 - Use production profile
 - Test locally before building
 
 ### For CI/CD
+
 - Use old workflow (build-and-deploy.yml) if fully automated
 - Or use new workflow with git hooks for automation
 
 ## 📚 Documentation Overview
 
-| Guide | Purpose | When to Use |
-|-------|---------|-------------|
-| **WORKFLOW_GUIDE.md** | Complete workflow guide | Setting up deployment |
-| **QUICK_REFERENCE.md** | Fast command reference | Day-to-day operations |
-| **DEPLOYMENT.md** | Detailed deployment steps | Deep dive on EAS/App Store |
-| **GIT_LFS_GUIDE.md** | Large file handling | Managing model files |
-| **README.md** | Project overview | Understanding the app |
+| Guide                  | Purpose                   | When to Use                |
+| ---------------------- | ------------------------- | -------------------------- |
+| **WORKFLOW_GUIDE.md**  | Complete workflow guide   | Setting up deployment      |
+| **QUICK_REFERENCE.md** | Fast command reference    | Day-to-day operations      |
+| **DEPLOYMENT.md**      | Detailed deployment steps | Deep dive on EAS/App Store |
+| **GIT_LFS_GUIDE.md**   | Large file handling       | Managing model files       |
+| **README.md**          | Project overview          | Understanding the app      |
 
 ## ✨ Key Features
 
 ### Archive Size Optimization
+
 - `.easignore` excludes 1.3 GB of node_modules
 - EAS rebuilds dependencies on server
 - 95% reduction in upload size
 
 ### Flexible Workflows
+
 - Choose between speed and automation
 - Download models without building
 - Build from Vibecode for control
 
 ### Clear Documentation
+
 - Step-by-step guides
 - Command references
 - Troubleshooting tips
 
 ### Cost Optimization
+
 - 83% reduction in GitHub Actions usage
 - Same EAS Build cost (unavoidable)
 - Better use of free Actions minutes
@@ -160,6 +174,7 @@ eas submit --platform ios --latest
 **To adopt new workflow:**
 
 1. Try the new workflow on next deployment:
+
    ```bash
    # GitHub: Run "Download ML Models (No Build)"
    # Vibecode: git pull && eas build && eas submit
@@ -180,10 +195,12 @@ eas submit --platform ios --latest
 ### GitHub Actions (Free Tier: 2,000 min/month)
 
 **Old workflow:**
+
 - 35 min per deployment
 - ~57 deployments per month before hitting limit
 
 **New workflow:**
+
 - 6 min per deployment
 - ~333 deployments per month before hitting limit
 
@@ -192,6 +209,7 @@ eas submit --platform ios --latest
 ### EAS Build (Paid, $29/month or pay-per-use)
 
 **Both workflows:**
+
 - Same cost (25 min per build)
 - Can't avoid this cost
 - But new workflow gives more control over timing
@@ -199,22 +217,26 @@ eas submit --platform ios --latest
 ## 🐛 Troubleshooting Quick Fix
 
 ### "Archive too large"
+
 ```bash
 cat .easignore  # Should exist with node_modules/
 ```
 
 ### "Models not found"
+
 ```bash
 git pull origin main
 ls -lh ./assets/models/
 ```
 
 ### "Authentication failed"
+
 ```bash
 eas logout && eas login
 ```
 
 ### "Build failed"
+
 ```bash
 eas build:view BUILD_ID  # Check logs
 ```

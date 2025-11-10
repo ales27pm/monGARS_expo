@@ -11,6 +11,6 @@
 #endif
 
 
-FOUNDATION_EXPORT double Pods_offLLMAppStoreFixerVersionNumber;
-FOUNDATION_EXPORT const unsigned char Pods_offLLMAppStoreFixerVersionString[];
+FOUNDATION_EXPORT double Pods_MonGARSVersionNumber;
+FOUNDATION_EXPORT const unsigned char Pods_MonGARSVersionString[];
 

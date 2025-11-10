@@ -4,15 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-  ActivityIndicator,
-  Modal,
-} from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -24,11 +16,7 @@ import {
   MemoryStatsCard,
 } from "../components/PrivacyUI";
 
-import {
-  RECOMMENDED_MODELS,
-  ModelConfig,
-  ModelDownloadProgress as DownloadProgress,
-} from "../types/models";
+import { RECOMMENDED_MODELS, ModelConfig, ModelDownloadProgress as DownloadProgress } from "../types/models";
 
 import { vectorStore } from "../utils/vector-store";
 import { useModelStore } from "../state/modelStore";
@@ -64,10 +52,7 @@ function CustomModal({
 
           <View className="flex-row gap-3">
             {onConfirm && (
-              <Pressable
-                onPress={onClose}
-                className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
-              >
+              <Pressable onPress={onClose} className="flex-1 bg-gray-200 py-3 rounded-lg items-center">
                 <Text className="text-gray-700 font-semibold">{cancelText}</Text>
               </Pressable>
             )}
@@ -78,9 +63,7 @@ function CustomModal({
                 }
                 onClose();
               }}
-              className={`flex-1 py-3 rounded-lg items-center ${
-                isDestructive ? "bg-red-500" : "bg-blue-500"
-              }`}
+              className={`flex-1 py-3 rounded-lg items-center ${isDestructive ? "bg-red-500" : "bg-blue-500"}`}
             >
               <Text className="text-white font-semibold">{confirmText}</Text>
             </Pressable>
@@ -143,12 +126,29 @@ export default function OnDeviceMLDemo() {
 
   // Load memory stats
   useEffect(() => {
-    const stats = vectorStore.getStats();
-    setMemoryStats({
-      totalMemories: stats.totalEmbeddings,
-      storageSize: stats.storageSize,
-      conversationCount: stats.conversationCount,
-    });
+    let isActive = true;
+
+    const refreshStats = async () => {
+      try {
+        await vectorStore.waitUntilReady();
+        const stats = vectorStore.getStats();
+        if (isActive) {
+          setMemoryStats({
+            totalMemories: stats.totalEmbeddings,
+            storageSize: stats.storageSize,
+            conversationCount: stats.conversationCount,
+          });
+        }
+      } catch (error) {
+        console.warn("Unable to load vector memory stats:", error);
+      }
+    };
+
+    refreshStats();
+
+    return () => {
+      isActive = false;
+    };
   }, [messages]);
 
   // Check downloaded models on mount
@@ -163,10 +163,7 @@ export default function OnDeviceMLDemo() {
       // Check if model is loaded in LLM instance (only if llm is initialized)
       if (llm) {
         const modelInfo = llm.getModelInfo();
-        setIsModelLoaded(
-          modelInfo.isInitialized &&
-            modelInfo.modelConfig?.filename === activeModel.filename
-        );
+        setIsModelLoaded(modelInfo.isInitialized && modelInfo.modelConfig?.filename === activeModel.filename);
       }
     }
   }, [activeModel, llm]);
@@ -220,7 +217,8 @@ export default function OnDeviceMLDemo() {
           setModal({
             visible: true,
             title: "Module Not Available",
-            message: "On-device LLM module is not available in this environment. It will work after building with EAS Build.",
+            message:
+              "On-device LLM module is not available in this environment. It will work after building with EAS Build.",
           });
           return;
         }
@@ -273,10 +271,7 @@ export default function OnDeviceMLDemo() {
       onConfirm: async () => {
         try {
           // Release model if it's currently loaded
-          if (
-            isModelLoaded &&
-            selectedModel?.filename === model.filename
-          ) {
+          if (isModelLoaded && selectedModel?.filename === model.filename) {
             await llm.release();
             setIsModelLoaded(false);
             setSelectedModel(null);
@@ -326,13 +321,10 @@ export default function OnDeviceMLDemo() {
         {
           maxTokens: 512,
           temperature: 0.7,
-        }
+        },
       );
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: response }]);
 
       // Store in vector memory for RAG
       try {
@@ -381,16 +373,25 @@ export default function OnDeviceMLDemo() {
     setModal({
       visible: true,
       title: "Clear All Memory",
-      message:
-        "This will delete all stored embeddings and conversations. This action cannot be undone.",
+      message: "This will delete all stored embeddings and conversations. This action cannot be undone.",
       isDestructive: true,
-      onConfirm: () => {
-        vectorStore.clearAll();
-        setMemoryStats({
-          totalMemories: 0,
-          storageSize: 0,
-          conversationCount: 0,
-        });
+      onConfirm: async () => {
+        try {
+          await vectorStore.waitUntilReady();
+          vectorStore.clearAll();
+          setMemoryStats({
+            totalMemories: 0,
+            storageSize: 0,
+            conversationCount: 0,
+          });
+        } catch (error) {
+          console.warn("Failed to clear vector memory:", error);
+          setModal({
+            visible: true,
+            title: "Memory Cleanup Failed",
+            message: "Unable to clear saved memories. Please try again after restarting the app.",
+          });
+        }
       },
     });
   };
@@ -400,18 +401,11 @@ export default function OnDeviceMLDemo() {
       <ScrollView className="flex-1 px-4 py-4">
         {/* Header */}
         <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            Privacy-First AI
-          </Text>
-          <Text className="text-gray-600 mb-4">
-            100% offline, on-device inference with semantic memory
-          </Text>
+          <Text className="text-2xl font-bold text-gray-900 mb-2">Privacy-First AI</Text>
+          <Text className="text-gray-600 mb-4">100% offline, on-device inference with semantic memory</Text>
 
           <View className="flex-row items-center space-x-2">
-            <OfflineIndicator
-              isOffline={isOffline}
-              modelLoaded={isModelLoaded}
-            />
+            <OfflineIndicator isOffline={isOffline} modelLoaded={isModelLoaded} />
             <PrivacyBadge variant="minimal" />
           </View>
         </View>
@@ -434,9 +428,7 @@ export default function OnDeviceMLDemo() {
 
         {/* Model Selection */}
         <View className="mt-6 mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Available Models
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Available Models</Text>
 
           {RECOMMENDED_MODELS.map((model) => (
             <ModelInfoCard
@@ -444,9 +436,7 @@ export default function OnDeviceMLDemo() {
               modelName={model.name}
               sizeInMB={model.sizeInMB}
               quantization={model.quantization}
-              isLoaded={
-                isModelLoaded && selectedModel?.filename === model.filename
-              }
+              isLoaded={isModelLoaded && selectedModel?.filename === model.filename}
               isDownloaded={isModelDownloaded(model)}
               isRecommended={model.recommended}
               description={model.description}
@@ -460,42 +450,25 @@ export default function OnDeviceMLDemo() {
         {/* Chat Interface */}
         {isModelLoaded && (
           <View className="mb-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Offline Chat
-            </Text>
+            <Text className="text-lg font-semibold text-gray-900 mb-3">Offline Chat</Text>
 
             <View className="bg-white rounded-lg border border-gray-200 p-4 mb-3 min-h-[200px]">
               {messages.length === 0 ? (
                 <View className="flex-1 items-center justify-center">
-                  <Ionicons
-                    name="chatbubbles-outline"
-                    size={48}
-                    color="#d1d5db"
-                  />
-                  <Text className="text-gray-500 text-center mt-2">
-                    Start a conversation
-                  </Text>
-                  <Text className="text-gray-400 text-xs text-center mt-1">
-                    All processing happens on your device
-                  </Text>
+                  <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
+                  <Text className="text-gray-500 text-center mt-2">Start a conversation</Text>
+                  <Text className="text-gray-400 text-xs text-center mt-1">All processing happens on your device</Text>
                 </View>
               ) : (
                 <ScrollView className="flex-1">
                   {messages.map((msg, idx) => (
-                    <View
-                      key={idx}
-                      className={`mb-3 ${msg.role === "user" ? "items-end" : "items-start"}`}
-                    >
+                    <View key={idx} className={`mb-3 ${msg.role === "user" ? "items-end" : "items-start"}`}>
                       <View
                         className={`px-4 py-2 rounded-lg max-w-[80%] ${
-                          msg.role === "user"
-                            ? "bg-blue-500"
-                            : "bg-gray-100"
+                          msg.role === "user" ? "bg-blue-500" : "bg-gray-100"
                         }`}
                       >
-                        <Text
-                          className={`text-sm ${msg.role === "user" ? "text-white" : "text-gray-900"}`}
-                        >
+                        <Text className={`text-sm ${msg.role === "user" ? "text-white" : "text-gray-900"}`}>
                           {msg.content}
                         </Text>
                       </View>
@@ -528,9 +501,7 @@ export default function OnDeviceMLDemo() {
 
               <Pressable
                 className={`w-12 h-12 rounded-lg items-center justify-center ${
-                  inputText.trim() && !isGenerating
-                    ? "bg-blue-500"
-                    : "bg-gray-300"
+                  inputText.trim() && !isGenerating ? "bg-blue-500" : "bg-gray-300"
                 }`}
                 onPress={handleSendMessage}
                 disabled={!inputText.trim() || isGenerating}
@@ -543,9 +514,7 @@ export default function OnDeviceMLDemo() {
 
         {/* Memory Stats */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Memory Statistics
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Memory Statistics</Text>
 
           <MemoryStatsCard
             totalMemories={memoryStats.totalMemories}
