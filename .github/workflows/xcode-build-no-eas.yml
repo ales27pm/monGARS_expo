@@ -38,9 +38,9 @@ jobs:
     runs-on: macos-15 # macOS 15 with Xcode 16.2
     timeout-minutes: 90
     env:
-      APPLE_CERTIFICATE: ${{ secrets.IOS_P12_BASE64 != '' && secrets.IOS_P12_BASE64 || secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.IOS_P12_PASSWORD != '' && secrets.IOS_P12_PASSWORD || secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 || secrets.APPLE_PROVISIONING_PROFILE }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE != '' ? secrets.APPLE_CERTIFICATE : secrets.IOS_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' ? secrets.APPLE_CERTIFICATE_PASSWORD : secrets.IOS_P12_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE != '' ? secrets.APPLE_PROVISIONING_PROFILE : secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -48,7 +48,6 @@ jobs:
       APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
       APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
       ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
-      ASCAPLID: ${{ secrets.ASCAPPLD }}
       EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
@@ -302,6 +301,7 @@ jobs:
             PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
             PROFILE_PATH="$PROFILE_DIR/profile.mobileprovision"
 
+            ORIGINAL_KEYCHAIN=$(security default-keychain -d user | tr -d '"')
             security create-keychain -p actions "$WORK_KEYCHAIN"
             security default-keychain -s "$WORK_KEYCHAIN"
             security unlock-keychain -p actions "$WORK_KEYCHAIN"
@@ -318,7 +318,7 @@ jobs:
             echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$PROFILE_PATH"
 
             PROFILE_PLIST=$(mktemp)
-            trap 'rm -f "$CERTIFICATE_PATH" "$PROFILE_PLIST"' EXIT
+            trap 'rm -f "$CERTIFICATE_PATH" "$PROFILE_PLIST"; security default-keychain -d user -s "$ORIGINAL_KEYCHAIN" 2>/dev/null || true; security delete-keychain "$WORK_KEYCHAIN" 2>/dev/null || true' EXIT
             security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
 
             TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST" 2>/dev/null || true)
@@ -420,7 +420,6 @@ jobs:
 
       - name: 📦 Export Archive to IPA
         env:
-          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
           TEAM_ID: ${{ steps.setup_signing.outputs.team_id }}
           PROFILE_SPECIFIER: ${{ steps.setup_signing.outputs.profile_name }}
           BUNDLE_ID: ${{ steps.setup_signing.outputs.bundle_id }}
@@ -476,8 +475,6 @@ jobs:
           fi
 
       - name: 📦 Create simulator build
-        env:
-          APPLE_CERTIFICATE: ${{ env.APPLE_CERTIFICATE }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "📦 Creating simulator build package..."
