@@ -1,0 +1,206 @@
+name: iOS (macOS native EAS) + ASC Upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_name:
+        description: 'Model to download and include'
+        required: true
+        default: 'none'
+        type: choice
+        options: [qwen2-0.5b, llama-3.2-1b, smollm2-1.7b, phi-3-mini, all, none]
+      upload_to_testflight:
+        description: 'Upload .ipa to App Store Connect (TestFlight)'
+        type: boolean
+        default: true
+
+env:
+  APP_NAME: monGARS
+  BUNDLE_ID: com.vibecode.offllmappstorefixer-iz6sup   # change when you remove vibecode
+  SCHEME: offllm-app-store-fixer                        # change if needed
+  MODELS_DIR: ./assets/models
+
+jobs:
+  build-and-upload:
+    runs-on: macos-15    # Xcode 16.2 / iOS 18.2 image
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 90
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Select Xcode 16.2 & initialize
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcodebuild -license accept || true
+          sudo xcodebuild -runFirstLaunch || true
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+
+      # -------- Optional small-model downloads (same pattern as your working file)
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Python deps
+        if: ${{ inputs.model_name != 'none' }}
+        run: pip3 install huggingface-hub requests tqdm
+
+      - name: 📁 Ensure models dir
+        if: ${{ inputs.model_name != 'none' }}
+        run: mkdir -p ${{ env.MODELS_DIR }}
+
+      - name: ⬇️ Qwen2 0.5B
+        if: ${{ inputs.model_name == 'qwen2-0.5b' || inputs.model_name == 'all' }}
+        run: |
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download("Qwen/Qwen2-0.5B-Instruct-GGUF","qwen2-0_5b-instruct-q4_k_m.gguf",
+                              local_dir="${{ env.MODELS_DIR }}", local_dir_use_symlinks=False)
+          print("Saved:", p)
+          PY
+
+      - name: ⬇️ Llama 3.2 1B
+        if: ${{ inputs.model_name == 'llama-3.2-1b' || inputs.model_name == 'all' }}
+        run: |
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download("ggml-org/Llama-3.2-1B-Instruct-GGUF","Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+                              local_dir="${{ env.MODELS_DIR }}", local_dir_use_symlinks=False)
+          print("Saved:", p)
+          PY
+
+      - name: ⬇️ SmolLM2 1.7B
+        if: ${{ inputs.model_name == 'smollm2-1.7b' || inputs.model_name == 'all' }}
+        run: |
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download("HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF","smollm2-1.7b-instruct-q4_k_m.gguf",
+                              local_dir="${{ env.MODELS_DIR }}", local_dir_use_symlinks=False)
+          print("Saved:", p)
+          PY
+
+      - name: ⬇️ Phi-3 Mini
+        if: ${{ inputs.model_name == 'phi-3-mini' || inputs.model_name == 'all' }}
+        run: |
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download("microsoft/Phi-3-mini-4k-instruct-gguf","Phi-3-mini-4k-instruct-q4.gguf",
+                              local_dir="${{ env.MODELS_DIR }}", local_dir_use_symlinks=False)
+          print("Saved:", p)
+          PY
+
+      - name: 📊 List models
+        if: ${{ inputs.model_name != 'none' }}
+        run: |
+          ls -lh ${{ env.MODELS_DIR }} || true
+          du -sh  ${{ env.MODELS_DIR }} || true
+
+      # -------- JS side (use Bun, like your success case)
+      - name: 🥟 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install JS deps (Bun)
+        run: |
+          if [ -f bun.lockb ]; then
+            bun install --frozen-lockfile
+          elif [ -f package.json ]; then
+            bun install
+          else
+            echo "No JS workspace at repo root — skipping."
+          fi
+
+      # -------- iOS signing (p12 + mobileprovision) for local native build
+      - name: 🔐 Import signing certificate (.p12)
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+          p12-password:   ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: 📄 Install provisioning profile
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/appstore.mobileprovision"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+      # -------- EAS CLI (local build on macOS image)
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🏗️ EAS build (local on macOS)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -e
+          eas build \
+            --platform ios \
+            --profile production \
+            --non-interactive \
+            --wait \
+            --local
+          echo "EAS local build complete."
+
+      - name: 🔎 Locate exported IPA
+        id: findipa
+        run: |
+          set -e
+          # Common EAS local output paths:
+          CANDIDATES=$(ls -1 dist/*.ipa 2>/dev/null || true)
+          if [ -z "$CANDIDATES" ]; then
+            CANDIDATES="$(ls -1 **/*.ipa 2>/dev/null || true)"
+          fi
+          if [ -z "$CANDIDATES" ]; then
+            echo "::error::No IPA found after EAS build."
+            exit 1
+          fi
+          IPA_PATH=$(echo "$CANDIDATES" | head -n1)
+          echo "ipa=$IPA_PATH" >> $GITHUB_OUTPUT
+          echo "Found IPA: $IPA_PATH"
+
+      - name: 📤 Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ github.run_number }}
+          path: ${{ steps.findipa.outputs.ipa }}
+          if-no-files-found: error
+          retention-days: 14
+
+      # -------- App Store Connect upload using .p8 (no Apple ID needed)
+      - name: 🔑 Write ASC API private key
+        if: ${{ inputs.upload_to_testflight }}
+        env:
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          APPSTORE_API_KEY_ID:     ${{ secrets.APPSTORE_API_KEY_ID }}
+        run: |
+          mkdir -p "$HOME/.private_keys"
+          echo "$APPSTORE_API_PRIVATE_KEY" > "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+          chmod 600 "$HOME/.private_keys/${APPSTORE_API_KEY_ID}.p8"
+
+      - name: 🚀 Upload to TestFlight (iTMSTransporter)
+        if: ${{ inputs.upload_to_testflight }}
+        env:
+          APPSTORE_API_KEY_ID:     ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID:  ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          set -e
+          IPA="${{ steps.findipa.outputs.ipa }}"
+          xcrun iTMSTransporter -m upload \
+            -assetFile "$IPA" \
+            -apiKey    "${APPSTORE_API_KEY_ID}" \
+            -apiIssuer "${APPSTORE_API_ISSUER_ID}" \
+            -v informational
+          echo "✅ Upload requested. Check App Store Connect → TestFlight for processing."
