@@ -137,8 +137,18 @@ jobs:
             security default-keychain -s "$WORK_KEYCHAIN"
             security unlock-keychain -p actions "$WORK_KEYCHAIN"
             security set-keychain-settings -t 3600 -u "$WORK_KEYCHAIN"
-            mapfile -t EXISTING_KEYCHAINS < <(security list-keychains -d user | tr -d '"' | sed 's/^ *//')
-            security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
+            EXISTING_KEYCHAINS=()
+            while IFS= read -r keychain; do
+              if [ -n "$keychain" ]; then
+                EXISTING_KEYCHAINS+=("$keychain")
+              fi
+            done < <(security list-keychains -d user | tr -d '"' | sed 's/^ *//')
+
+            if [ "${#EXISTING_KEYCHAINS[@]}" -gt 0 ]; then
+              security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
+            else
+              security list-keychain -d user -s "$WORK_KEYCHAIN_PATH"
+            fi
 
             CERTIFICATE_PATH=$(mktemp)
             echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
