@@ -6,7 +6,7 @@ export function applyExtends(config, cwd, mergeExtends, _shim) {
     let defaultConfig = {};
     if (Object.prototype.hasOwnProperty.call(config, 'extends')) {
         if (typeof config.extends !== 'string')
-            return defaultConfig;
+            return config;
         const isPath = /\.json|\..*rc$/.test(config.extends);
         let pathToDefault = null;
         if (!isPath) {
