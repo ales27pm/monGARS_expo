@@ -93,12 +93,23 @@ jobs:
       - name: 📋 Verify Native Modules
         run: |
           echo "📋 Checking for native modules..."
-          MODULES_DIR="ios/offLLMAppStoreFixer/NativeModules"
+
+          PROJECT_PATH=$(find ios -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT_PATH" ]; then
+            echo "⚠️ Unable to locate an Xcode project under the ios directory."
+            echo "Skipping native module listing."
+            exit 0
+          fi
+
+          PROJECT_NAME=$(basename "$PROJECT_PATH" .xcodeproj)
+          MODULES_DIR="ios/${PROJECT_NAME}/NativeModules"
+
           if [ -d "$MODULES_DIR" ]; then
+            echo "📂 Native modules directory: $MODULES_DIR"
             ls -la "$MODULES_DIR"
             echo ""
             echo "Native modules found:"
-            find "$MODULES_DIR" -name "*.mm" -o -name "*.h"
+            find "$MODULES_DIR" -type f \( -name "*.mm" -o -name "*.h" \)
           else
             echo "⚠️ Native modules directory not found at $MODULES_DIR"
             echo "Skipping native module listing."
