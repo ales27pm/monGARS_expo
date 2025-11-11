@@ -12,6 +12,17 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */; };
 		672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5134247515B39804B8F90E58 /* libPods-MonGARS.a */; };
+		1F3A00236990472BBEEC30C7 /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D2D707287664F09B772946A /* Contacts.framework */; };
+		1930DC8ACD6C4E1BB08EBE1F /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */; };
+		E36D06B293964B219DAA1BCA /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21F5343944CC4E48A61E926B /* CoreLocation.framework */; };
+		881098FB16324A20919BC8EC /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1679D684E84496BB26916D2 /* MessageUI.framework */; };
+		359FDF2F1212407BB134DA3B /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEC9EE8CAC3E48329A84A1BA /* Vision.framework */; };
+		6784F0995C9C47D7B36E49FA /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 51A32BD5BB854BD8ACD9FA19 /* Photos.framework */; };
+		082C184068EB4ED497D78732 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5E06E585EBD49078CF40E9A /* Speech.framework */; };
+		E207A3EA881C451F83692F68 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DA78EFADC584A5687411CAA /* WebKit.framework */; };
+		B3A58305AB2540A9BB3D1982 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F1F98ACB7954D188595364C /* AVFoundation.framework */; };
+		FA4D31D018034665ABE5571F /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 298225487FE4425BBAA9F112 /* EventKit.framework */; };
+		F097DC587A5444D9815FAA32 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8600BA94F097402E8ACE1F17 /* CoreMotion.framework */; };
 		0F0100000000000000000001 /* BatteryTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0100000000000000000000 /* BatteryTurboModule.mm */; };
 		0F0200000000000000000001 /* BiometricsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0200000000000000000000 /* BiometricsTurboModule.mm */; };
 		0F0300000000000000000001 /* BrightnessTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0300000000000000000000 /* BrightnessTurboModule.mm */; };
@@ -73,6 +84,17 @@
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		E9BBC8C4F388C3CFFD3D2EAD /* Pods-MonGARS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.release.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		1D2D707287664F09B772946A /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
+		89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		21F5343944CC4E48A61E926B /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		F1679D684E84496BB26916D2 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
+		EEC9EE8CAC3E48329A84A1BA /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
+		51A32BD5BB854BD8ACD9FA19 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
+		A5E06E585EBD49078CF40E9A /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
+		0DA78EFADC584A5687411CAA /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		7F1F98ACB7954D188595364C /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		298225487FE4425BBAA9F112 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		8600BA94F097402E8ACE1F17 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MonGARS/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MonGARS-Bridging-Header.h"; path = "MonGARS/MonGARS-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -83,6 +105,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */,
+				1F3A00236990472BBEEC30C7 /* Contacts.framework in Frameworks */,
+				1930DC8ACD6C4E1BB08EBE1F /* LocalAuthentication.framework in Frameworks */,
+				E36D06B293964B219DAA1BCA /* CoreLocation.framework in Frameworks */,
+				881098FB16324A20919BC8EC /* MessageUI.framework in Frameworks */,
+				359FDF2F1212407BB134DA3B /* Vision.framework in Frameworks */,
+				6784F0995C9C47D7B36E49FA /* Photos.framework in Frameworks */,
+				082C184068EB4ED497D78732 /* Speech.framework in Frameworks */,
+				E207A3EA881C451F83692F68 /* WebKit.framework in Frameworks */,
+				B3A58305AB2540A9BB3D1982 /* AVFoundation.framework in Frameworks */,
+				FA4D31D018034665ABE5571F /* EventKit.framework in Frameworks */,
+				F097DC587A5444D9815FAA32 /* CoreMotion.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -108,6 +141,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				1D2D707287664F09B772946A /* Contacts.framework */,
+				89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */,
+				21F5343944CC4E48A61E926B /* CoreLocation.framework */,
+				F1679D684E84496BB26916D2 /* MessageUI.framework */,
+				EEC9EE8CAC3E48329A84A1BA /* Vision.framework */,
+				51A32BD5BB854BD8ACD9FA19 /* Photos.framework */,
+				A5E06E585EBD49078CF40E9A /* Speech.framework */,
+				0DA78EFADC584A5687411CAA /* WebKit.framework */,
+				7F1F98ACB7954D188595364C /* AVFoundation.framework */,
+				298225487FE4425BBAA9F112 /* EventKit.framework */,
+				8600BA94F097402E8ACE1F17 /* CoreMotion.framework */,
 				5134247515B39804B8F90E58 /* libPods-MonGARS.a */,
 			);
 			name = Frameworks;
@@ -207,7 +251,6 @@
 				0F1500000000000000000000 /* WebTurboModule.mm */,
 			);
 			name = NativeModules;
-			path = MonGARS/NativeModules;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
