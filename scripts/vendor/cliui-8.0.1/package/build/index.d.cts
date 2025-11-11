@@ -7,8 +7,9 @@ interface Column {
     text: string;
     width?: number;
     align?: "right" | "left" | "center";
-    padding: number[];
+    padding?: number[];
     border?: boolean;
+}
 }
 interface ColumnArray extends Array<Column> {
     span: boolean;
