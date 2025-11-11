@@ -12,6 +12,27 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */; };
 		672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5134247515B39804B8F90E58 /* libPods-MonGARS.a */; };
+		0F0100000000000000000001 /* BatteryTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0100000000000000000000 /* BatteryTurboModule.mm */; };
+		0F0200000000000000000001 /* BiometricsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0200000000000000000000 /* BiometricsTurboModule.mm */; };
+		0F0300000000000000000001 /* BrightnessTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0300000000000000000000 /* BrightnessTurboModule.mm */; };
+		0F0400000000000000000001 /* CalendarTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0400000000000000000000 /* CalendarTurboModule.mm */; };
+		0F0500000000000000000001 /* CallTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0500000000000000000000 /* CallTurboModule.mm */; };
+		0F0600000000000000000001 /* CameraTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0600000000000000000000 /* CameraTurboModule.mm */; };
+		0F0700000000000000000001 /* ClipboardTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0700000000000000000000 /* ClipboardTurboModule.mm */; };
+		0F0800000000000000000001 /* ContactsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0800000000000000000000 /* ContactsTurboModule.mm */; };
+		0F0900000000000000000001 /* DeviceInfoTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0900000000000000000000 /* DeviceInfoTurboModule.mm */; };
+		0F0A00000000000000000001 /* FlashlightTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A00000000000000000000 /* FlashlightTurboModule.mm */; };
+		0F0B00000000000000000001 /* HapticsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0B00000000000000000000 /* HapticsTurboModule.mm */; };
+		0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0C00000000000000000000 /* LocationTurboModule.mm */; };
+		0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D00000000000000000000 /* MailComposerTurboModule.mm */; };
+		0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0E00000000000000000000 /* MessagesTurboModule.mm */; };
+		0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F00000000000000000000 /* MLXTurboModule.mm */; };
+		0F1000000000000000000001 /* OCRTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1000000000000000000000 /* OCRTurboModule.mm */; };
+		0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1100000000000000000000 /* PhotosTurboModule.mm */; };
+		0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1200000000000000000000 /* SensorsTurboModule.mm */; };
+		0F1300000000000000000001 /* SpeechRecognitionTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */; };
+		0F1400000000000000000001 /* SpeechTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1400000000000000000000 /* SpeechTurboModule.mm */; };
+		0F1500000000000000000001 /* WebTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1500000000000000000000 /* WebTurboModule.mm */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -23,6 +44,30 @@
 		4510606E239E7360F40D3A03 /* Pods-MonGARS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.debug.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.debug.xcconfig"; sourceTree = "<group>"; };
 		4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MonGARS/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		5134247515B39804B8F90E58 /* libPods-MonGARS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MonGARS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F0100000000000000000000 /* BatteryTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BatteryTurboModule.mm; path = MonGARS/NativeModules/BatteryTurboModule.mm; sourceTree = "<group>"; };
+		0F0200000000000000000000 /* BiometricsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BiometricsTurboModule.mm; path = MonGARS/NativeModules/BiometricsTurboModule.mm; sourceTree = "<group>"; };
+		0F0300000000000000000000 /* BrightnessTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BrightnessTurboModule.mm; path = MonGARS/NativeModules/BrightnessTurboModule.mm; sourceTree = "<group>"; };
+		0F0400000000000000000000 /* CalendarTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CalendarTurboModule.mm; path = MonGARS/NativeModules/CalendarTurboModule.mm; sourceTree = "<group>"; };
+		0F0500000000000000000000 /* CallTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CallTurboModule.mm; path = MonGARS/NativeModules/CallTurboModule.mm; sourceTree = "<group>"; };
+		0F0600000000000000000000 /* CameraTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CameraTurboModule.mm; path = MonGARS/NativeModules/CameraTurboModule.mm; sourceTree = "<group>"; };
+		0F0700000000000000000000 /* ClipboardTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ClipboardTurboModule.mm; path = MonGARS/NativeModules/ClipboardTurboModule.mm; sourceTree = "<group>"; };
+		0F0800000000000000000000 /* ContactsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ContactsTurboModule.mm; path = MonGARS/NativeModules/ContactsTurboModule.mm; sourceTree = "<group>"; };
+		0F0900000000000000000000 /* DeviceInfoTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DeviceInfoTurboModule.mm; path = MonGARS/NativeModules/DeviceInfoTurboModule.mm; sourceTree = "<group>"; };
+		0F0A00000000000000000000 /* FlashlightTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FlashlightTurboModule.mm; path = MonGARS/NativeModules/FlashlightTurboModule.mm; sourceTree = "<group>"; };
+		0F0B00000000000000000000 /* HapticsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = HapticsTurboModule.mm; path = MonGARS/NativeModules/HapticsTurboModule.mm; sourceTree = "<group>"; };
+		0F0C00000000000000000000 /* LocationTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LocationTurboModule.mm; path = MonGARS/NativeModules/LocationTurboModule.mm; sourceTree = "<group>"; };
+		0F0D00000000000000000000 /* MailComposerTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MailComposerTurboModule.mm; path = MonGARS/NativeModules/MailComposerTurboModule.mm; sourceTree = "<group>"; };
+		0F0E00000000000000000000 /* MessagesTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MessagesTurboModule.mm; path = MonGARS/NativeModules/MessagesTurboModule.mm; sourceTree = "<group>"; };
+		0F0F00000000000000000000 /* MLXTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MLXTurboModule.mm; path = MonGARS/NativeModules/MLXTurboModule.mm; sourceTree = "<group>"; };
+		0F0F00000000000000000002 /* MLXTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MLXTurboModule.h; path = MonGARS/NativeModules/MLXTurboModule.h; sourceTree = "<group>"; };
+		0F1000000000000000000000 /* OCRTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = OCRTurboModule.mm; path = MonGARS/NativeModules/OCRTurboModule.mm; sourceTree = "<group>"; };
+		0F1100000000000000000000 /* PhotosTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = PhotosTurboModule.mm; path = MonGARS/NativeModules/PhotosTurboModule.mm; sourceTree = "<group>"; };
+		0F1100000000000000000002 /* PhotosTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PhotosTurboModule.h; path = MonGARS/NativeModules/PhotosTurboModule.h; sourceTree = "<group>"; };
+		0F1200000000000000000000 /* SensorsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SensorsTurboModule.mm; path = MonGARS/NativeModules/SensorsTurboModule.mm; sourceTree = "<group>"; };
+		0F1200000000000000000002 /* SensorsTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SensorsTurboModule.h; path = MonGARS/NativeModules/SensorsTurboModule.h; sourceTree = "<group>"; };
+		0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SpeechRecognitionTurboModule.mm; path = MonGARS/NativeModules/SpeechRecognitionTurboModule.mm; sourceTree = "<group>"; };
+		0F1400000000000000000000 /* SpeechTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SpeechTurboModule.mm; path = MonGARS/NativeModules/SpeechTurboModule.mm; sourceTree = "<group>"; };
+		0F1500000000000000000000 /* WebTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = WebTurboModule.mm; path = MonGARS/NativeModules/WebTurboModule.mm; sourceTree = "<group>"; };
 		A47C22CAADB98C128ECC2A1E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MonGARS/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MonGARS/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -49,6 +94,7 @@
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */,
+				0FFF00000000000000000000 /* NativeModules */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -130,6 +176,38 @@
 			);
 			name = Supporting;
 			path = MonGARS/Supporting;
+			sourceTree = "<group>";
+		};
+		0FFF00000000000000000000 /* NativeModules */ = {
+			isa = PBXGroup;
+			children = (
+				0F0100000000000000000000 /* BatteryTurboModule.mm */,
+				0F0200000000000000000000 /* BiometricsTurboModule.mm */,
+				0F0300000000000000000000 /* BrightnessTurboModule.mm */,
+				0F0400000000000000000000 /* CalendarTurboModule.mm */,
+				0F0500000000000000000000 /* CallTurboModule.mm */,
+				0F0600000000000000000000 /* CameraTurboModule.mm */,
+				0F0700000000000000000000 /* ClipboardTurboModule.mm */,
+				0F0800000000000000000000 /* ContactsTurboModule.mm */,
+				0F0900000000000000000000 /* DeviceInfoTurboModule.mm */,
+				0F0A00000000000000000000 /* FlashlightTurboModule.mm */,
+				0F0B00000000000000000000 /* HapticsTurboModule.mm */,
+				0F0C00000000000000000000 /* LocationTurboModule.mm */,
+				0F0D00000000000000000000 /* MailComposerTurboModule.mm */,
+				0F0E00000000000000000000 /* MessagesTurboModule.mm */,
+				0F0F00000000000000000000 /* MLXTurboModule.mm */,
+				0F0F00000000000000000002 /* MLXTurboModule.h */,
+				0F1000000000000000000000 /* OCRTurboModule.mm */,
+				0F1100000000000000000000 /* PhotosTurboModule.mm */,
+				0F1100000000000000000002 /* PhotosTurboModule.h */,
+				0F1200000000000000000000 /* SensorsTurboModule.mm */,
+				0F1200000000000000000002 /* SensorsTurboModule.h */,
+				0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */,
+				0F1400000000000000000000 /* SpeechTurboModule.mm */,
+				0F1500000000000000000000 /* WebTurboModule.mm */,
+			);
+			name = NativeModules;
+			path = MonGARS/NativeModules;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -340,6 +418,27 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */,
+				0F0100000000000000000001 /* BatteryTurboModule.mm in Sources */,
+				0F0200000000000000000001 /* BiometricsTurboModule.mm in Sources */,
+				0F0300000000000000000001 /* BrightnessTurboModule.mm in Sources */,
+				0F0400000000000000000001 /* CalendarTurboModule.mm in Sources */,
+				0F0500000000000000000001 /* CallTurboModule.mm in Sources */,
+				0F0600000000000000000001 /* CameraTurboModule.mm in Sources */,
+				0F0700000000000000000001 /* ClipboardTurboModule.mm in Sources */,
+				0F0800000000000000000001 /* ContactsTurboModule.mm in Sources */,
+				0F0900000000000000000001 /* DeviceInfoTurboModule.mm in Sources */,
+				0F0A00000000000000000001 /* FlashlightTurboModule.mm in Sources */,
+				0F0B00000000000000000001 /* HapticsTurboModule.mm in Sources */,
+				0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */,
+				0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */,
+				0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */,
+				0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */,
+				0F1000000000000000000001 /* OCRTurboModule.mm in Sources */,
+				0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */,
+				0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */,
+				0F1300000000000000000001 /* SpeechRecognitionTurboModule.mm in Sources */,
+				0F1400000000000000000001 /* SpeechTurboModule.mm in Sources */,
+				0F1500000000000000000001 /* WebTurboModule.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
