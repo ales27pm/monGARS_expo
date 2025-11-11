@@ -3,7 +3,7 @@
  * Copyright (c) 2016, Contributors
  * SPDX-License-Identifier: ISC
  */
-export var DefaultValuesForTypeKey;
+export let DefaultValuesForTypeKey;
 (function (DefaultValuesForTypeKey) {
     DefaultValuesForTypeKey["BOOLEAN"] = "boolean";
     DefaultValuesForTypeKey["STRING"] = "string";
