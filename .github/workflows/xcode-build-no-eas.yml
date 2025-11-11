@@ -41,13 +41,13 @@ jobs:
       APPLE_CERTIFICATE: ${{ (secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE) || secrets.IOS_P12_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ (secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_CERTIFICATE_PASSWORD) || secrets.IOS_P12_PASSWORD }}
       APPLE_PROVISIONING_PROFILE: ${{ (secrets.APPLE_PROVISIONING_PROFILE != '' && secrets.APPLE_PROVISIONING_PROFILE) || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
-      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID || secrets.EXPO_APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || secrets.EXPO_APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD || secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || secrets.EXPO_APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID || secrets.EXPO_APPSTORE_API_ISSUER_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY || secrets.EXPO_APPSTORE_API_PRIVATE_KEY }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID || secrets.EXPO_ASC_APP_ID }}
       EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
@@ -306,8 +306,21 @@ jobs:
             security default-keychain -s "$WORK_KEYCHAIN"
             security unlock-keychain -p actions "$WORK_KEYCHAIN"
             security set-keychain-settings -t 3600 -u "$WORK_KEYCHAIN"
-            mapfile -t EXISTING_KEYCHAINS < <(security list-keychains -d user | tr -d '"' | sed 's/^ *//')
-            security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
+            EXISTING_KEYCHAINS_FILE=$(mktemp)
+            security list-keychains -d user | tr -d '"' | sed 's/^ *//' > "$EXISTING_KEYCHAINS_FILE"
+            EXISTING_KEYCHAINS=()
+            while IFS= read -r keychain; do
+              if [ -n "$keychain" ]; then
+                EXISTING_KEYCHAINS+=("$keychain")
+              fi
+            done < "$EXISTING_KEYCHAINS_FILE"
+            rm -f "$EXISTING_KEYCHAINS_FILE"
+
+            if [ "${#EXISTING_KEYCHAINS[@]}" -gt 0 ]; then
+              security list-keychain -d user -s "$WORK_KEYCHAIN_PATH" "${EXISTING_KEYCHAINS[@]}"
+            else
+              security list-keychain -d user -s "$WORK_KEYCHAIN_PATH"
+            fi
 
             CERTIFICATE_PATH=$(mktemp)
             echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
