@@ -24,7 +24,7 @@ declare class UI {
     wrap: boolean;
     rows: ColumnArray[];
     constructor(opts: UIOptions);
-    span(...args: ColumnArray): void;
+    span(...args: (Column | string)[]): void;
     resetOutput(): void;
     div(...args: (Column | string)[]): ColumnArray;
     private shouldApplyLayoutDSL;
