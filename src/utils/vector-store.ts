@@ -90,6 +90,108 @@ export class VectorStore {
     }
   }
 
+  private getIndexIds(indexKey: string): string[] {
+    const data = indexStorage.getString(indexKey);
+    if (!data) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) {
+        console.warn(`[VectorStore] Unexpected index format for key "${indexKey}". Resetting corrupted index.`);
+        indexStorage.delete(indexKey);
+        return [];
+      }
+
+      return parsed.filter((value): value is string => typeof value === "string");
+    } catch (error) {
+      console.warn(`[VectorStore] Failed to parse index for key "${indexKey}". Resetting index.`, error);
+      indexStorage.delete(indexKey);
+      return [];
+    }
+  }
+
+  private setIndexIds(indexKey: string, ids: string[]): void {
+    if (ids.length === 0) {
+      indexStorage.delete(indexKey);
+      return;
+    }
+
+    indexStorage.set(indexKey, JSON.stringify(ids));
+  }
+
+  private serializeMetadataValue(value: unknown): string {
+    if (value === null) {
+      return "null";
+    }
+
+    if (typeof value === "undefined") {
+      return "undefined";
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (typeof value === "number" || typeof value === "bigint" || typeof value === "boolean") {
+      return String(value);
+    }
+
+    try {
+      return JSON.stringify(value, (_, nestedValue) => {
+        if (nestedValue && typeof nestedValue === "object" && !Array.isArray(nestedValue)) {
+          const entries = Object.entries(nestedValue as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+          return entries.reduce<Record<string, unknown>>((acc, [nestedKey, nestedValueInner]) => {
+            acc[nestedKey] = nestedValueInner;
+            return acc;
+          }, {});
+        }
+
+        return nestedValue;
+      });
+    } catch {
+      return String(value);
+    }
+  }
+
+  private getMetadataIndexKeyPair(key: string, value: unknown): { primary: string; legacy?: string } {
+    const primaryValue = this.serializeMetadataValue(value);
+    const primary = `meta:${key}:${primaryValue}`;
+    const legacy = `meta:${key}:${String(value)}`;
+
+    if (legacy === primary) {
+      return { primary };
+    }
+
+    return { primary, legacy };
+  }
+
+  private removeIdFromIndexKey(indexKey: string, id: string): void {
+    const ids = this.getIndexIds(indexKey);
+    if (ids.length === 0) {
+      return;
+    }
+
+    const filtered = ids.filter((existingId) => existingId !== id);
+    if (filtered.length === ids.length) {
+      return;
+    }
+
+    this.setIndexIds(indexKey, filtered);
+  }
+
+  private removeIdFromAllMetadataIndexes(id: string): void {
+    const keys = indexStorage.getAllKeys();
+    for (const key of keys) {
+      if (!key.startsWith("meta:")) {
+        continue;
+      }
+
+      this.removeIdFromIndexKey(key, id);
+    }
+  }
+
   /**
    * Add an embedding to the store
    */
@@ -234,14 +336,24 @@ export class VectorStore {
   delete(id: string): boolean {
     this.ensureReadySync();
     const key = this.getKey(id);
-    const existed = vectorStorage.contains(key);
+    const data = vectorStorage.getString(key);
 
-    if (existed) {
-      vectorStorage.delete(key);
-      this.removeFromIndex(id);
+    if (!data) {
+      return false;
     }
 
-    return existed;
+    let metadata: Record<string, any> | null = null;
+    try {
+      const embedding = JSON.parse(data) as Embedding;
+      metadata = embedding.metadata ?? null;
+    } catch (error) {
+      console.warn(`[VectorStore] Failed to parse embedding ${id} during deletion.`, error);
+    }
+
+    vectorStorage.delete(key);
+    this.removeFromIndex(id, metadata);
+
+    return true;
   }
 
   /**
@@ -375,12 +487,11 @@ export class VectorStore {
   private updateIndex(id: string, embedding: Embedding): void {
     this.ensureReadySync();
     const indexKey = "embedding_ids";
-    const idsJson = indexStorage.getString(indexKey) ?? "[]";
-    const ids = JSON.parse(idsJson) as string[];
+    const ids = this.getIndexIds(indexKey);
 
     if (!ids.includes(id)) {
       ids.push(id);
-      indexStorage.set(indexKey, JSON.stringify(ids));
+      this.setIndexIds(indexKey, ids);
     }
 
     // Store metadata index for filtering
@@ -392,14 +503,34 @@ export class VectorStore {
   /**
    * Remove from index
    */
-  private removeFromIndex(id: string): void {
+  private removeFromIndex(id: string, metadata?: Record<string, any> | null): void {
     this.ensureReadySync();
     const indexKey = "embedding_ids";
-    const idsJson = indexStorage.getString(indexKey) ?? "[]";
-    const ids = JSON.parse(idsJson) as string[];
+    const ids = this.getIndexIds(indexKey);
+    if (ids.length > 0) {
+      const filtered = ids.filter((i) => i !== id);
+      if (filtered.length !== ids.length) {
+        this.setIndexIds(indexKey, filtered);
+      }
+    }
 
-    const filtered = ids.filter((i) => i !== id);
-    indexStorage.set(indexKey, JSON.stringify(filtered));
+    if (!metadata) {
+      this.removeIdFromAllMetadataIndexes(id);
+      return;
+    }
+
+    for (const [key, value] of Object.entries(metadata)) {
+      if (typeof value === "undefined") {
+        continue;
+      }
+
+      const { primary, legacy } = this.getMetadataIndexKeyPair(key, value);
+      this.removeIdFromIndexKey(primary, id);
+
+      if (legacy && legacy !== primary) {
+        this.removeIdFromIndexKey(legacy, id);
+      }
+    }
   }
 
   /**
@@ -408,8 +539,7 @@ export class VectorStore {
   private getAllIds(filter?: Record<string, any>): string[] {
     this.ensureReadySync();
     const indexKey = "embedding_ids";
-    const idsJson = indexStorage.getString(indexKey) ?? "[]";
-    const ids = JSON.parse(idsJson) as string[];
+    const ids = this.getIndexIds(indexKey);
 
     if (!filter) {
       return ids;
@@ -433,13 +563,20 @@ export class VectorStore {
     this.ensureReadySync();
     // Store reverse index: metadata_key -> [ids]
     for (const [key, value] of Object.entries(metadata)) {
-      const indexKey = `meta:${key}:${value}`;
-      const idsJson = indexStorage.getString(indexKey) ?? "[]";
-      const ids = JSON.parse(idsJson) as string[];
+      if (typeof value === "undefined") {
+        continue;
+      }
+
+      const { primary, legacy } = this.getMetadataIndexKeyPair(key, value);
+      const ids = this.getIndexIds(primary);
 
       if (!ids.includes(id)) {
         ids.push(id);
-        indexStorage.set(indexKey, JSON.stringify(ids));
+        this.setIndexIds(primary, ids);
+      }
+
+      if (legacy && legacy !== primary) {
+        this.removeIdFromIndexKey(legacy, id);
       }
     }
   }
