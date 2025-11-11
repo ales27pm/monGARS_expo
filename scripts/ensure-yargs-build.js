@@ -1,9 +1,9 @@
 #!/usr/bin/env node
+/* eslint-env node */
 const fs = require("fs");
 const path = require("path");
 
 const projectRoot = path.resolve(__dirname, "..");
-
 const packages = [
   {
     name: "yargs",
