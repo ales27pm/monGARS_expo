@@ -1,6 +1,6 @@
 const noop = async () => {};
 
-const downloadAsync = jest.fn(async () => ({
+export const downloadAsync = jest.fn(async () => ({
   uri: "file:///mock/path/mock-model.gguf",
   status: 200,
   headers: {},
@@ -27,5 +27,6 @@ export default {
   getInfoAsync,
   makeDirectoryAsync,
   deleteAsync,
+  downloadAsync,
   createDownloadResumable,
 };
