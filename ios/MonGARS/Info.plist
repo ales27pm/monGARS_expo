@@ -5,9 +5,9 @@
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
     <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <string>en-CA</string>
     <key>CFBundleDisplayName</key>
-    <string>MonGARS</string>
+    <string>monGARS</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>mongars</string>
-          <string>com.mongars.app</string>
+          <string>com.vibecode.offllmappstorefixer-iz6sup</string>
         </array>
       </dict>
     </array>

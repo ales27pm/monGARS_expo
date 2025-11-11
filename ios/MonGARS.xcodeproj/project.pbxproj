@@ -12,6 +12,38 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */; };
 		672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5134247515B39804B8F90E58 /* libPods-MonGARS.a */; };
+		1F3A00236990472BBEEC30C7 /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D2D707287664F09B772946A /* Contacts.framework */; };
+		1930DC8ACD6C4E1BB08EBE1F /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */; };
+		E36D06B293964B219DAA1BCA /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21F5343944CC4E48A61E926B /* CoreLocation.framework */; };
+		881098FB16324A20919BC8EC /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1679D684E84496BB26916D2 /* MessageUI.framework */; };
+		359FDF2F1212407BB134DA3B /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EEC9EE8CAC3E48329A84A1BA /* Vision.framework */; };
+		6784F0995C9C47D7B36E49FA /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 51A32BD5BB854BD8ACD9FA19 /* Photos.framework */; };
+		082C184068EB4ED497D78732 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5E06E585EBD49078CF40E9A /* Speech.framework */; };
+		E207A3EA881C451F83692F68 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DA78EFADC584A5687411CAA /* WebKit.framework */; };
+		B3A58305AB2540A9BB3D1982 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F1F98ACB7954D188595364C /* AVFoundation.framework */; };
+		FA4D31D018034665ABE5571F /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 298225487FE4425BBAA9F112 /* EventKit.framework */; };
+		F097DC587A5444D9815FAA32 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8600BA94F097402E8ACE1F17 /* CoreMotion.framework */; };
+		0F0100000000000000000001 /* BatteryTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0100000000000000000000 /* BatteryTurboModule.mm */; };
+		0F0200000000000000000001 /* BiometricsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0200000000000000000000 /* BiometricsTurboModule.mm */; };
+		0F0300000000000000000001 /* BrightnessTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0300000000000000000000 /* BrightnessTurboModule.mm */; };
+		0F0400000000000000000001 /* CalendarTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0400000000000000000000 /* CalendarTurboModule.mm */; };
+		0F0500000000000000000001 /* CallTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0500000000000000000000 /* CallTurboModule.mm */; };
+		0F0600000000000000000001 /* CameraTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0600000000000000000000 /* CameraTurboModule.mm */; };
+		0F0700000000000000000001 /* ClipboardTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0700000000000000000000 /* ClipboardTurboModule.mm */; };
+		0F0800000000000000000001 /* ContactsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0800000000000000000000 /* ContactsTurboModule.mm */; };
+		0F0900000000000000000001 /* DeviceInfoTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0900000000000000000000 /* DeviceInfoTurboModule.mm */; };
+		0F0A00000000000000000001 /* FlashlightTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A00000000000000000000 /* FlashlightTurboModule.mm */; };
+		0F0B00000000000000000001 /* HapticsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0B00000000000000000000 /* HapticsTurboModule.mm */; };
+		0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0C00000000000000000000 /* LocationTurboModule.mm */; };
+		0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D00000000000000000000 /* MailComposerTurboModule.mm */; };
+		0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0E00000000000000000000 /* MessagesTurboModule.mm */; };
+		0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F00000000000000000000 /* MLXTurboModule.mm */; };
+		0F1000000000000000000001 /* OCRTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1000000000000000000000 /* OCRTurboModule.mm */; };
+		0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1100000000000000000000 /* PhotosTurboModule.mm */; };
+		0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1200000000000000000000 /* SensorsTurboModule.mm */; };
+		0F1300000000000000000001 /* SpeechRecognitionTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */; };
+		0F1400000000000000000001 /* SpeechTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1400000000000000000000 /* SpeechTurboModule.mm */; };
+		0F1500000000000000000001 /* WebTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1500000000000000000000 /* WebTurboModule.mm */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -23,11 +55,46 @@
 		4510606E239E7360F40D3A03 /* Pods-MonGARS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.debug.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.debug.xcconfig"; sourceTree = "<group>"; };
 		4E576252BF7B0A858B6B6014 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MonGARS/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		5134247515B39804B8F90E58 /* libPods-MonGARS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MonGARS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F0100000000000000000000 /* BatteryTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BatteryTurboModule.mm; path = MonGARS/NativeModules/BatteryTurboModule.mm; sourceTree = "<group>"; };
+		0F0200000000000000000000 /* BiometricsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BiometricsTurboModule.mm; path = MonGARS/NativeModules/BiometricsTurboModule.mm; sourceTree = "<group>"; };
+		0F0300000000000000000000 /* BrightnessTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = BrightnessTurboModule.mm; path = MonGARS/NativeModules/BrightnessTurboModule.mm; sourceTree = "<group>"; };
+		0F0400000000000000000000 /* CalendarTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CalendarTurboModule.mm; path = MonGARS/NativeModules/CalendarTurboModule.mm; sourceTree = "<group>"; };
+		0F0500000000000000000000 /* CallTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CallTurboModule.mm; path = MonGARS/NativeModules/CallTurboModule.mm; sourceTree = "<group>"; };
+		0F0600000000000000000000 /* CameraTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CameraTurboModule.mm; path = MonGARS/NativeModules/CameraTurboModule.mm; sourceTree = "<group>"; };
+		0F0700000000000000000000 /* ClipboardTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ClipboardTurboModule.mm; path = MonGARS/NativeModules/ClipboardTurboModule.mm; sourceTree = "<group>"; };
+		0F0800000000000000000000 /* ContactsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ContactsTurboModule.mm; path = MonGARS/NativeModules/ContactsTurboModule.mm; sourceTree = "<group>"; };
+		0F0900000000000000000000 /* DeviceInfoTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DeviceInfoTurboModule.mm; path = MonGARS/NativeModules/DeviceInfoTurboModule.mm; sourceTree = "<group>"; };
+		0F0A00000000000000000000 /* FlashlightTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FlashlightTurboModule.mm; path = MonGARS/NativeModules/FlashlightTurboModule.mm; sourceTree = "<group>"; };
+		0F0B00000000000000000000 /* HapticsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = HapticsTurboModule.mm; path = MonGARS/NativeModules/HapticsTurboModule.mm; sourceTree = "<group>"; };
+		0F0C00000000000000000000 /* LocationTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LocationTurboModule.mm; path = MonGARS/NativeModules/LocationTurboModule.mm; sourceTree = "<group>"; };
+		0F0D00000000000000000000 /* MailComposerTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MailComposerTurboModule.mm; path = MonGARS/NativeModules/MailComposerTurboModule.mm; sourceTree = "<group>"; };
+		0F0E00000000000000000000 /* MessagesTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MessagesTurboModule.mm; path = MonGARS/NativeModules/MessagesTurboModule.mm; sourceTree = "<group>"; };
+		0F0F00000000000000000000 /* MLXTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MLXTurboModule.mm; path = MonGARS/NativeModules/MLXTurboModule.mm; sourceTree = "<group>"; };
+		0F0F00000000000000000002 /* MLXTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MLXTurboModule.h; path = MonGARS/NativeModules/MLXTurboModule.h; sourceTree = "<group>"; };
+		0F1000000000000000000000 /* OCRTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = OCRTurboModule.mm; path = MonGARS/NativeModules/OCRTurboModule.mm; sourceTree = "<group>"; };
+		0F1100000000000000000000 /* PhotosTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = PhotosTurboModule.mm; path = MonGARS/NativeModules/PhotosTurboModule.mm; sourceTree = "<group>"; };
+		0F1100000000000000000002 /* PhotosTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PhotosTurboModule.h; path = MonGARS/NativeModules/PhotosTurboModule.h; sourceTree = "<group>"; };
+		0F1200000000000000000000 /* SensorsTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SensorsTurboModule.mm; path = MonGARS/NativeModules/SensorsTurboModule.mm; sourceTree = "<group>"; };
+		0F1200000000000000000002 /* SensorsTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SensorsTurboModule.h; path = MonGARS/NativeModules/SensorsTurboModule.h; sourceTree = "<group>"; };
+		0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SpeechRecognitionTurboModule.mm; path = MonGARS/NativeModules/SpeechRecognitionTurboModule.mm; sourceTree = "<group>"; };
+		0F1400000000000000000000 /* SpeechTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SpeechTurboModule.mm; path = MonGARS/NativeModules/SpeechTurboModule.mm; sourceTree = "<group>"; };
+		0F1500000000000000000000 /* WebTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = WebTurboModule.mm; path = MonGARS/NativeModules/WebTurboModule.mm; sourceTree = "<group>"; };
 		A47C22CAADB98C128ECC2A1E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MonGARS/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MonGARS/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		E9BBC8C4F388C3CFFD3D2EAD /* Pods-MonGARS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MonGARS.release.xcconfig"; path = "Target Support Files/Pods-MonGARS/Pods-MonGARS.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		1D2D707287664F09B772946A /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
+		89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		21F5343944CC4E48A61E926B /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		F1679D684E84496BB26916D2 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
+		EEC9EE8CAC3E48329A84A1BA /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
+		51A32BD5BB854BD8ACD9FA19 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
+		A5E06E585EBD49078CF40E9A /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
+		0DA78EFADC584A5687411CAA /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		7F1F98ACB7954D188595364C /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		298225487FE4425BBAA9F112 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
+		8600BA94F097402E8ACE1F17 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MonGARS/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MonGARS-Bridging-Header.h"; path = "MonGARS/MonGARS-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -38,6 +105,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				672B333EAC6FAD695949E96A /* libPods-MonGARS.a in Frameworks */,
+				1F3A00236990472BBEEC30C7 /* Contacts.framework in Frameworks */,
+				1930DC8ACD6C4E1BB08EBE1F /* LocalAuthentication.framework in Frameworks */,
+				E36D06B293964B219DAA1BCA /* CoreLocation.framework in Frameworks */,
+				881098FB16324A20919BC8EC /* MessageUI.framework in Frameworks */,
+				359FDF2F1212407BB134DA3B /* Vision.framework in Frameworks */,
+				6784F0995C9C47D7B36E49FA /* Photos.framework in Frameworks */,
+				082C184068EB4ED497D78732 /* Speech.framework in Frameworks */,
+				E207A3EA881C451F83692F68 /* WebKit.framework in Frameworks */,
+				B3A58305AB2540A9BB3D1982 /* AVFoundation.framework in Frameworks */,
+				FA4D31D018034665ABE5571F /* EventKit.framework in Frameworks */,
+				F097DC587A5444D9815FAA32 /* CoreMotion.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,6 +127,7 @@
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* MonGARS-Bridging-Header.h */,
+				0FFF00000000000000000000 /* NativeModules */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -62,6 +141,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				1D2D707287664F09B772946A /* Contacts.framework */,
+				89F5DBB3401A4F23A270D9FA /* LocalAuthentication.framework */,
+				21F5343944CC4E48A61E926B /* CoreLocation.framework */,
+				F1679D684E84496BB26916D2 /* MessageUI.framework */,
+				EEC9EE8CAC3E48329A84A1BA /* Vision.framework */,
+				51A32BD5BB854BD8ACD9FA19 /* Photos.framework */,
+				A5E06E585EBD49078CF40E9A /* Speech.framework */,
+				0DA78EFADC584A5687411CAA /* WebKit.framework */,
+				7F1F98ACB7954D188595364C /* AVFoundation.framework */,
+				298225487FE4425BBAA9F112 /* EventKit.framework */,
+				8600BA94F097402E8ACE1F17 /* CoreMotion.framework */,
 				5134247515B39804B8F90E58 /* libPods-MonGARS.a */,
 			);
 			name = Frameworks;
@@ -130,6 +220,37 @@
 			);
 			name = Supporting;
 			path = MonGARS/Supporting;
+			sourceTree = "<group>";
+		};
+		0FFF00000000000000000000 /* NativeModules */ = {
+			isa = PBXGroup;
+			children = (
+				0F0100000000000000000000 /* BatteryTurboModule.mm */,
+				0F0200000000000000000000 /* BiometricsTurboModule.mm */,
+				0F0300000000000000000000 /* BrightnessTurboModule.mm */,
+				0F0400000000000000000000 /* CalendarTurboModule.mm */,
+				0F0500000000000000000000 /* CallTurboModule.mm */,
+				0F0600000000000000000000 /* CameraTurboModule.mm */,
+				0F0700000000000000000000 /* ClipboardTurboModule.mm */,
+				0F0800000000000000000000 /* ContactsTurboModule.mm */,
+				0F0900000000000000000000 /* DeviceInfoTurboModule.mm */,
+				0F0A00000000000000000000 /* FlashlightTurboModule.mm */,
+				0F0B00000000000000000000 /* HapticsTurboModule.mm */,
+				0F0C00000000000000000000 /* LocationTurboModule.mm */,
+				0F0D00000000000000000000 /* MailComposerTurboModule.mm */,
+				0F0E00000000000000000000 /* MessagesTurboModule.mm */,
+				0F0F00000000000000000000 /* MLXTurboModule.mm */,
+				0F0F00000000000000000002 /* MLXTurboModule.h */,
+				0F1000000000000000000000 /* OCRTurboModule.mm */,
+				0F1100000000000000000000 /* PhotosTurboModule.mm */,
+				0F1100000000000000000002 /* PhotosTurboModule.h */,
+				0F1200000000000000000000 /* SensorsTurboModule.mm */,
+				0F1200000000000000000002 /* SensorsTurboModule.h */,
+				0F1300000000000000000000 /* SpeechRecognitionTurboModule.mm */,
+				0F1400000000000000000000 /* SpeechTurboModule.mm */,
+				0F1500000000000000000000 /* WebTurboModule.mm */,
+			);
+			name = NativeModules;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -340,6 +461,27 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				6362D9466D98047603178275 /* ExpoModulesProvider.swift in Sources */,
+				0F0100000000000000000001 /* BatteryTurboModule.mm in Sources */,
+				0F0200000000000000000001 /* BiometricsTurboModule.mm in Sources */,
+				0F0300000000000000000001 /* BrightnessTurboModule.mm in Sources */,
+				0F0400000000000000000001 /* CalendarTurboModule.mm in Sources */,
+				0F0500000000000000000001 /* CallTurboModule.mm in Sources */,
+				0F0600000000000000000001 /* CameraTurboModule.mm in Sources */,
+				0F0700000000000000000001 /* ClipboardTurboModule.mm in Sources */,
+				0F0800000000000000000001 /* ContactsTurboModule.mm in Sources */,
+				0F0900000000000000000001 /* DeviceInfoTurboModule.mm in Sources */,
+				0F0A00000000000000000001 /* FlashlightTurboModule.mm in Sources */,
+				0F0B00000000000000000001 /* HapticsTurboModule.mm in Sources */,
+				0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */,
+				0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */,
+				0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */,
+				0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */,
+				0F1000000000000000000001 /* OCRTurboModule.mm in Sources */,
+				0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */,
+				0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */,
+				0F1300000000000000000001 /* SpeechRecognitionTurboModule.mm in Sources */,
+				0F1400000000000000000001 /* SpeechTurboModule.mm in Sources */,
+				0F1500000000000000000001 /* WebTurboModule.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,7 +514,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-                            PRODUCT_BUNDLE_IDENTIFIER = "com.mongars.app";
+                            PRODUCT_BUNDLE_IDENTIFIER = "com.vibecode.offllmappstorefixer-iz6sup";
 				PRODUCT_NAME = MonGARS;
 				SWIFT_OBJC_BRIDGING_HEADER = "MonGARS/MonGARS-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -403,7 +545,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-                            PRODUCT_BUNDLE_IDENTIFIER = "com.mongars.app";
+                            PRODUCT_BUNDLE_IDENTIFIER = "com.vibecode.offllmappstorefixer-iz6sup";
 				PRODUCT_NAME = MonGARS;
 				SWIFT_OBJC_BRIDGING_HEADER = "MonGARS/MonGARS-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

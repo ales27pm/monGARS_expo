@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "MonGARS",
-    "slug": "mongars",
+    "name": "monGARS",
+    "slug": "offllm-app-store-fixer",
     "scheme": "mongars",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,9 +9,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.mongars.app",
+      "bundleIdentifier": "com.vibecode.offllmappstorefixer-iz6sup",
       "buildNumber": "5",
       "deploymentTarget": "16.0",
+      "appStoreId": "6754946066",
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "MonGARS uses speech recognition to turn your spoken words into text inside the app.",
         "ITSAppUsesNonExemptEncryption": false
@@ -23,6 +24,7 @@
     },
     "icon": "./icon.png",
     "extra": {
+      "privacyPolicyUrl": "http://27pm.org",
       "eas": {
         "projectId": "f90e5e7c-1263-4959-8c90-12d08249de06"
       }

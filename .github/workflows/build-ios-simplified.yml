@@ -49,6 +49,7 @@ jobs:
           bun-version: latest
 
       - name: 📦 Cache Bun dependencies
+        continue-on-error: true
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -165,6 +166,7 @@ jobs:
           bun-version: latest
 
       - name: 📦 Cache Bun dependencies
+        continue-on-error: true
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -187,7 +189,7 @@ jobs:
       - name: 📱 Submit to App Store
         run: |
           echo "📱 Submitting build ${{ needs.build-ios.outputs.build_id }} to App Store..."
-          eas submit --platform ios --id ${{ needs.build-ios.outputs.build_id }} --non-interactive
+          eas submit --platform ios --id ${{ needs.build-ios.outputs.build_id }} --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
