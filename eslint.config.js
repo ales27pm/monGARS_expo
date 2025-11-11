@@ -15,6 +15,7 @@ module.exports = defineConfig([
       "eslint.config.js",
     ],
     settings: {
+      "import/core-modules": ["react-native-mmkv"],
       "import/resolver": {
         typescript: {
           alwaysTryTypes: true,

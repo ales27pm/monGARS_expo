@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
+    "pretest": "node scripts/ensure-yargs-build.js",
     "test": "jest",
     "postinstall": "node scripts/fix-expo-modules.js && node scripts/ensure-yargs-build.js"
   },
