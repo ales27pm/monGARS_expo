@@ -50,6 +50,30 @@ async function resolveSecureStore(): Promise<SecureStoreLike> {
 
   const module = await secureStorePromise;
   if (module) {
+    if (typeof module.isAvailableAsync === "function") {
+      try {
+        if (!(await module.isAvailableAsync())) {
+          if (!loggedSecureFallback) {
+            console.warn(
+              "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
+            );
+            loggedSecureFallback = true;
+          }
+          secureStorePromise = Promise.resolve(null);
+          return fallbackSecureStore;
+        }
+      } catch (error) {
+        if (!loggedSecureFallback) {
+          console.warn(
+            "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
+            error instanceof Error ? error.message : error,
+          );
+          loggedSecureFallback = true;
+        }
+        secureStorePromise = Promise.resolve(null);
+        return fallbackSecureStore;
+      }
+    }
     secureStoreModule = module;
     return module as SecureStoreLike;
   }
