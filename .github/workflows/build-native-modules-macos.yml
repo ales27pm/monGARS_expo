@@ -26,13 +26,13 @@ jobs:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE || secrets.IOS_P12_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD || secrets.IOS_P12_PASSWORD }}
       APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
-      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
-      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID || secrets.EXPO_APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || secrets.EXPO_APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD || secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || secrets.EXPO_APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID || secrets.EXPO_APPSTORE_API_ISSUER_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY || secrets.EXPO_APPSTORE_API_PRIVATE_KEY }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID || secrets.EXPO_ASC_APP_ID }}
       EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
       EXPO_APPLE_TEAM_ID: ${{ secrets.EXPO_APPLE_TEAM_ID }}
       EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
@@ -92,17 +92,32 @@ jobs:
 
       - name: 📋 Verify Native Modules
         run: |
+          set -euo pipefail
+
           echo "📋 Checking for native modules..."
-          MODULES_DIR="ios/offLLMAppStoreFixer/NativeModules"
-          if [ -d "$MODULES_DIR" ]; then
+
+          MODULE_DIRS=()
+          while IFS= read -r dir; do
+            if [ -n "$dir" ]; then
+              MODULE_DIRS+=("$dir")
+            fi
+          done < <(find ios -maxdepth 2 -type d -name NativeModules | sort)
+
+          if [ ${#MODULE_DIRS[@]} -eq 0 ]; then
+            echo "⚠️ No NativeModules directories detected under ios/."
+            echo "Skipping native module listing."
+            exit 0
+          fi
+
+          for MODULES_DIR in "${MODULE_DIRS[@]}"; do
+            PROJECT_NAME=$(basename "$(dirname "$MODULES_DIR")")
+            echo "📁 Project: $PROJECT_NAME"
             ls -la "$MODULES_DIR"
             echo ""
-            echo "Native modules found:"
-            find "$MODULES_DIR" -name "*.mm" -o -name "*.h"
-          else
-            echo "⚠️ Native modules directory not found at $MODULES_DIR"
-            echo "Skipping native module listing."
-          fi
+            echo "Native modules found in $MODULES_DIR:"
+            find "$MODULES_DIR" -type f \( -name "*.mm" -o -name "*.h" \ ) | sort || echo "(none)"
+            echo ""
+          done
 
       - name: 📦 Install CocoaPods dependencies
         run: |
@@ -379,13 +394,17 @@ jobs:
       - name: 📱 Submit to App Store
         if: ${{ inputs.submit_to_app_store }}
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID || secrets.EXPO_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD || secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || secrets.EXPO_APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID || secrets.EXPO_APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY || secrets.EXPO_APPSTORE_API_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
+
           echo "📱 Submitting to App Store Connect..."
           cd ios
 
-          # Find the IPA file
           IPA_FILE=$(find build -name "*.ipa" | head -n 1)
 
           if [ -z "$IPA_FILE" ]; then
@@ -395,12 +414,36 @@ jobs:
 
           echo "Found IPA: $IPA_FILE"
 
-          # Upload using altool
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_FILE" \
-            --username "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+          if [ -n "${APPSTORE_API_KEY_ID:-}" ] && [ -n "${APPSTORE_API_ISSUER_ID:-}" ] && [ -n "${APPSTORE_API_PRIVATE_KEY:-}" ]; then
+            echo "🔐 Using App Store Connect API key (p8) for authentication."
+            KEY_FILE=$(mktemp)
+            trap 'rm -f "$KEY_FILE"' EXIT
+
+            if echo "$APPSTORE_API_PRIVATE_KEY" | grep -q "BEGIN"; then
+              printf '%b' "$APPSTORE_API_PRIVATE_KEY" > "$KEY_FILE"
+            else
+              if ! printf '%s' "$APPSTORE_API_PRIVATE_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null; then
+                printf '%b' "$APPSTORE_API_PRIVATE_KEY" > "$KEY_FILE"
+              fi
+            fi
+
+            xcrun altool --upload-app \
+              --type ios \
+              --file "$IPA_FILE" \
+              --apiKey "$APPSTORE_API_KEY_ID" \
+              --apiIssuer "$APPSTORE_API_ISSUER_ID" \
+              --apiKeyFile "$KEY_FILE"
+          elif [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
+            echo "⚠️ App Store Connect API key missing; falling back to Apple ID credentials."
+            xcrun altool --upload-app \
+              --type ios \
+              --file "$IPA_FILE" \
+              --username "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD"
+          else
+            echo "::error::No App Store Connect credentials provided."
+            exit 1
+          fi
 
           echo "✅ Submitted to App Store Connect"
 
