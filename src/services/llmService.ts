@@ -4,8 +4,7 @@
  */
 
 import { Platform } from "react-native";
-import { MODEL_CONFIG } from "../config/model";
-import MLXModule from "../native/MLXModule";
+import { MLXModule } from "../native/MLXModule";
 
 export interface GenerationOptions {
   maxTokens?: number;
@@ -88,7 +87,7 @@ class LLMService {
     prompt: string,
     maxTokens: number = 256,
     temperature: number = 0.7,
-    options: Partial<GenerationOptions> = {}
+    options: Partial<GenerationOptions> = {},
   ): Promise<string> {
     if (!this.isWeb && !this.isReady) {
       const loaded = await this.loadConfiguredModel();
@@ -109,7 +108,7 @@ class LLMService {
         // For actual generation, components should use the useLLM hook
         // This method exists for API compatibility
         throw new Error(
-          "Direct generation not supported. Use useMlxChat hook in components for MediaPipe integration."
+          "Direct generation not supported. Use useMlxChat hook in components for MediaPipe integration.",
         );
       }
 
@@ -131,11 +130,7 @@ class LLMService {
   /**
    * Web fallback generation
    */
-  private async generateWeb(
-    prompt: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<string> {
+  private async generateWeb(prompt: string, maxTokens: number, temperature: number): Promise<string> {
     // Simulate generation for web
     await new Promise((resolve) => setTimeout(resolve, 500));
     return `[Web Simulation] Response to: ${prompt.substring(0, 50)}...`;

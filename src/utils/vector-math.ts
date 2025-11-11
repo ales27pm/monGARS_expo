@@ -90,10 +90,7 @@ export function magnitude(vector: number[]): number {
  * Compress a vector by reducing precision (for storage optimization)
  * Converts float64 -> float16-like representation
  */
-export function compressVector(
-  vector: number[],
-  precision: number = 3
-): number[] {
+export function compressVector(vector: number[], precision: number = 3): number[] {
   return vector.map((val) => Number(val.toFixed(precision)));
 }
 
@@ -101,10 +98,7 @@ export function compressVector(
  * Batch cosine similarity calculation
  * Returns array of similarities in the same order as vectorsB
  */
-export function batchCosineSimilarity(
-  queryVector: number[],
-  vectorsB: number[][]
-): number[] {
+export function batchCosineSimilarity(queryVector: number[], vectorsB: number[][]): number[] {
   return vectorsB.map((vec) => cosineSimilarity(queryVector, vec));
 }
 
@@ -116,8 +110,8 @@ export function topKSimilar(
   queryVector: number[],
   vectors: number[][],
   k: number = 5,
-  threshold: number = 0
-): Array<{ index: number; similarity: number }> {
+  threshold: number = 0,
+): { index: number; similarity: number }[] {
   const similarities = batchCosineSimilarity(queryVector, vectors);
 
   const results = similarities
@@ -176,11 +170,7 @@ export function quantizeVector(vector: number[]): Uint8Array {
 /**
  * Dequantize a vector back to float32
  */
-export function dequantizeVector(
-  quantized: Uint8Array,
-  min: number,
-  max: number
-): number[] {
+export function dequantizeVector(quantized: Uint8Array, min: number, max: number): number[] {
   const range = max - min;
   const result = new Array(quantized.length);
 

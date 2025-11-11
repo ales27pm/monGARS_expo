@@ -149,6 +149,7 @@ export class ModelDownloadService {
       }
       return result.uri;
     } catch (error) {
+      console.warn("[ModelDownloadService] Resume failed, restarting download", error);
       // If resume fails, start fresh
       this.downloadResumables.delete(model.filename);
       return this.downloadModel(model, onProgress);

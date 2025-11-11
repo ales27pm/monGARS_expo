@@ -20,18 +20,32 @@ type MMKVConstructor = new (configuration?: MMKVConfiguration) => MMKVLike;
 
 let NativeMMKV: MMKVConstructor | null = null;
 let lastFallbackLog: number | null = null;
+let loadPromise: Promise<void> | null = null;
 
-try {
-  const module = require("react-native-mmkv");
-  NativeMMKV = module?.MMKV ?? null;
-} catch (error) {
-  NativeMMKV = null;
-  lastFallbackLog = Date.now();
-  console.warn(
-    "[MMKVAdapter] Falling back to in-memory storage. react-native-mmkv is unavailable in this environment.",
-    error instanceof Error ? error.message : error,
-  );
+function ensureNativeModuleLoading(): void {
+  if (loadPromise) {
+    return;
+  }
+
+  loadPromise = import("react-native-mmkv")
+    .then((module) => {
+      NativeMMKV = module?.MMKV ?? null;
+      if (!NativeMMKV) {
+        lastFallbackLog = Date.now();
+        console.warn("[MMKVAdapter] MMKV export missing. Falling back to in-memory storage.");
+      }
+    })
+    .catch((error: unknown) => {
+      NativeMMKV = null;
+      lastFallbackLog = Date.now();
+      console.warn(
+        "[MMKVAdapter] Falling back to in-memory storage. react-native-mmkv is unavailable in this environment.",
+        error instanceof Error ? error.message : error,
+      );
+    });
 }
+
+ensureNativeModuleLoading();
 
 class InMemoryMMKV implements MMKVLike {
   private store = new Map<string, Primitive>();

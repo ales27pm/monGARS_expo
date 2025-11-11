@@ -17,7 +17,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useMlxChat, ChatTurn } from "../hooks/useMlxChat";
-import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 
 export default function ChatInterface() {
   const [inputText, setInputText] = useState("");
@@ -25,7 +24,6 @@ export default function ChatInterface() {
   const insets = useSafeAreaInsets();
 
   const {
-    ready,
     busy,
     history,
     error: chatError,
@@ -37,8 +35,6 @@ export default function ChatInterface() {
     isDownloading,
     isReady,
   } = useMlxChat();
-
-  const { speak, isSpeaking } = useSpeechRecognition();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -70,18 +66,11 @@ export default function ChatInterface() {
     const isUser = turn.role === "user";
 
     return (
-      <View
-        key={`${turn.timestamp}-${index}`}
-        className={`mb-4 ${isUser ? "items-end" : "items-start"}`}
-      >
+      <View key={`${turn.timestamp}-${index}`} className={`mb-4 ${isUser ? "items-end" : "items-start"}`}>
         <View
-          className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-            isUser ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
-          }`}
+          className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"}`}
         >
-          <Text className={`text-base ${isUser ? "text-white" : "text-gray-900 dark:text-white"}`}>
-            {turn.content}
-          </Text>
+          <Text className={`text-base ${isUser ? "text-white" : "text-gray-900 dark:text-white"}`}>{turn.content}</Text>
         </View>
         <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-2">
           {new Date(turn.timestamp).toLocaleTimeString()}
@@ -96,12 +85,20 @@ export default function ChatInterface() {
       <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
         <View className="flex-1 items-center justify-center p-6">
           <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mt-4">
-            Initializing...
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mt-4">Initializing...</Text>
           <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
             Setting up your AI assistant
           </Text>
+          {downloadStatus === "downloading" && (
+            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              Downloading models ({Math.round(downloadProgress)}%)
+            </Text>
+          )}
+          {downloadStatus === "error" && (
+            <Text className="text-xs text-red-500 dark:text-red-300 mt-3">
+              Failed to download required assets. Please check your connection and retry.
+            </Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -113,12 +110,8 @@ export default function ChatInterface() {
       <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
         <View className="flex-1 items-center justify-center p-6">
           <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mt-4">
-            Loading...
-          </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-            Preparing your AI assistant
-          </Text>
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mt-4">Loading...</Text>
+          <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">Preparing your AI assistant</Text>
         </View>
       </SafeAreaView>
     );
@@ -134,17 +127,12 @@ export default function ChatInterface() {
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <View>
-            <Text className="text-xl font-bold text-gray-900 dark:text-white">
-              AI Chat Assistant v2
-            </Text>
+            <Text className="text-xl font-bold text-gray-900 dark:text-white">AI Chat Assistant v2</Text>
             <Text className="text-xs text-gray-500 dark:text-gray-400">
-              {isReady ? "Ready • Fetch API" : "Initializing..."}
+              {isReady ? "Ready • Fetch API" : downloadStatus === "error" ? "Initialization error" : "Initializing..."}
             </Text>
           </View>
-          <Pressable
-            onPress={handleReset}
-            className="bg-red-500 rounded-full px-4 py-2 active:opacity-70"
-          >
+          <Pressable onPress={handleReset} className="bg-red-500 rounded-full px-4 py-2 active:opacity-70">
             <Text className="text-white font-semibold text-sm">Reset</Text>
           </Pressable>
         </View>

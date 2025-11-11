@@ -35,9 +35,10 @@ export function estimateTokens(text: string): number {
   // Adjust for punctuation, spaces, and special chars
   const words = text.split(/\s+/).length;
   const chars = text.length;
+  const charBasedEstimate = chars / 4;
 
-  // Heuristic: words * 1.3 (accounts for subword tokenization)
-  return Math.ceil(words * 1.3);
+  // Heuristic: blend word and character estimates to approximate tokenizer behaviour
+  return Math.ceil((words * 1.3 + charBasedEstimate) / 2);
 }
 
 /**
@@ -131,41 +132,42 @@ export class ContextManager {
    * Truncate middle messages (keep first and last)
    */
   private truncateMiddle(messages: Message[], tokenLimit: number): Message[] {
-    if (messages.length === 0) return [];
+    if (messages.length === 0 || tokenLimit <= 0) {
+      return [];
+    }
 
-    // Always keep first and last message if possible
+    if (messages.length === 1) {
+      const onlyMessage = messages[0];
+      const onlyTokens = onlyMessage.tokens ?? estimateTokens(onlyMessage.content);
+      return onlyTokens <= tokenLimit ? [onlyMessage] : [];
+    }
+
     const first = messages[0];
     const last = messages[messages.length - 1];
 
     const firstTokens = first.tokens ?? estimateTokens(first.content);
     const lastTokens = last.tokens ?? estimateTokens(last.content);
 
-    if (firstTokens + lastTokens > tokenLimit) {
-      // Even first and last don't fit, just keep last
-      return [last];
+    if (firstTokens > tokenLimit || lastTokens > tokenLimit || firstTokens + lastTokens > tokenLimit) {
+      // Fallback to truncating from the oldest messages to preserve recency when we can't
+      // keep both boundary messages inside the limit.
+      return this.truncateOld(messages, tokenLimit);
     }
 
-    const result = [first];
-    let totalTokens = firstTokens;
+    let remainingTokens = tokenLimit - firstTokens;
+    const tail: Message[] = [];
 
-    // Try to fit messages from the end
-    for (let i = messages.length - 1; i > 0; i--) {
+    for (let i = messages.length - 1; i >= 1; i--) {
       const msg = messages[i];
       const msgTokens = msg.tokens ?? estimateTokens(msg.content);
 
-      if (totalTokens + msgTokens <= tokenLimit) {
-        if (i === messages.length - 1) {
-          result.push(msg);
-        } else {
-          result.splice(result.length, 0, msg);
-        }
-        totalTokens += msgTokens;
-      } else {
-        break;
+      if (msgTokens <= remainingTokens) {
+        tail.unshift(msg);
+        remainingTokens -= msgTokens;
       }
     }
 
-    return result;
+    return [first, ...tail];
   }
 
   /**

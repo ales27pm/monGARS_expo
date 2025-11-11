@@ -10,7 +10,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "postinstall": "node scripts/fix-expo-modules.js"
+    "postinstall": "node scripts/fix-expo-modules.js && node scripts/ensure-yargs-build.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

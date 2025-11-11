@@ -5,9 +5,8 @@ module.exports = {
   roots: ["<rootDir>/src"],
   moduleFileExtensions: ["ts", "tsx", "js"],
   testMatch: ["**/__tests__/**/*.test.ts"],
-  globals: {
-    "ts-jest": {
-      isolatedModules: true,
-    },
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  moduleNameMapper: {
+    "^expo-file-system$": "<rootDir>/__mocks__/expo-file-system.ts",
   },
 };

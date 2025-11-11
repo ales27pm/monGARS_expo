@@ -1,8 +1,11 @@
 import { NativeModules } from "react-native";
 
-interface CallRecord {
-  // iOS does not provide API to access call history
-  // This module returns empty array for privacy/security reasons
+export interface CallRecord {
+  id: string;
+  phoneNumber: string | null;
+  timestamp: number;
+  direction: "incoming" | "outgoing" | "missed";
+  durationSeconds: number;
 }
 
 interface CallTurboModuleType {
