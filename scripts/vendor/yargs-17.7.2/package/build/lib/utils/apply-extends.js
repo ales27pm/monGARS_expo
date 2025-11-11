@@ -49,7 +49,7 @@ function mergeDeep(config1, config2) {
     Object.assign(target, config1);
     for (const key of Object.keys(config2)) {
         if (isObject(config2[key]) && isObject(target[key])) {
-            target[key] = mergeDeep(config1[key], config2[key]);
+            target[key] = mergeDeep(target[key], config2[key]);
         }
         else {
             target[key] = config2[key];
