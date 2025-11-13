@@ -56,8 +56,8 @@ function writeJson(filePath, data) {
 function updatePbxproj(filePath, { marketingVersion, buildNumber }) {
   const contents = fs.readFileSync(filePath, "utf8");
   const updated = contents
-    .replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${marketingVersion};`)
-    .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+    .replace(/(MARKETING_VERSION\s*=\s*)[^;]+;/g, `$1${marketingVersion};`)
+    .replace(/(CURRENT_PROJECT_VERSION\s*=\s*)[^;]+;/g, `$1${buildNumber};`);
 
   if (contents === updated) {
     throw new Error("Unable to update Xcode project file: no version fields were replaced.");
