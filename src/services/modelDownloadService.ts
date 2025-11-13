@@ -1,5 +1,7 @@
+import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system";
-import { ModelConfig, ModelDownloadProgress } from "../types/models";
+import MLXModule from "../native-modules/MLXModule";
+import { ModelConfig, ModelDownloadProgress, RECOMMENDED_MODELS } from "../types/models";
 
 /**
  * Service for downloading ML models from HuggingFace at runtime
@@ -45,6 +47,11 @@ export class ModelDownloadService {
    * Check if a model is already downloaded
    */
   async isModelDownloaded(model: ModelConfig): Promise<boolean> {
+    if (Platform.OS === "ios") {
+      // MLX runtime manages its own Hub cache.
+      return true;
+    }
+
     const path = this.getModelPath(model);
     const fileInfo = await FileSystem.getInfoAsync(path);
     return fileInfo.exists;
@@ -73,12 +80,16 @@ export class ModelDownloadService {
    * Download a model with progress tracking
    */
   async downloadModel(model: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
+    if (Platform.OS === "ios") {
+      await MLXModule.loadModel(model.repo);
+      return model.repo;
+    }
+
     await this.initialize();
 
     const url = this.getHuggingFaceUrl(model);
     const localPath = this.getModelPath(model);
 
-    // Check if already downloaded
     const isDownloaded = await this.isModelDownloaded(model);
     if (isDownloaded) {
       console.log(`Model ${model.name} already downloaded`);
@@ -116,7 +127,6 @@ export class ModelDownloadService {
       return result.uri;
     } catch (error) {
       this.downloadResumables.delete(model.filename);
-      // Clean up partial download
       await this.deleteModel(model);
       throw error;
     }
@@ -126,6 +136,10 @@ export class ModelDownloadService {
    * Pause a model download
    */
   async pauseDownload(model: ModelConfig): Promise<void> {
+    if (Platform.OS === "ios") {
+      return;
+    }
+
     const downloadResumable = this.downloadResumables.get(model.filename);
     if (downloadResumable) {
       await downloadResumable.pauseAsync();
@@ -136,6 +150,11 @@ export class ModelDownloadService {
    * Resume a paused download
    */
   async resumeDownload(model: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
+    if (Platform.OS === "ios") {
+      await MLXModule.loadModel(model.repo);
+      return model.repo;
+    }
+
     const downloadResumable = this.downloadResumables.get(model.filename);
     if (!downloadResumable) {
       // If no resumable exists, start fresh download
@@ -160,6 +179,10 @@ export class ModelDownloadService {
    * Cancel a model download
    */
   async cancelDownload(model: ModelConfig): Promise<void> {
+    if (Platform.OS === "ios") {
+      return;
+    }
+
     const downloadResumable = this.downloadResumables.get(model.filename);
     if (downloadResumable) {
       await downloadResumable.pauseAsync();
@@ -173,6 +196,11 @@ export class ModelDownloadService {
    * Delete a downloaded model
    */
   async deleteModel(model: ModelConfig): Promise<void> {
+    if (Platform.OS === "ios") {
+      // Hub cache entries are managed by MLX – nothing to remove here.
+      return;
+    }
+
     const path = this.getModelPath(model);
     const fileInfo = await FileSystem.getInfoAsync(path);
     if (fileInfo.exists) {
@@ -185,6 +213,10 @@ export class ModelDownloadService {
    * Get list of all downloaded models
    */
   async getDownloadedModels(): Promise<string[]> {
+    if (Platform.OS === "ios") {
+      return RECOMMENDED_MODELS.map((model) => model.filename);
+    }
+
     await this.initialize();
     const modelsDir = this.assertModelsDir();
     const dirInfo = await FileSystem.getInfoAsync(modelsDir);
@@ -199,6 +231,10 @@ export class ModelDownloadService {
    * Get total storage used by models
    */
   async getTotalStorageUsed(): Promise<number> {
+    if (Platform.OS === "ios") {
+      return RECOMMENDED_MODELS.reduce((sum, model) => sum + model.sizeInMB * 1024 * 1024, 0);
+    }
+
     const files = await this.getDownloadedModels();
     let totalSize = 0;
 
@@ -217,6 +253,11 @@ export class ModelDownloadService {
    * Clear all downloaded models
    */
   async clearAllModels(): Promise<void> {
+    if (Platform.OS === "ios") {
+      console.log("MLX-managed caches cleared automatically by MLX runtime");
+      return;
+    }
+
     const modelsDir = this.assertModelsDir();
     const dirInfo = await FileSystem.getInfoAsync(modelsDir);
     if (dirInfo.exists) {

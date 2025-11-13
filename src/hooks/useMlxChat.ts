@@ -147,6 +147,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
           contextSize: options?.maxTokens ?? 512,
           gpuLayers: 99,
           useMemoryLock: true,
+          systemPrompt: options?.systemPrompt,
         });
 
         if (!isMounted) {
@@ -183,7 +184,15 @@ export function useMlxChat(options?: UseMlxChatOptions) {
     return () => {
       isMounted = false;
     };
-  }, [resolvedModel, downloadedModels, allowFallback, ensureCloudBackend, options?.mode, options?.maxTokens]);
+  }, [
+    resolvedModel,
+    downloadedModels,
+    allowFallback,
+    ensureCloudBackend,
+    options?.mode,
+    options?.maxTokens,
+    options?.systemPrompt,
+  ]);
 
   const inferenceOptions = useMemo(
     () => ({
@@ -354,7 +363,14 @@ export function useMlxChat(options?: UseMlxChatOptions) {
     setHistory([]);
     setCurrentResponse("");
     setError(null);
-  }, []);
+
+    const llm = nativeLLMRef.current;
+    if (llm) {
+      llm.resetSession(options?.systemPrompt).catch((resetError) => {
+        console.warn("[useMlxChat] Failed to reset native session", resetError);
+      });
+    }
+  }, [options?.systemPrompt]);
 
   const addSystemMessage = useCallback((content: string) => {
     const systemTurn: ChatTurn = {
