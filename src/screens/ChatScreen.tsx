@@ -22,6 +22,8 @@ import { useModelStore } from "../state/modelStore";
 import { useMlxChat } from "../hooks/useMlxChat";
 import { isNativeModuleUnavailableError } from "../utils/nativeModuleError";
 import { configureSemanticMemoryEmbedding, getGlobalMemory, SemanticMemory } from "../utils/semantic-memory";
+import { ContextEngineer } from "../services/contextEngineer";
+import { PROMPT_TEMPLATES, type Message as ContextMessage } from "../utils/context-management";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -87,6 +89,7 @@ export default function ChatScreen() {
   const [fallbackActivated, setFallbackActivated] = useState(false);
   const [memory, setMemory] = useState<SemanticMemory | null>(null);
   const conversationIdRef = useRef<string>(`${Date.now()}`);
+  const contextEngineerRef = useRef<ContextEngineer | null>(null);
 
   const {
     ready: cloudReady,
@@ -96,6 +99,8 @@ export default function ChatScreen() {
   } = useMlxChat({
     maxTokens: settings.maxTokens,
     temperature: settings.temperature,
+    mode: "cloud-only",
+    allowCloudFallback: false,
   });
 
   // Load settings on mount
@@ -122,12 +127,22 @@ export default function ChatScreen() {
   }, []);
 
   useEffect(() => {
+    if (memory) {
+      contextEngineerRef.current = new ContextEngineer({ memory });
+    } else {
+      contextEngineerRef.current = null;
+    }
+  }, [memory]);
+
+  useEffect(() => {
     if (chatMode === "native" && llm) {
-      configureSemanticMemoryEmbedding({ type: "on-device", llm })
-        .catch((error) => console.error("[ChatScreen] Failed to enable on-device semantic memory:", error));
+      configureSemanticMemoryEmbedding({ type: "on-device", llm }).catch((error) =>
+        console.error("[ChatScreen] Failed to enable on-device semantic memory:", error),
+      );
     } else if (chatMode === "cloud") {
-      configureSemanticMemoryEmbedding({ type: "cloud" })
-        .catch((error) => console.error("[ChatScreen] Failed to enable cloud semantic memory:", error));
+      configureSemanticMemoryEmbedding({ type: "cloud" }).catch((error) =>
+        console.error("[ChatScreen] Failed to enable cloud semantic memory:", error),
+      );
     }
   }, [chatMode, llm]);
 
@@ -246,10 +261,7 @@ export default function ChatScreen() {
       try {
         await configureSemanticMemoryEmbedding({ type: "on-device", llm: llmInstance });
       } catch (configurationError) {
-        console.error(
-          "[ChatScreen] Failed to configure semantic memory for on-device mode:",
-          configurationError,
-        );
+        console.error("[ChatScreen] Failed to configure semantic memory for on-device mode:", configurationError);
       }
       return llmInstance;
     } catch (error) {
@@ -261,10 +273,7 @@ export default function ChatScreen() {
         try {
           await configureSemanticMemoryEmbedding({ type: "cloud" });
         } catch (configurationError) {
-          console.error(
-            "[ChatScreen] Failed to configure semantic memory for cloud fallback:",
-            configurationError,
-          );
+          console.error("[ChatScreen] Failed to configure semantic memory for cloud fallback:", configurationError);
         }
 
         if (!fallbackActivated) {
@@ -355,7 +364,6 @@ export default function ChatScreen() {
       } catch {
         return; // loadLLM will show error modal
       }
-
     }
 
     if (!llmInstance) {
@@ -371,17 +379,40 @@ export default function ChatScreen() {
     setIsGenerating(true);
 
     try {
+      const conversationMessages: ContextMessage[] = [
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user", content: userMessage },
+      ];
+
+      let engineeredMessages: ContextMessage[] = conversationMessages;
+
+      if (settings.enableVectorMemory) {
+        const engineer = contextEngineerRef.current;
+        if (engineer) {
+          try {
+            const engineered = await engineer.engineerContext(userMessage, conversationMessages, {
+              conversationId,
+              systemPrompt: PROMPT_TEMPLATES.ragAssistant,
+            });
+            if (engineered.messages.length > 0) {
+              engineeredMessages = engineered.messages;
+            }
+          } catch (contextError) {
+            console.warn("[ChatScreen] Context engineering failed:", contextError);
+          }
+        }
+      }
+
+      const normalizedMessages = engineeredMessages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+
       // Get response from on-device LLM
-      const response = await llmInstance.chat(
-        [
-          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-          { role: "user" as const, content: userMessage },
-        ],
-        {
-          maxTokens: settings.maxTokens,
-          temperature: settings.temperature,
-        },
-      );
+      const response = await llmInstance.chat(normalizedMessages, {
+        maxTokens: settings.maxTokens,
+        temperature: settings.temperature,
+      });
 
       setMessages((prev) => [...prev, { role: "assistant", content: response }]);
       scrollToBottom();

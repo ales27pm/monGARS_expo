@@ -37,7 +37,8 @@
 		0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0C00000000000000000000 /* LocationTurboModule.mm */; };
 		0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D00000000000000000000 /* MailComposerTurboModule.mm */; };
 		0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0E00000000000000000000 /* MessagesTurboModule.mm */; };
-		0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F00000000000000000000 /* MLXTurboModule.mm */; };
+            0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F00000000000000000000 /* MLXTurboModule.mm */; };
+            0F0F00000000000000000011 /* MLXBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F00000000000000000010 /* MLXBridge.swift */; };
 		0F1000000000000000000001 /* OCRTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1000000000000000000000 /* OCRTurboModule.mm */; };
 		0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1100000000000000000000 /* PhotosTurboModule.mm */; };
 		0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0F1200000000000000000000 /* SensorsTurboModule.mm */; };
@@ -69,7 +70,8 @@
 		0F0C00000000000000000000 /* LocationTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LocationTurboModule.mm; path = MonGARS/NativeModules/LocationTurboModule.mm; sourceTree = "<group>"; };
 		0F0D00000000000000000000 /* MailComposerTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MailComposerTurboModule.mm; path = MonGARS/NativeModules/MailComposerTurboModule.mm; sourceTree = "<group>"; };
 		0F0E00000000000000000000 /* MessagesTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MessagesTurboModule.mm; path = MonGARS/NativeModules/MessagesTurboModule.mm; sourceTree = "<group>"; };
-		0F0F00000000000000000000 /* MLXTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MLXTurboModule.mm; path = MonGARS/NativeModules/MLXTurboModule.mm; sourceTree = "<group>"; };
+            0F0F00000000000000000000 /* MLXTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MLXTurboModule.mm; path = MonGARS/NativeModules/MLXTurboModule.mm; sourceTree = "<group>"; };
+            0F0F00000000000000000010 /* MLXBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MLXBridge.swift; path = MonGARS/NativeModules/MLXBridge.swift; sourceTree = "<group>"; };
 		0F0F00000000000000000002 /* MLXTurboModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MLXTurboModule.h; path = MonGARS/NativeModules/MLXTurboModule.h; sourceTree = "<group>"; };
 		0F1000000000000000000000 /* OCRTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = OCRTurboModule.mm; path = MonGARS/NativeModules/OCRTurboModule.mm; sourceTree = "<group>"; };
 		0F1100000000000000000000 /* PhotosTurboModule.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = PhotosTurboModule.mm; path = MonGARS/NativeModules/PhotosTurboModule.mm; sourceTree = "<group>"; };
@@ -239,7 +241,8 @@
 				0F0C00000000000000000000 /* LocationTurboModule.mm */,
 				0F0D00000000000000000000 /* MailComposerTurboModule.mm */,
 				0F0E00000000000000000000 /* MessagesTurboModule.mm */,
-				0F0F00000000000000000000 /* MLXTurboModule.mm */,
+                            0F0F00000000000000000000 /* MLXTurboModule.mm */,
+                            0F0F00000000000000000010 /* MLXBridge.swift */,
 				0F0F00000000000000000002 /* MLXTurboModule.h */,
 				0F1000000000000000000000 /* OCRTurboModule.mm */,
 				0F1100000000000000000000 /* PhotosTurboModule.mm */,
@@ -475,7 +478,8 @@
 				0F0C00000000000000000001 /* LocationTurboModule.mm in Sources */,
 				0F0D00000000000000000001 /* MailComposerTurboModule.mm in Sources */,
 				0F0E00000000000000000001 /* MessagesTurboModule.mm in Sources */,
-				0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */,
+                            0F0F00000000000000000001 /* MLXTurboModule.mm in Sources */,
+                            0F0F00000000000000000011 /* MLXBridge.swift in Sources */,
 				0F1000000000000000000001 /* OCRTurboModule.mm in Sources */,
 				0F1100000000000000000001 /* PhotosTurboModule.mm in Sources */,
 				0F1200000000000000000001 /* SensorsTurboModule.mm in Sources */,
@@ -495,7 +499,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MonGARS/MonGARS.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+                                CURRENT_PROJECT_VERSION = 7;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -507,7 +511,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+                                MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -531,14 +535,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MonGARS/MonGARS.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+                                CURRENT_PROJECT_VERSION = 7;
 				INFOPLIST_FILE = MonGARS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+                                MARKETING_VERSION = 1.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

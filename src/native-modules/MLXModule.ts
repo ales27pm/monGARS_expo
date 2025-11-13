@@ -63,6 +63,10 @@ export interface MLXModelLoadProgressEvent {
   message: string;
 }
 
+export interface MLXGenerationStoppedEvent {
+  stopped: boolean;
+}
+
 /**
  * MLX Turbo Module for On-Device LLM Inference
  *
@@ -133,10 +137,7 @@ interface MLXTurboModuleType {
    * const result = await MLXModule.loadModel("mlx-community/Qwen2.5-0.5B-Instruct-4bit");
    * console.log("Model loaded:", result.modelId);
    */
-  loadModel(
-    modelId: string,
-    options?: MLXModelOptions
-  ): Promise<MLXLoadModelResult>;
+  loadModel(modelId: string, options?: MLXModelOptions): Promise<MLXLoadModelResult>;
 
   /**
    * Generate text from a prompt using a loaded model
@@ -154,11 +155,7 @@ interface MLXTurboModuleType {
    * );
    * console.log(result.text);
    */
-  generate(
-    modelId: string,
-    prompt: string,
-    options?: MLXModelOptions
-  ): Promise<MLXGenerateResult>;
+  generate(modelId: string, prompt: string, options?: MLXModelOptions): Promise<MLXGenerateResult>;
 
   /**
    * Create a chat session with conversation history
@@ -179,7 +176,7 @@ interface MLXTurboModuleType {
   createChatSession(
     modelId: string,
     sessionId: string,
-    systemPrompt?: string
+    systemPrompt?: string,
   ): Promise<{ success: boolean; sessionId: string }>;
 
   /**
@@ -198,11 +195,7 @@ interface MLXTurboModuleType {
    *   { temperature: 0.7 }
    * );
    */
-  chatRespond(
-    sessionId: string,
-    message: string,
-    options?: MLXModelOptions
-  ): Promise<MLXGenerateResult>;
+  chatRespond(sessionId: string, message: string, options?: MLXModelOptions): Promise<MLXGenerateResult>;
 
   /**
    * Get conversation history from a chat session
@@ -269,19 +262,51 @@ interface MLXTurboModuleType {
    * console.log(`Using ${stats.usedMemoryMB}MB with ${stats.modelsLoaded} models loaded`);
    */
   getMemoryStats(): Promise<MLXMemoryStats>;
+
+  /**
+   * Stop any active generation or streaming task.
+   */
+  stop(): Promise<{ stopped: boolean }>;
 }
 
 const { MLXTurboModule } = NativeModules;
 
+const missingModuleProxy: MLXTurboModuleType = {
+  async loadModel() {
+    throw new Error("MLX turbo module is not available on this platform.");
+  },
+  async generate() {
+    throw new Error("MLX turbo module is not available on this platform.");
+  },
+  async createChatSession() {
+    throw new Error("MLX turbo module is not available on this platform.");
+  },
+  async chatRespond() {
+    throw new Error("MLX turbo module is not available on this platform.");
+  },
+  async getChatHistory() {
+    return { messages: [] };
+  },
+  async clearChatHistory() {
+    return { success: false };
+  },
+  async unloadModel() {
+    return { success: false, modelId: "", sessionsClosed: 0 };
+  },
+  async getRecommendedModels() {
+    return { deviceMemoryGB: 0, recommended: [] };
+  },
+  async getMemoryStats() {
+    return { usedMemoryMB: 0, totalMemoryGB: 0, modelsLoaded: 0, activeSessions: 0 };
+  },
+  async stop() {
+    throw new Error("MLX turbo module is not available on this platform.");
+  },
+};
+
 /**
  * Event emitter for MLX events
- * Subscribe to token generation and model loading progress
- *
- * Events:
- * - onTokenGenerated: Emitted for each token during streaming generation
- * - onGenerationComplete: Emitted when generation finishes
- * - onModelLoadProgress: Emitted during model download/initialization
  */
-export const MLXEventEmitter = new NativeEventEmitter(MLXTurboModule);
+export const MLXEventEmitter = MLXTurboModule ? new NativeEventEmitter(MLXTurboModule) : new NativeEventEmitter();
 
-export default MLXTurboModule as MLXTurboModuleType;
+export default (MLXTurboModule as MLXTurboModuleType | undefined) ?? missingModuleProxy;

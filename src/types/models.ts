@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 /**
  * Type definitions for on-device ML models
  * This file contains only types, no imports from native modules
@@ -41,7 +43,46 @@ export interface ModelDownloadProgress {
 }
 
 // Pre-configured models optimized for mobile
-export const RECOMMENDED_MODELS: ModelConfig[] = [
+const IOS_MODELS: ModelConfig[] = [
+  {
+    name: "Qwen2.5 0.5B Instruct",
+    repo: "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    filename: "Qwen2.5-0.5B-Instruct-4bit",
+    quantization: "4bit",
+    sizeInMB: 450,
+    recommended: true,
+    description: "Fastest MLX-compatible assistant for on-device inference.",
+  },
+  {
+    name: "Qwen2.5 1.5B Instruct",
+    repo: "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+    filename: "Qwen2.5-1.5B-Instruct-4bit",
+    quantization: "4bit",
+    sizeInMB: 1100,
+    recommended: true,
+    description: "Balanced quality and speed for most modern iOS devices.",
+  },
+  {
+    name: "Llama 3.2 1B Instruct",
+    repo: "mlx-community/Llama-3.2-1B-Instruct-4bit",
+    filename: "Llama-3.2-1B-Instruct-4bit",
+    quantization: "4bit",
+    sizeInMB: 900,
+    recommended: false,
+    description: "Meta's compact assistant tuned for MLX on Apple Silicon.",
+  },
+  {
+    name: "Qwen2.5 3B Instruct",
+    repo: "mlx-community/Qwen2.5-3B-Instruct-4bit",
+    filename: "Qwen2.5-3B-Instruct-4bit",
+    quantization: "4bit",
+    sizeInMB: 2200,
+    recommended: false,
+    description: "Premium reasoning quality for devices with 6GB+ RAM.",
+  },
+];
+
+const DEFAULT_MODELS: ModelConfig[] = [
   {
     name: "Llama 3.2 1B Instruct",
     repo: "ggml-org/Llama-3.2-1B-Instruct-GGUF",
@@ -79,3 +120,5 @@ export const RECOMMENDED_MODELS: ModelConfig[] = [
     description: "Highest quality, requires 6GB+ RAM",
   },
 ];
+
+export const RECOMMENDED_MODELS: ModelConfig[] = Platform.OS === "ios" ? IOS_MODELS : DEFAULT_MODELS;

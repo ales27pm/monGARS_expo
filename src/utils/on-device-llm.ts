@@ -1,17 +1,20 @@
 /**
- * On-Device LLM Inference with llama.rn
- * Privacy-first, fully offline language model
- *
- * Supports GGUF models from HuggingFace
+ * On-Device LLM controller that dynamically targets Apple's MLX runtime on iOS
+ * while preserving the existing llama.rn fallback for other platforms.
  */
 
+import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system";
+
+import MLXModule, { MLXEventEmitter } from "../native-modules/MLXModule";
+import { ModelConfig, ModelDownloadProgress, RECOMMENDED_MODELS } from "../types/models";
 
 // Type definitions for llama.rn (to avoid importing the module at startup)
 type LlamaContext = {
   completion: (options: any, callback?: (data: any) => void) => Promise<any>;
   embedding: (text: string) => Promise<{ embedding: number[] }>;
   release: () => Promise<void>;
+  stopCompletion?: () => Promise<void>;
 };
 
 type LlamaModule = {
@@ -19,18 +22,22 @@ type LlamaModule = {
   convertJsonSchemaToGrammar?: (schema: any) => string | Promise<string>;
 };
 
+const isIosMLX = Platform.OS === "ios";
+
 // Lazy-load llama.rn to avoid NativeEventEmitter error on startup
-// Only import when actually needed (during model initialization)
 let llamaModule: any = null;
 let loadAttempted = false;
 let loadError: Error | null = null;
 
 async function getLlamaModule(): Promise<LlamaModule> {
+  if (isIosMLX) {
+    throw new Error("llama.rn backend disabled on iOS when MLX is available");
+  }
+
   if (llamaModule) {
     return llamaModule as LlamaModule;
   }
 
-  // If we already tried and failed, throw the cached error
   if (loadAttempted && loadError) {
     throw loadError;
   }
@@ -38,11 +45,9 @@ async function getLlamaModule(): Promise<LlamaModule> {
   loadAttempted = true;
 
   try {
-    // Dynamic import to avoid loading native module at startup
     llamaModule = await import("llama.rn");
     return llamaModule as LlamaModule;
   } catch (error: any) {
-    // Cache the error for future attempts
     loadError = new Error(
       "llama.rn native module is not available. " +
         "This is expected in development/Vibecode environment. " +
@@ -52,29 +57,6 @@ async function getLlamaModule(): Promise<LlamaModule> {
     console.warn("[OnDeviceLLM] Native module not available:", error?.message || error);
     throw loadError;
   }
-}
-
-export interface ModelConfig {
-  /** Model name (for display) */
-  name: string;
-
-  /** HuggingFace repository ID */
-  repo: string;
-
-  /** Filename in the repository */
-  filename: string;
-
-  /** Quantization level (Q4_0, Q4_K_M, Q5_K_M, etc.) */
-  quantization: string;
-
-  /** Estimated size in MB */
-  sizeInMB: number;
-
-  /** Recommended for device capabilities */
-  recommended?: boolean;
-
-  /** Description */
-  description?: string;
 }
 
 export interface InferenceOptions {
@@ -95,106 +77,71 @@ export interface InferenceOptions {
 
   /** Callback for streaming */
   onToken?: (token: string) => void;
+
+  /** nucleus sampling */
+  topP?: number;
+
+  /** top-k sampling */
+  topK?: number;
+
+  /** repetition penalty */
+  repeatPenalty?: number;
 }
-
-export interface ModelDownloadProgress {
-  /** Total bytes to download */
-  totalBytes: number;
-
-  /** Bytes downloaded so far */
-  downloadedBytes: number;
-
-  /** Progress percentage (0-100) */
-  progress: number;
-
-  /** Download speed in bytes/sec */
-  speed?: number;
-}
-
-// Pre-configured models optimized for mobile
-export const RECOMMENDED_MODELS: ModelConfig[] = [
-  {
-    name: "Llama 3.2 1B Instruct",
-    repo: "ggml-org/Llama-3.2-1B-Instruct-GGUF",
-    filename: "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
-    quantization: "Q4_K_M",
-    sizeInMB: 730,
-    recommended: true,
-    description: "Best balance of quality and speed for most devices",
-  },
-  {
-    name: "Qwen2 0.5B Instruct",
-    repo: "Qwen/Qwen2-0.5B-Instruct-GGUF",
-    filename: "qwen2-0_5b-instruct-q4_k_m.gguf",
-    quantization: "Q4_K_M",
-    sizeInMB: 326,
-    recommended: true,
-    description: "Fastest, smallest - great for older devices",
-  },
-  {
-    name: "SmolLM2 1.7B Instruct",
-    repo: "HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF",
-    filename: "smollm2-1.7b-instruct-q4_k_m.gguf",
-    quantization: "Q4_K_M",
-    sizeInMB: 1100,
-    recommended: false,
-    description: "Higher quality, requires more RAM",
-  },
-  {
-    name: "Phi-3 Mini 3.8B",
-    repo: "microsoft/Phi-3-mini-4k-instruct-gguf",
-    filename: "Phi-3-mini-4k-instruct-q4.gguf",
-    quantization: "Q4_0",
-    sizeInMB: 2300,
-    recommended: false,
-    description: "Highest quality, requires 6GB+ RAM",
-  },
-];
 
 export class OnDeviceLLM {
   private context: LlamaContext | null = null;
   private modelPath: string | null = null;
   private modelConfig: ModelConfig | null = null;
   private isInitialized: boolean = false;
+  private sessionId: string | null = null;
 
   /**
    * Check if a model is already downloaded
    */
   async isModelDownloaded(config: ModelConfig): Promise<boolean> {
+    if (isIosMLX) {
+      // MLX downloads the model on-demand into its Hub cache.
+      return true;
+    }
+
     const path = this.getModelPath(config);
     const info = await FileSystem.getInfoAsync(path);
     return info.exists;
   }
 
   /**
-   * Download a model from HuggingFace
+   * Download a model from HuggingFace (non-MLX fallback only)
    */
   async downloadModel(config: ModelConfig, onProgress?: (progress: ModelDownloadProgress) => void): Promise<string> {
+    if (isIosMLX) {
+      // MLX handles downloads internally; just trigger a load.
+      await MLXModule.loadModel(config.repo);
+      return config.repo;
+    }
+
     const url = `https://huggingface.co/${config.repo}/resolve/main/${config.filename}`;
     const localPath = this.getModelPath(config);
 
-    // Check if already downloaded
     if (await this.isModelDownloaded(config)) {
       console.log("Model already downloaded:", localPath);
       return localPath;
     }
 
-    // Ensure directory exists
     const directory = FileSystem.documentDirectory + "models/";
     await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
 
-    // Create download resumable
     const downloadResumable = FileSystem.createDownloadResumable(url, localPath, {}, (downloadProgress) => {
       const progress: ModelDownloadProgress = {
         totalBytes: downloadProgress.totalBytesExpectedToWrite,
         downloadedBytes: downloadProgress.totalBytesWritten,
-        progress: (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100,
+        progress: downloadProgress.totalBytesExpectedToWrite
+          ? (downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite) * 100
+          : 0,
       };
 
       onProgress?.(progress);
     });
 
-    // Download
     const result = await downloadResumable.downloadAsync();
 
     if (!result) {
@@ -211,19 +158,24 @@ export class OnDeviceLLM {
   async initializeModel(
     config: ModelConfig,
     options: {
-      /** Number of GPU layers (0 = CPU only, 99 = all layers) */
       gpuLayers?: number;
-
-      /** Context size (default 2048) */
       contextSize?: number;
-
-      /** Use memory lock (recommended for mobile) */
       useMemoryLock?: boolean;
+      systemPrompt?: string;
     } = {},
   ): Promise<void> {
+    if (isIosMLX) {
+      await MLXModule.loadModel(config.repo);
+      const sessionId = this.sessionId ?? `mlx-session-${Date.now()}`;
+      await MLXModule.createChatSession(config.repo, sessionId, options.systemPrompt);
+      this.sessionId = sessionId;
+      this.modelConfig = config;
+      this.isInitialized = true;
+      return;
+    }
+
     const { gpuLayers = 99, contextSize = 2048, useMemoryLock = true } = options;
 
-    // Check if model is downloaded
     const modelPath = this.getModelPath(config);
     const isDownloaded = await this.isModelDownloaded(config);
 
@@ -231,10 +183,8 @@ export class OnDeviceLLM {
       throw new Error("Model not downloaded. Call downloadModel() first.");
     }
 
-    // Lazy-load llama.rn module
     const llama = await getLlamaModule();
 
-    // Initialize llama.rn
     this.context = await llama.initLlama({
       model: modelPath,
       use_mlock: useMemoryLock,
@@ -253,19 +203,54 @@ export class OnDeviceLLM {
    * Generate text completion
    */
   async complete(prompt: string, options: InferenceOptions = {}): Promise<string> {
+    if (isIosMLX) {
+      if (!this.modelConfig) {
+        throw new Error("Model not initialized. Call initializeModel() first.");
+      }
+
+      const { maxTokens = 512, temperature = 0.7 } = options;
+
+      const listeners: { remove: () => void }[] = [];
+
+      if (options.stream && options.onToken) {
+        const tokenListener = MLXEventEmitter.addListener("onTokenGenerated", (event) => {
+          if (!event?.token) {
+            return;
+          }
+
+          options.onToken?.(event.token as string);
+        });
+
+        listeners.push(tokenListener);
+      }
+
+      try {
+        const result = await MLXModule.generate(this.modelConfig.repo, prompt, {
+          maxTokens,
+          temperature,
+          topP: options.topP,
+          topK: options.topK,
+          repeatPenalty: options.repeatPenalty,
+          stream: options.stream,
+        });
+
+        return result.text.trim();
+      } finally {
+        listeners.forEach((listener) => listener.remove());
+      }
+    }
+
     if (!this.context || !this.isInitialized) {
       throw new Error("Model not initialized. Call initializeModel() first.");
     }
 
     const { maxTokens = 512, temperature = 0.7, stop = [], stream = false, onToken } = options;
 
-    // Format prompt with system message if provided
     const fullPrompt = options.systemPrompt
       ? `<|system|>\n${options.systemPrompt}\n<|user|>\n${prompt}\n<|assistant|>\n`
       : prompt;
 
     if (stream && onToken) {
-      // Streaming inference
       let result = "";
 
       const stopTokens = [...stop, "<|end|>", "</s>"];
@@ -278,7 +263,6 @@ export class OnDeviceLLM {
           stop: stopTokens,
         },
         (data) => {
-          // Handle streaming token
           const token = data.token;
           result += token;
           onToken(token);
@@ -287,7 +271,6 @@ export class OnDeviceLLM {
 
       return result.trim();
     } else {
-      // Non-streaming inference
       const response = await this.context.completion({
         prompt: fullPrompt,
         n_predict: maxTokens,
@@ -306,7 +289,51 @@ export class OnDeviceLLM {
     messages: { role: "system" | "user" | "assistant"; content: string }[],
     options: InferenceOptions = {},
   ): Promise<string> {
-    // Format messages into prompt
+    if (isIosMLX) {
+      if (!this.modelConfig || !this.sessionId) {
+        throw new Error("Model not initialized. Call initializeModel() first.");
+      }
+
+      const lastUserMessage = [...messages].reverse().find((msg) => msg.role === "user");
+      if (!lastUserMessage) {
+        throw new Error("No user message provided for chat inference");
+      }
+
+      const listeners: { remove: () => void }[] = [];
+
+      if (options.stream && options.onToken) {
+        const tokenListener = MLXEventEmitter.addListener("onTokenGenerated", (event) => {
+          if (!event?.token) {
+            return;
+          }
+
+          if (event.sessionId && event.sessionId !== this.sessionId) {
+            return;
+          }
+
+          options.onToken?.(event.token as string);
+        });
+
+        listeners.push(tokenListener);
+      }
+
+      try {
+        const result = await MLXModule.chatRespond(this.sessionId, lastUserMessage.content, {
+          temperature: options.temperature,
+          maxTokens: options.maxTokens,
+          topP: options.topP,
+          topK: options.topK,
+          repeatPenalty: options.repeatPenalty,
+          stream: options.stream,
+        });
+
+        return result.text.trim();
+      } finally {
+        listeners.forEach((listener) => listener.remove());
+      }
+    }
+
+    // Build llama-compatible prompt
     let prompt = "";
 
     for (const message of messages) {
@@ -328,6 +355,10 @@ export class OnDeviceLLM {
    * Generate embeddings (if model supports it)
    */
   async embed(text: string): Promise<number[]> {
+    if (isIosMLX) {
+      throw new Error("MLX embeddings are not yet supported");
+    }
+
     if (!this.context || !this.isInitialized) {
       throw new Error("Model not initialized. Call initializeModel() first.");
     }
@@ -340,11 +371,44 @@ export class OnDeviceLLM {
    * Release model from memory
    */
   async release(): Promise<void> {
+    if (isIosMLX) {
+      if (this.modelConfig) {
+        try {
+          await MLXModule.unloadModel(this.modelConfig.repo);
+        } catch (error) {
+          console.warn("[OnDeviceLLM] Failed to unload MLX model", error);
+        }
+      }
+      this.sessionId = null;
+      this.isInitialized = false;
+      this.modelConfig = null;
+      return;
+    }
+
     if (this.context) {
       await this.context.release();
       this.context = null;
       this.isInitialized = false;
       console.log("Model released from memory");
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (isIosMLX) {
+      try {
+        await MLXModule.stop();
+      } catch (error) {
+        console.warn("[OnDeviceLLM] Failed to stop MLX generation", error);
+      }
+      return;
+    }
+
+    if (this.context && typeof this.context.stopCompletion === "function") {
+      try {
+        await this.context.stopCompletion?.();
+      } catch (error) {
+        console.warn("[OnDeviceLLM] Failed to stop llama generation", error);
+      }
     }
   }
 
@@ -363,6 +427,11 @@ export class OnDeviceLLM {
    * Delete a downloaded model
    */
   async deleteModel(config: ModelConfig): Promise<void> {
+    if (isIosMLX) {
+      // Hub caches are managed by MLX; nothing to delete directly.
+      return;
+    }
+
     const path = this.getModelPath(config);
 
     if (await this.isModelDownloaded(config)) {
@@ -375,6 +444,10 @@ export class OnDeviceLLM {
    * List all downloaded models
    */
   async listDownloadedModels(): Promise<ModelConfig[]> {
+    if (isIosMLX) {
+      return RECOMMENDED_MODELS;
+    }
+
     const downloaded: ModelConfig[] = [];
 
     for (const model of RECOMMENDED_MODELS) {
@@ -386,10 +459,25 @@ export class OnDeviceLLM {
     return downloaded;
   }
 
+  async resetSession(systemPrompt?: string): Promise<void> {
+    if (isIosMLX) {
+      if (!this.modelConfig || !this.sessionId) {
+        return;
+      }
+
+      await MLXModule.clearChatHistory(this.sessionId);
+      await MLXModule.createChatSession(this.modelConfig.repo, this.sessionId, systemPrompt);
+    }
+  }
+
   /**
    * Get local path for a model
    */
   private getModelPath(config: ModelConfig): string {
+    if (isIosMLX) {
+      return `${FileSystem.documentDirectory ?? ""}mlx/${config.filename}`;
+    }
+
     return FileSystem.documentDirectory + "models/" + config.filename;
   }
 

@@ -1,19 +1,22 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require("eslint/config");
-const expoConfig = require("eslint-config-expo/flat");
+import { defineConfig } from "eslint/config";
+import expoConfig from "eslint-config-expo/flat.js";
 
-module.exports = defineConfig([
-  expoConfig,
+export default defineConfig([
   {
     ignores: [
-      "dist/*",
+      "**/node_modules/**",
+      "**/scripts/**",
+      "**/dist/**",
       "index.ts",
       "rootStore.example.ts",
       "nativewind-env.d.ts",
-      "patches/*",
+      "patches/**",
       "bun.lock",
-      "eslint.config.js",
+      "eslint.config.mjs",
     ],
+  },
+  expoConfig,
+  {
     settings: {
       "import/core-modules": ["react-native-mmkv"],
       "import/resolver": {

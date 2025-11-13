@@ -1,4 +1,5 @@
 #import "MLXTurboModule.h"
+#import "MonGARS-Swift.h"
 #import <React/RCTLog.h>
 
 /**
@@ -31,6 +32,10 @@
  * to be added to your project via Swift Package Manager.
  */
 
+static NSInteger const kMLXGenerationCancelledCode = -9999;
+static NSString *const kMLXGenerationCancelledError = @"GENERATION_CANCELLED";
+static NSString *const kMLXChatCancelledError = @"CHAT_CANCELLED";
+
 @implementation MLXTurboModule {
   // Store model state and session data
   NSMutableDictionary *_modelCache;
@@ -55,7 +60,7 @@ RCT_EXPORT_MODULE();
 }
 
 - (NSArray<NSString *> *)supportedEvents {
-  return @[@"onTokenGenerated", @"onGenerationComplete", @"onModelLoadProgress"];
+  return @[@"onTokenGenerated", @"onGenerationComplete", @"onModelLoadProgress", @"onGenerationStopped"];
 }
 
 - (void)startObserving {
@@ -75,26 +80,38 @@ RCT_EXPORT_METHOD(loadModel:(NSString *)modelId
                   options:(NSDictionary *)options
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  // Check if model is already loaded
-  if (_modelCache[modelId]) {
-    resolve(@{
-      @"success": @YES,
-      @"modelId": modelId,
-      @"cached": @YES
-    });
-    return;
-  }
+  __weak typeof(self) weakSelf = self;
+  [[MLXBridge shared] loadModelWithId:modelId
+                              options:options
+                        progressBlock:^(MLXModelLoadProgress *progress) {
+                          if (!weakSelf || !weakSelf->_hasListeners) {
+                            return;
+                          }
 
-  // This is a placeholder implementation
-  // In production, this would call Swift code via a bridge to:
-  // 1. Use LLMModelFactory.shared.loadContainer(configuration: modelConfiguration)
-  // 2. Download model files if needed (with progress callbacks)
-  // 3. Load weights from .safetensors files
-  // 4. Initialize the model architecture
-
-  reject(@"NOT_IMPLEMENTED",
-         @"MLX module requires Swift interop. Add MLXLLM package via Swift Package Manager and implement Swift bridge.",
-         nil);
+                          [weakSelf sendEventWithName:@"onModelLoadProgress"
+                                                 body:@{
+                                                   @"modelId": modelId,
+                                                   @"progress": @(progress.fractionCompleted),
+                                                   @"stage": progress.stage,
+                                                   @"message": progress.message ?: @""
+                                                 }];
+                        }
+                              resolve:^(NSDictionary *result) {
+                                if (!weakSelf) {
+                                  return;
+                                }
+                                weakSelf->_modelCache[modelId] = result;
+                                resolve(@{
+                                  @"success": @YES,
+                                  @"modelId": modelId,
+                                  @"cached": result[@"cached"] ?: @NO
+                                });
+                              }
+                               reject:^(NSError *error) {
+                                 reject(@"LOAD_FAILED",
+                                        error.localizedDescription,
+                                        error);
+                               }];
 }
 
 /**
@@ -115,19 +132,32 @@ RCT_EXPORT_METHOD(generate:(NSString *)modelId
     return;
   }
 
-  // Extract options with defaults
-  float temperature = options[@"temperature"] ? [options[@"temperature"] floatValue] : 0.7f;
-  float topP = options[@"topP"] ? [options[@"topP"] floatValue] : 0.9f;
-  NSInteger maxTokens = options[@"maxTokens"] ? [options[@"maxTokens"] integerValue] : 512;
-  BOOL stream = options[@"stream"] ? [options[@"stream"] boolValue] : NO;
-
-  // This would call Swift MLXLMCommon.generate() with token callbacks
-  // For streaming: emit "onTokenGenerated" events as tokens arrive
-  // For non-streaming: accumulate and return full response
-
-  reject(@"NOT_IMPLEMENTED",
-         @"MLX inference requires Swift implementation with MLXLLM package.",
-         nil);
+  __weak typeof(self) weakSelf = self;
+  [[MLXBridge shared] generateWithModelId:modelId
+                                   prompt:prompt
+                                   options:options
+                               onToken:^(MLXGeneratedToken *token) {
+                                 if (!weakSelf || !weakSelf->_hasListeners) {
+                                   return;
+                                 }
+                                 [weakSelf sendEventWithName:@"onTokenGenerated"
+                                                        body:@{
+                                                          @"token": token.value ?: @"",
+                                                          @"index": @(token.index)
+                                                        }];
+                               }
+                              onComplete:^(NSDictionary *result) {
+                                if (!weakSelf) {
+                                  return;
+                                }
+                                resolve(result);
+                              }
+                                   reject:^(NSError *error) {
+                                     NSString *code = error.code == kMLXGenerationCancelledCode ? kMLXGenerationCancelledError : @"GENERATION_FAILED";
+                                     reject(code,
+                                            error.localizedDescription,
+                                            error);
+                                   }];
 }
 
 /**
@@ -148,15 +178,17 @@ RCT_EXPORT_METHOD(createChatSession:(NSString *)modelId
     return;
   }
 
-  // This would create a ChatSession instance:
-  // let session = ChatSession(model: loadedModel)
-  // if let systemPrompt = systemPrompt {
-  //   session.setSystemPrompt(systemPrompt)
-  // }
-
-  reject(@"NOT_IMPLEMENTED",
-         @"Chat session requires Swift ChatSession implementation.",
-         nil);
+  [[MLXBridge shared] createSessionWithModelId:modelId
+                                     sessionId:sessionId
+                                   systemPrompt:systemPrompt
+                                       resolve:^{
+                                         resolve(@{ @"success": @YES, @"sessionId": sessionId });
+                                       }
+                                        reject:^(NSError *error) {
+                                          reject(@"SESSION_CREATE_FAILED",
+                                                 error.localizedDescription,
+                                                 error);
+                                        }];
 }
 
 /**
@@ -170,20 +202,37 @@ RCT_EXPORT_METHOD(chatRespond:(NSString *)sessionId
                   options:(NSDictionary *)options
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  if (!_chatSessions[sessionId]) {
-    reject(@"SESSION_NOT_FOUND",
-           [NSString stringWithFormat:@"Chat session '%@' not found.", sessionId],
-           nil);
-    return;
-  }
-
-  // This would call:
-  // let response = try await chatSession.respond(to: message)
-  // Then emit tokens via events if streaming is enabled
-
-  reject(@"NOT_IMPLEMENTED",
-         @"Chat respond requires Swift ChatSession.respond() implementation.",
-         nil);
+  __weak typeof(self) weakSelf = self;
+  [[MLXBridge shared] respondToSessionWithId:sessionId
+                                     message:message
+                                     options:options
+                                     onToken:^(MLXGeneratedToken *token) {
+                                       if (!weakSelf || !weakSelf->_hasListeners) {
+                                         return;
+                                       }
+                                       NSMutableDictionary *payload = [@{ @"token": token.value ?: @"", @"index": @(token.index) } mutableCopy];
+                                       if (token.sessionId) {
+                                         payload[@"sessionId"] = token.sessionId;
+                                       }
+                                       [weakSelf sendEventWithName:@"onTokenGenerated" body:payload];
+                                     }
+                                 onComplete:^(NSDictionary *result) {
+                                   if (!weakSelf) {
+                                     return;
+                                   }
+                                   if (weakSelf->_hasListeners) {
+                                     NSMutableDictionary *payload = [result mutableCopy];
+                                     payload[@"sessionId"] = sessionId;
+                                     [weakSelf sendEventWithName:@"onGenerationComplete" body:payload];
+                                   }
+                                   resolve(result);
+                                 }
+                                     reject:^(NSError *error) {
+                                        NSString *code = error.code == kMLXGenerationCancelledCode ? kMLXChatCancelledError : @"CHAT_FAILED";
+                                        reject(code,
+                                               error.localizedDescription,
+                                               error);
+                                      }];
 }
 
 /**
@@ -193,17 +242,15 @@ RCT_EXPORT_METHOD(chatRespond:(NSString *)sessionId
 RCT_EXPORT_METHOD(getChatHistory:(NSString *)sessionId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  if (!_chatSessions[sessionId]) {
-    reject(@"SESSION_NOT_FOUND",
-           [NSString stringWithFormat:@"Chat session '%@' not found.", sessionId],
-           nil);
-    return;
-  }
-
-  // Return the message history from the chat session
-  reject(@"NOT_IMPLEMENTED",
-         @"Chat history requires Swift implementation.",
-         nil);
+  [[MLXBridge shared] getHistoryForSession:sessionId
+                                   resolve:^(NSArray<NSDictionary *> *messages) {
+                                     resolve(@{ @"messages": messages });
+                                   }
+                                    reject:^(NSError *error) {
+                                      reject(@"HISTORY_FAILED",
+                                             error.localizedDescription,
+                                             error);
+                                    }];
 }
 
 /**
@@ -213,17 +260,27 @@ RCT_EXPORT_METHOD(getChatHistory:(NSString *)sessionId
 RCT_EXPORT_METHOD(clearChatHistory:(NSString *)sessionId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  if (!_chatSessions[sessionId]) {
-    reject(@"SESSION_NOT_FOUND",
-           [NSString stringWithFormat:@"Chat session '%@' not found.", sessionId],
-           nil);
-    return;
-  }
+  [[MLXBridge shared] clearHistoryForSession:sessionId
+                                     resolve:^{
+                                       resolve(@{ @"success": @YES });
+                                     }
+                                      reject:^(NSError *error) {
+                                        reject(@"CLEAR_FAILED",
+                                               error.localizedDescription,
+                                               error);
+                                      }];
+}
 
-  // Clear the chat session history
-  reject(@"NOT_IMPLEMENTED",
-         @"Clear history requires Swift implementation.",
-         nil);
+/**
+ * Stop any active generation or streaming task
+ */
+RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+  [[MLXBridge shared] stopAllGenerations];
+  if (_hasListeners) {
+    [self sendEventWithName:@"onGenerationStopped" body:@{ @"stopped": @YES }];
+  }
+  resolve(@{ @"stopped": @YES });
 }
 
 /**
@@ -233,31 +290,20 @@ RCT_EXPORT_METHOD(clearChatHistory:(NSString *)sessionId
 RCT_EXPORT_METHOD(unloadModel:(NSString *)modelId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  if (!_modelCache[modelId]) {
-    resolve(@{@"success": @YES, @"message": @"Model not loaded"});
-    return;
-  }
-
-  // Remove from cache and release memory
-  [_modelCache removeObjectForKey:modelId];
-
-  // Also remove any chat sessions using this model
-  NSMutableArray *sessionsToRemove = [NSMutableArray array];
-  for (NSString *sessionId in _chatSessions) {
-    NSDictionary *session = _chatSessions[sessionId];
-    if ([session[@"modelId"] isEqualToString:modelId]) {
-      [sessionsToRemove addObject:sessionId];
-    }
-  }
-  for (NSString *sessionId in sessionsToRemove) {
-    [_chatSessions removeObjectForKey:sessionId];
-  }
-
-  resolve(@{
-    @"success": @YES,
-    @"modelId": modelId,
-    @"sessionsClosed": @(sessionsToRemove.count)
-  });
+  [[MLXBridge shared] unloadModelWithId:modelId
+                                resolve:^(NSInteger sessionsClosed) {
+                                  [_modelCache removeObjectForKey:modelId];
+                                  resolve(@{
+                                    @"success": @YES,
+                                    @"modelId": modelId,
+                                    @"sessionsClosed": @(sessionsClosed)
+                                  });
+                                }
+                                 reject:^(NSError *error) {
+                                   reject(@"UNLOAD_FAILED",
+                                          error.localizedDescription,
+                                          error);
+                                 }];
 }
 
 /**
@@ -265,56 +311,13 @@ RCT_EXPORT_METHOD(unloadModel:(NSString *)modelId
  */
 RCT_EXPORT_METHOD(getRecommendedModels:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  // Get device memory and recommend appropriate models
-  NSProcessInfo *processInfo = [NSProcessInfo processInfo];
-  unsigned long long physicalMemory = processInfo.physicalMemory;
-  double memoryGB = physicalMemory / (1024.0 * 1024.0 * 1024.0);
-
-  NSMutableArray *recommended = [NSMutableArray array];
-
-  // Recommend models based on available memory
-  if (memoryGB >= 8) {
-    [recommended addObject:@{
-      @"id": @"mlx-community/Qwen2.5-7B-Instruct-4bit",
-      @"name": @"Qwen 2.5 7B",
-      @"size": @"4.2 GB",
-      @"description": @"High-quality 7B model, 4-bit quantized"
-    }];
-  }
-
-  if (memoryGB >= 4) {
-    [recommended addObject:@{
-      @"id": @"mlx-community/Qwen2.5-3B-Instruct-4bit",
-      @"name": @"Qwen 2.5 3B",
-      @"size": @"2.1 GB",
-      @"description": @"Balanced performance and efficiency"
-    }];
-    [recommended addObject:@{
-      @"id": @"mlx-community/Llama-3.2-3B-Instruct-4bit",
-      @"name": @"Llama 3.2 3B",
-      @"size": @"2.0 GB",
-      @"description": @"Meta's efficient mobile model"
-    }];
-  }
-
-  // Always recommend smallest models
-  [recommended addObject:@{
-    @"id": @"mlx-community/Qwen2.5-1.5B-Instruct-4bit",
-    @"name": @"Qwen 2.5 1.5B",
-    @"size": @"1.1 GB",
-    @"description": @"Fast and memory-efficient"
+  [[MLXBridge shared] recommendedModels:^(NSDictionary *result) {
+    resolve(result);
+  } reject:^(NSError *error) {
+    reject(@"RECOMMENDATION_FAILED",
+           error.localizedDescription,
+           error);
   }];
-  [recommended addObject:@{
-    @"id": @"mlx-community/Qwen2.5-0.5B-Instruct-4bit",
-    @"name": @"Qwen 2.5 0.5B",
-    @"size": @"0.4 GB",
-    @"description": @"Smallest model, works on all devices"
-  }];
-
-  resolve(@{
-    @"deviceMemoryGB": @(memoryGB),
-    @"recommended": recommended
-  });
 }
 
 /**
@@ -322,30 +325,13 @@ RCT_EXPORT_METHOD(getRecommendedModels:(RCTPromiseResolveBlock)resolve
  */
 RCT_EXPORT_METHOD(getMemoryStats:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject) {
-  // Get current memory usage
-  struct mach_task_basic_info info;
-  mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-  kern_return_t kerr = task_info(mach_task_self(),
-                                 MACH_TASK_BASIC_INFO,
-                                 (task_info_t)&info,
-                                 &size);
-
-  if (kerr == KERN_SUCCESS) {
-    double usedMemoryMB = info.resident_size / (1024.0 * 1024.0);
-
-    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
-    unsigned long long physicalMemory = processInfo.physicalMemory;
-    double totalMemoryGB = physicalMemory / (1024.0 * 1024.0 * 1024.0);
-
-    resolve(@{
-      @"usedMemoryMB": @(usedMemoryMB),
-      @"totalMemoryGB": @(totalMemoryGB),
-      @"modelsLoaded": @(_modelCache.count),
-      @"activeSessions": @(_chatSessions.count)
-    });
-  } else {
-    reject(@"MEMORY_ERROR", @"Failed to get memory info", nil);
-  }
+  [[MLXBridge shared] memoryStatistics:^(NSDictionary *stats) {
+    resolve(stats);
+  } reject:^(NSError *error) {
+    reject(@"MEMORY_ERROR",
+           error.localizedDescription,
+           error);
+  }];
 }
 
 @end

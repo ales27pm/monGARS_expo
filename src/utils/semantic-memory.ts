@@ -355,6 +355,9 @@ export interface RetrievalResult {
 
   /** Chunk information if text was chunked */
   chunk?: TextChunk;
+
+  /** Raw embedding vector when available */
+  vector?: number[];
 }
 
 export class SemanticMemory {
@@ -375,6 +378,23 @@ export class SemanticMemory {
 
   hasEmbeddingFunction(): boolean {
     return typeof this.embeddingFunction === "function";
+  }
+
+  getEmbeddingFunction(): ((text: string) => Promise<number[]>) | null {
+    return this.embeddingFunction ?? null;
+  }
+
+  async embed(text: string): Promise<number[] | null> {
+    if (!this.embeddingFunction) {
+      return null;
+    }
+
+    try {
+      return await this.embeddingFunction(text);
+    } catch (error) {
+      console.warn("[SemanticMemory] Failed to compute embedding:", error);
+      return null;
+    }
   }
 
   /**
@@ -459,6 +479,7 @@ export class SemanticMemory {
         timestamp: result.embedding.timestamp,
         metadata: result.embedding.metadata,
       },
+      vector: Array.isArray(result.embedding.vector) ? [...result.embedding.vector] : undefined,
     }));
   }
 
