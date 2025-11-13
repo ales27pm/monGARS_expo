@@ -80,7 +80,7 @@ function main() {
   const expoConfig = appJson.expo;
 
   if (!expoConfig || !expoConfig.version || !expoConfig.ios || !expoConfig.ios.buildNumber) {
-    throw new Error("app.json is missing expo.version or expo.ios.buildNumber.");
+    throw new Error(`app.json (${appJsonPath}) is missing expo.version or expo.ios.buildNumber.`);
   }
 
   const nextMarketingVersion = bumpVersion(expoConfig.version, args.releaseType);
