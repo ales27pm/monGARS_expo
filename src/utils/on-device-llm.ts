@@ -7,6 +7,7 @@ import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system";
 
 import MLXModule, { MLXEventEmitter } from "../native-modules/MLXModule";
+import { ModelConfig, ModelDownloadProgress, RECOMMENDED_MODELS } from "../types/models";
 
 // Type definitions for llama.rn (to avoid importing the module at startup)
 type LlamaContext = {
@@ -58,29 +59,6 @@ async function getLlamaModule(): Promise<LlamaModule> {
   }
 }
 
-export interface ModelConfig {
-  /** Model name (for display) */
-  name: string;
-
-  /** HuggingFace repository ID */
-  repo: string;
-
-  /** Filename in the repository */
-  filename: string;
-
-  /** Quantization level (Q4_0, Q4_K_M, Q5_K_M, etc.) */
-  quantization: string;
-
-  /** Estimated size in MB */
-  sizeInMB: number;
-
-  /** Recommended for device capabilities */
-  recommended?: boolean;
-
-  /** Description */
-  description?: string;
-}
-
 export interface InferenceOptions {
   /** System prompt */
   systemPrompt?: string;
@@ -109,60 +87,6 @@ export interface InferenceOptions {
   /** repetition penalty */
   repeatPenalty?: number;
 }
-
-export interface ModelDownloadProgress {
-  /** Total bytes to download */
-  totalBytes: number;
-
-  /** Bytes downloaded so far */
-  downloadedBytes: number;
-
-  /** Progress percentage (0-100) */
-  progress: number;
-
-  /** Download speed in bytes/sec */
-  speed?: number;
-}
-
-// Pre-configured models optimized for MLX runtime (used primarily for metadata)
-export const RECOMMENDED_MODELS: ModelConfig[] = [
-  {
-    name: "Qwen2.5 0.5B Instruct",
-    repo: "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
-    filename: "Qwen2.5-0.5B-Instruct-4bit",
-    quantization: "4bit",
-    sizeInMB: 450,
-    recommended: true,
-    description: "Fastest, smallest MLX model tuned for mobile devices.",
-  },
-  {
-    name: "Qwen2.5 1.5B Instruct",
-    repo: "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
-    filename: "Qwen2.5-1.5B-Instruct-4bit",
-    quantization: "4bit",
-    sizeInMB: 1100,
-    recommended: true,
-    description: "Balanced quality and speed for on-device reasoning.",
-  },
-  {
-    name: "Llama 3.2 1B Instruct",
-    repo: "mlx-community/Llama-3.2-1B-Instruct-4bit",
-    filename: "Llama-3.2-1B-Instruct-4bit",
-    quantization: "4bit",
-    sizeInMB: 900,
-    recommended: false,
-    description: "Meta's compact MLX port ideal for coding helpers.",
-  },
-  {
-    name: "Qwen2.5 3B Instruct",
-    repo: "mlx-community/Qwen2.5-3B-Instruct-4bit",
-    filename: "Qwen2.5-3B-Instruct-4bit",
-    quantization: "4bit",
-    sizeInMB: 2200,
-    recommended: false,
-    description: "Premium quality with deeper context understanding.",
-  },
-];
 
 export class OnDeviceLLM {
   private context: LlamaContext | null = null;
