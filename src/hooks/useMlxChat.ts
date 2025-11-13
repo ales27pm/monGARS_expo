@@ -66,7 +66,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus>("not_downloaded");
   const [backend, setBackend] = useState<ChatBackend>(preferredMode === "cloud-only" ? "cloud" : "native");
 
-  const allowFallback = preferredMode === "native-only" ? false : (options?.allowCloudFallback ?? true);
+  const allowFallback = options?.allowCloudFallback ?? preferredMode !== "native-only";
   const activeModelFromStore = useModelStore((state) => state.activeModel);
   const downloadedModels = useModelStore((state) => state.downloadedModels);
 
@@ -101,6 +101,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
     let isMounted = true;
 
     const initialize = async () => {
+
       if (preferredMode === "cloud-only" || Platform.OS === "web") {
         const ready = await ensureCloudBackend();
         if (isMounted) {
