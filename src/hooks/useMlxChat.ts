@@ -55,6 +55,7 @@ const CLOUD_COMPLETION_URL = "https://api.openai.com/v1/chat/completions";
 export type { ChatTurn } from "../types/chat";
 
 export function useMlxChat(options?: UseMlxChatOptions) {
+  const preferredMode = options?.mode ?? "native-first";
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const historyRef = useRef<ChatTurn[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +64,9 @@ export function useMlxChat(options?: UseMlxChatOptions) {
   const [isReady, setIsReady] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus>("not_downloaded");
-  const [backend, setBackend] = useState<ChatBackend>(options?.mode === "cloud-only" ? "cloud" : "native");
+  const [backend, setBackend] = useState<ChatBackend>(preferredMode === "cloud-only" ? "cloud" : "native");
 
-  const allowFallback = options?.allowCloudFallback ?? true;
+  const allowFallback = preferredMode === "native-only" ? false : (options?.allowCloudFallback ?? true);
   const activeModelFromStore = useModelStore((state) => state.activeModel);
   const downloadedModels = useModelStore((state) => state.downloadedModels);
 
@@ -100,8 +101,6 @@ export function useMlxChat(options?: UseMlxChatOptions) {
     let isMounted = true;
 
     const initialize = async () => {
-      const preferredMode = options?.mode ?? "native-first";
-
       if (preferredMode === "cloud-only" || Platform.OS === "web") {
         const ready = await ensureCloudBackend();
         if (isMounted) {
@@ -184,7 +183,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
         setDownloadStatus("error");
         setError(message);
 
-        if (allowFallback && (options?.mode ?? "native-first") !== "native-only") {
+        if (allowFallback && preferredMode !== "native-only") {
           const ready = await ensureCloudBackend();
           if (isMounted) {
             setBackend("cloud");
@@ -206,7 +205,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
     downloadedModels,
     allowFallback,
     ensureCloudBackend,
-    options?.mode,
+    preferredMode,
     options?.maxTokens,
     options?.systemPrompt,
   ]);
@@ -357,7 +356,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
           throw primaryError;
         }
 
-        if (backend === "native" && allowFallback) {
+        if (backend === "native" && allowFallback && preferredMode !== "native-only") {
           try {
             const fallbackResult = await executeCloud();
             setBackend("cloud");
@@ -379,7 +378,7 @@ export function useMlxChat(options?: UseMlxChatOptions) {
         setCurrentResponse("");
       }
     },
-    [allowFallback, backend, executeCloud, executeNative, isReady, revertUserTurn],
+    [allowFallback, backend, executeCloud, executeNative, isReady, preferredMode, revertUserTurn],
   );
 
   const stop = useCallback(() => {
