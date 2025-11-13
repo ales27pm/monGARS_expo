@@ -4,6 +4,7 @@
  */
 
 import { Platform } from "react-native";
+import { MODEL_CONFIG } from "../config/model";
 import { MLXModule } from "../native/MLXModule";
 
 export interface GenerationOptions {
@@ -13,6 +14,10 @@ export interface GenerationOptions {
   randomSeed?: number;
   stream?: boolean;
   onToken?: (token: string) => void;
+  systemPrompt?: string;
+  model?: string;
+  baseUrl?: string;
+  apiKey?: string;
 }
 
 export interface PerformanceMetrics {
@@ -105,11 +110,24 @@ class LLMService {
         // Web fallback
         response = await this.generateWeb(prompt, maxTokens, temperature);
       } else {
-        // For actual generation, components should use the useLLM hook
-        // This method exists for API compatibility
-        throw new Error(
-          "Direct generation not supported. Use useMlxChat hook in components for MediaPipe integration.",
-        );
+        const streamRequested = Boolean(options.stream);
+        const onToken = typeof options.onToken === "function" ? options.onToken : undefined;
+        const effectiveModelId = this.modelPath ?? MODEL_CONFIG.modelName;
+
+        const moduleOptions = {
+          maxTokens,
+          temperature,
+          topK: options.topK ?? MODEL_CONFIG.topK,
+          randomSeed: options.randomSeed ?? MODEL_CONFIG.randomSeed,
+          stream: streamRequested && Boolean(onToken),
+          onToken,
+          systemPrompt: options.systemPrompt,
+          model: options.model,
+          baseUrl: options.baseUrl,
+          apiKey: options.apiKey,
+        };
+
+        response = await MLXModule.generate(effectiveModelId, prompt, moduleOptions);
       }
 
       const endTime = Date.now();
