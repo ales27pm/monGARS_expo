@@ -18,6 +18,23 @@ import type { ChatTurn } from "../types/chat";
 type DownloadStatus = "not_downloaded" | "downloading" | "downloaded" | "error";
 type ChatBackend = "native" | "cloud";
 
+const MLX_CANCELLATION_CODES = new Set<string>(["GENERATION_CANCELLED", "CHAT_CANCELLED"]);
+
+const isCancellationError = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+
+  const maybeError = error as { code?: string; nativeErrorCode?: string; message?: string } | null;
+  const code = maybeError?.code ?? maybeError?.nativeErrorCode;
+  if (code && MLX_CANCELLATION_CODES.has(code)) {
+    return true;
+  }
+
+  const message = maybeError?.message ?? (typeof error === "string" ? error : undefined);
+  return typeof message === "string" && message.toLowerCase().includes("cancel");
+};
+
 export interface UseMlxChatOptions {
   /** Override the active model configuration */
   modelConfig?: ModelConfig;
@@ -325,9 +342,20 @@ export function useMlxChat(options?: UseMlxChatOptions) {
 
         return await executeCloud();
       } catch (primaryError) {
+        const wasCancelled = isCancellationError(primaryError);
         const primaryMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
-        console.warn("[useMlxChat] Primary backend failed:", primaryMessage);
+
+        if (!wasCancelled) {
+          console.warn("[useMlxChat] Primary backend failed:", primaryMessage);
+        }
+
         setCurrentResponse("");
+
+        if (wasCancelled) {
+          setError(null);
+          revertUserTurn(userTurn);
+          throw primaryError;
+        }
 
         if (backend === "native" && allowFallback) {
           try {
@@ -356,6 +384,14 @@ export function useMlxChat(options?: UseMlxChatOptions) {
 
   const stop = useCallback(() => {
     setIsSending(false);
+    setCurrentResponse("");
+
+    const llm = nativeLLMRef.current;
+    if (llm) {
+      void llm.stop().catch((stopError) => {
+        console.warn("[useMlxChat] Failed to stop native generation", stopError);
+      });
+    }
   }, []);
 
   const reset = useCallback(() => {

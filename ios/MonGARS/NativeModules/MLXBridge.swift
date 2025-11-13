@@ -20,6 +20,7 @@ import os.log
 @preconcurrency import Hub
 
 private let logger = Logger(subsystem: "com.mongars.mlx", category: "bridge")
+private let generationCancelledCode = -9_999
 
 @objcMembers
 final class MLXModelLoadProgress: NSObject {
@@ -114,6 +115,7 @@ final class MLXBridge: NSObject {
 
   private var modelCache: [String: ModelContainer] = [:]
   private var sessions: [String: MLXChatSession] = [:]
+  private var activeTasks: [UUID: Task<Void, Never>] = [:]
 
   private override init() {
     super.init()
@@ -179,6 +181,55 @@ final class MLXBridge: NSObject {
 
     return index
   }()
+
+  private func register(task: Task<Void, Never>, key: UUID) {
+    if Thread.isMainThread {
+      activeTasks[key] = task
+    } else {
+      DispatchQueue.main.async { [weak self] in
+        self?.activeTasks[key] = task
+      }
+    }
+  }
+
+  private func completeTask(for key: UUID) {
+    if Thread.isMainThread {
+      activeTasks.removeValue(forKey: key)
+    } else {
+      DispatchQueue.main.async { [weak self] in
+        self?.activeTasks.removeValue(forKey: key)
+      }
+    }
+  }
+
+  private func cancellationError() -> NSError {
+    NSError(
+      domain: "com.mongars.mlx",
+      code: generationCancelledCode,
+      userInfo: [NSLocalizedDescriptionKey: "Generation cancelled"]
+    )
+  }
+
+  func stopAllGenerations() {
+    let tasksToCancel: [Task<Void, Never>]
+
+    if Thread.isMainThread {
+      tasksToCancel = Array(activeTasks.values)
+      activeTasks.removeAll()
+    } else {
+      var snapshot: [Task<Void, Never>] = []
+      DispatchQueue.main.sync { [weak self] in
+        guard let self else { return }
+        snapshot = Array(self.activeTasks.values)
+        self.activeTasks.removeAll()
+      }
+      tasksToCancel = snapshot
+    }
+
+    for task in tasksToCancel {
+      task.cancel()
+    }
+  }
 
   private func descriptor(for modelId: String) -> MLXModelDescriptor? {
     if let descriptor = modelDescriptors[modelId] {
@@ -274,10 +325,17 @@ final class MLXBridge: NSObject {
                 onToken: ((MLXGeneratedToken) -> Void)?,
                 onComplete: @escaping (NSDictionary) -> Void,
                 reject: @escaping (NSError) -> Void) {
-    Task.detached(priority: .userInitiated) {
+    let taskId = UUID()
+    let generationTask = Task.detached(priority: .userInitiated) { [weak self] in
+      guard let self else { return }
+
+      defer { self.completeTask(for: taskId) }
+
       do {
         let container = try await self.ensureModelLoaded(modelId, options: options, progressBlock: nil)
         let parameters = self.parameters(from: options)
+
+        try Task.checkCancellation()
 
         let start = Date()
         var collected = ""
@@ -287,10 +345,11 @@ final class MLXBridge: NSObject {
           let chat = [Chat.Message(role: .user, content: prompt)]
           let userInput = UserInput(chat: chat)
           let prepared = try await context.processor.prepare(input: userInput)
-
           let stream = try MLXLMCommon.generate(input: prepared, parameters: parameters, context: context)
 
           for try await generation in stream {
+            try Task.checkCancellation()
+
             switch generation {
             case .chunk(let chunk):
               collected += chunk
@@ -304,16 +363,31 @@ final class MLXBridge: NSObject {
           }
         }
 
+        try Task.checkCancellation()
+
         let elapsed = Date().timeIntervalSince(start) * 1000
-        onComplete([
+        let payload: NSDictionary = [
           "text": collected,
           "tokensGenerated": totalTokens,
           "timeElapsed": elapsed
-        ])
+        ]
+
+        DispatchQueue.main.async {
+          onComplete(payload)
+        }
+      } catch is CancellationError {
+        let cancelError = self.cancellationError()
+        DispatchQueue.main.async {
+          reject(cancelError)
+        }
       } catch {
-        reject(error as NSError)
+        DispatchQueue.main.async {
+          reject(error as NSError)
+        }
       }
     }
+
+    register(task: generationTask, key: taskId)
   }
 
   func createSession(withModelId modelId: String,
@@ -339,15 +413,24 @@ final class MLXBridge: NSObject {
                onToken: ((MLXGeneratedToken) -> Void)?,
                onComplete: @escaping (NSDictionary) -> Void,
                reject: @escaping (NSError) -> Void) {
-    Task.detached(priority: .userInitiated) {
+    let taskId = UUID()
+    let respondTask = Task.detached(priority: .userInitiated) { [weak self] in
+      guard let self else { return }
+
+      defer { self.completeTask(for: taskId) }
+
       guard let session = self.sessions[sessionId] else {
-        reject(NSError(domain: "com.mongars.mlx", code: 404, userInfo: [NSLocalizedDescriptionKey: "Chat session not found"]))
+        DispatchQueue.main.async {
+          reject(NSError(domain: "com.mongars.mlx", code: 404, userInfo: [NSLocalizedDescriptionKey: "Chat session not found"]))
+        }
         return
       }
 
       do {
         let container = try await self.ensureModelLoaded(session.modelId, options: options, progressBlock: nil)
         let parameters = self.parameters(from: options)
+
+        try Task.checkCancellation()
 
         session.append(role: .user, content: message)
         self.applyMemoryCompression(to: session)
@@ -362,6 +445,8 @@ final class MLXBridge: NSObject {
           let stream = try MLXLMCommon.generate(input: prepared, parameters: parameters, context: context)
 
           for try await generation in stream {
+            try Task.checkCancellation()
+
             switch generation {
             case .chunk(let chunk):
               collected += chunk
@@ -375,18 +460,38 @@ final class MLXBridge: NSObject {
           }
         }
 
+        try Task.checkCancellation()
+
         session.append(role: .assistant, content: collected)
 
         let elapsed = Date().timeIntervalSince(start) * 1000
-        onComplete([
+        let payload: NSDictionary = [
           "text": collected,
           "tokensGenerated": totalTokens,
           "timeElapsed": elapsed
-        ])
+        ]
+
+        DispatchQueue.main.async {
+          onComplete(payload)
+        }
+      } catch is CancellationError {
+        session.messages.removeLast()
+        if session.timestamps.count > 0 {
+          session.timestamps.removeLast()
+        }
+
+        let cancelError = self.cancellationError()
+        DispatchQueue.main.async {
+          reject(cancelError)
+        }
       } catch {
-        reject(error as NSError)
+        DispatchQueue.main.async {
+          reject(error as NSError)
+        }
       }
     }
+
+    register(task: respondTask, key: taskId)
   }
 
   func getHistory(forSession sessionId: String,

@@ -32,6 +32,10 @@
  * to be added to your project via Swift Package Manager.
  */
 
+static NSInteger const kMLXGenerationCancelledCode = -9999;
+static NSString *const kMLXGenerationCancelledError = @"GENERATION_CANCELLED";
+static NSString *const kMLXChatCancelledError = @"CHAT_CANCELLED";
+
 @implementation MLXTurboModule {
   // Store model state and session data
   NSMutableDictionary *_modelCache;
@@ -56,7 +60,7 @@ RCT_EXPORT_MODULE();
 }
 
 - (NSArray<NSString *> *)supportedEvents {
-  return @[@"onTokenGenerated", @"onGenerationComplete", @"onModelLoadProgress"];
+  return @[@"onTokenGenerated", @"onGenerationComplete", @"onModelLoadProgress", @"onGenerationStopped"];
 }
 
 - (void)startObserving {
@@ -149,7 +153,8 @@ RCT_EXPORT_METHOD(generate:(NSString *)modelId
                                 resolve(result);
                               }
                                    reject:^(NSError *error) {
-                                     reject(@"GENERATION_FAILED",
+                                     NSString *code = error.code == kMLXGenerationCancelledCode ? kMLXGenerationCancelledError : @"GENERATION_FAILED";
+                                     reject(code,
                                             error.localizedDescription,
                                             error);
                                    }];
@@ -222,8 +227,9 @@ RCT_EXPORT_METHOD(chatRespond:(NSString *)sessionId
                                    }
                                    resolve(result);
                                  }
-                                      reject:^(NSError *error) {
-                                        reject(@"CHAT_FAILED",
+                                     reject:^(NSError *error) {
+                                        NSString *code = error.code == kMLXGenerationCancelledCode ? kMLXChatCancelledError : @"CHAT_FAILED";
+                                        reject(code,
                                                error.localizedDescription,
                                                error);
                                       }];
@@ -263,6 +269,18 @@ RCT_EXPORT_METHOD(clearChatHistory:(NSString *)sessionId
                                                error.localizedDescription,
                                                error);
                                       }];
+}
+
+/**
+ * Stop any active generation or streaming task
+ */
+RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+  [[MLXBridge shared] stopAllGenerations];
+  if (_hasListeners) {
+    [self sendEventWithName:@"onGenerationStopped" body:@{ @"stopped": @YES }];
+  }
+  resolve(@{ @"stopped": @YES });
 }
 
 /**

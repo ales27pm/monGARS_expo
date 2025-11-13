@@ -13,6 +13,7 @@ type LlamaContext = {
   completion: (options: any, callback?: (data: any) => void) => Promise<any>;
   embedding: (text: string) => Promise<{ embedding: number[] }>;
   release: () => Promise<void>;
+  stopCompletion?: () => Promise<void>;
 };
 
 type LlamaModule = {
@@ -465,6 +466,25 @@ export class OnDeviceLLM {
       this.context = null;
       this.isInitialized = false;
       console.log("Model released from memory");
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (isIosMLX) {
+      try {
+        await MLXModule.stop();
+      } catch (error) {
+        console.warn("[OnDeviceLLM] Failed to stop MLX generation", error);
+      }
+      return;
+    }
+
+    if (this.context && typeof this.context.stopCompletion === "function") {
+      try {
+        await this.context.stopCompletion?.();
+      } catch (error) {
+        console.warn("[OnDeviceLLM] Failed to stop llama generation", error);
+      }
     }
   }
 

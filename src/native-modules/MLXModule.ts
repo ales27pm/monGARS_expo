@@ -63,6 +63,10 @@ export interface MLXModelLoadProgressEvent {
   message: string;
 }
 
+export interface MLXGenerationStoppedEvent {
+  stopped: boolean;
+}
+
 /**
  * MLX Turbo Module for On-Device LLM Inference
  *
@@ -258,6 +262,11 @@ interface MLXTurboModuleType {
    * console.log(`Using ${stats.usedMemoryMB}MB with ${stats.modelsLoaded} models loaded`);
    */
   getMemoryStats(): Promise<MLXMemoryStats>;
+
+  /**
+   * Stop any active generation or streaming task.
+   */
+  stop(): Promise<{ stopped: boolean }>;
 }
 
 const { MLXTurboModule } = NativeModules;
@@ -289,6 +298,9 @@ const missingModuleProxy: MLXTurboModuleType = {
   },
   async getMemoryStats() {
     return { usedMemoryMB: 0, totalMemoryGB: 0, modelsLoaded: 0, activeSessions: 0 };
+  },
+  async stop() {
+    throw new Error("MLX turbo module is not available on this platform.");
   },
 };
 
