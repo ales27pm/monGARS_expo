@@ -22,6 +22,8 @@ import { useModelStore } from "../state/modelStore";
 import { useMlxChat } from "../hooks/useMlxChat";
 import { isNativeModuleUnavailableError } from "../utils/nativeModuleError";
 import { configureSemanticMemoryEmbedding, getGlobalMemory, SemanticMemory } from "../utils/semantic-memory";
+import { ContextEngineer } from "../services/contextEngineer";
+import { PROMPT_TEMPLATES, type Message as ContextMessage } from "../utils/context-management";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -87,6 +89,7 @@ export default function ChatScreen() {
   const [fallbackActivated, setFallbackActivated] = useState(false);
   const [memory, setMemory] = useState<SemanticMemory | null>(null);
   const conversationIdRef = useRef<string>(`${Date.now()}`);
+  const contextEngineerRef = useRef<ContextEngineer | null>(null);
 
   const {
     ready: cloudReady,
@@ -122,6 +125,14 @@ export default function ChatScreen() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (memory) {
+      contextEngineerRef.current = new ContextEngineer({ memory });
+    } else {
+      contextEngineerRef.current = null;
+    }
+  }, [memory]);
 
   useEffect(() => {
     if (chatMode === "native" && llm) {
@@ -368,17 +379,40 @@ export default function ChatScreen() {
     setIsGenerating(true);
 
     try {
+      const conversationMessages: ContextMessage[] = [
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user", content: userMessage },
+      ];
+
+      let engineeredMessages: ContextMessage[] = conversationMessages;
+
+      if (settings.enableVectorMemory) {
+        const engineer = contextEngineerRef.current;
+        if (engineer) {
+          try {
+            const engineered = await engineer.engineerContext(userMessage, conversationMessages, {
+              conversationId,
+              systemPrompt: PROMPT_TEMPLATES.ragAssistant,
+            });
+            if (engineered.messages.length > 0) {
+              engineeredMessages = engineered.messages;
+            }
+          } catch (contextError) {
+            console.warn("[ChatScreen] Context engineering failed:", contextError);
+          }
+        }
+      }
+
+      const normalizedMessages = engineeredMessages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+
       // Get response from on-device LLM
-      const response = await llmInstance.chat(
-        [
-          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-          { role: "user" as const, content: userMessage },
-        ],
-        {
-          maxTokens: settings.maxTokens,
-          temperature: settings.temperature,
-        },
-      );
+      const response = await llmInstance.chat(normalizedMessages, {
+        maxTokens: settings.maxTokens,
+        temperature: settings.temperature,
+      });
 
       setMessages((prev) => [...prev, { role: "assistant", content: response }]);
       scrollToBottom();
