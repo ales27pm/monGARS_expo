@@ -110,6 +110,7 @@ private final class MLXChatSession {
 }
 
 @objcMembers
+@MainActor
 final class MLXBridge: NSObject {
   static let shared = MLXBridge()
 
@@ -307,7 +308,7 @@ final class MLXBridge: NSObject {
                  progressBlock: ((MLXModelLoadProgress) -> Void)? = nil,
                  resolve: @escaping (NSDictionary) -> Void,
                  reject: @escaping (NSError) -> Void) {
-    Task.detached(priority: .userInitiated) {
+    Task(priority: .userInitiated) {
       do {
         let alreadyLoaded = self.modelCache[modelId] != nil
         _ = try await self.ensureModelLoaded(modelId, options: options, progressBlock: progressBlock)
@@ -326,9 +327,7 @@ final class MLXBridge: NSObject {
                 onComplete: @escaping (NSDictionary) -> Void,
                 reject: @escaping (NSError) -> Void) {
     let taskId = UUID()
-    let generationTask = Task.detached(priority: .userInitiated) { [weak self] in
-      guard let self else { return }
-
+    let generationTask = Task(priority: .userInitiated) {
       defer { self.completeTask(for: taskId) }
 
       do {
@@ -395,7 +394,7 @@ final class MLXBridge: NSObject {
                      systemPrompt: String?,
                      resolve: @escaping () -> Void,
                      reject: @escaping (NSError) -> Void) {
-    Task.detached(priority: .userInitiated) {
+    Task(priority: .userInitiated) {
       do {
         _ = try await self.ensureModelLoaded(modelId, options: nil, progressBlock: nil)
         let session = MLXChatSession(id: sessionId, modelId: modelId, systemPrompt: systemPrompt)
@@ -414,9 +413,7 @@ final class MLXBridge: NSObject {
                onComplete: @escaping (NSDictionary) -> Void,
                reject: @escaping (NSError) -> Void) {
     let taskId = UUID()
-    let respondTask = Task.detached(priority: .userInitiated) { [weak self] in
-      guard let self else { return }
-
+    let respondTask = Task(priority: .userInitiated) {
       defer { self.completeTask(for: taskId) }
 
       guard let session = self.sessions[sessionId] else {
@@ -425,6 +422,11 @@ final class MLXBridge: NSObject {
         }
         return
       }
+
+      let initialMessages = session.messages
+      let initialTimestamps = session.timestamps
+      let initialMessageCount = session.messages.count
+      let initialTimestampCount = session.timestamps.count
 
       do {
         let container = try await self.ensureModelLoaded(session.modelId, options: options, progressBlock: nil)
@@ -475,16 +477,27 @@ final class MLXBridge: NSObject {
           onComplete(payload)
         }
       } catch is CancellationError {
-        session.messages.removeLast()
-        if session.timestamps.count > 0 {
-          session.timestamps.removeLast()
-        }
+        self.rollbackSession(
+          session,
+          toMessages: initialMessages,
+          timestamps: initialTimestamps,
+          initialMessageCount: initialMessageCount,
+          initialTimestampCount: initialTimestampCount
+        )
 
         let cancelError = self.cancellationError()
         DispatchQueue.main.async {
           reject(cancelError)
         }
       } catch {
+        self.rollbackSession(
+          session,
+          toMessages: initialMessages,
+          timestamps: initialTimestamps,
+          initialMessageCount: initialMessageCount,
+          initialTimestampCount: initialTimestampCount
+        )
+
         DispatchQueue.main.async {
           reject(error as NSError)
         }
@@ -492,6 +505,23 @@ final class MLXBridge: NSObject {
     }
 
     register(task: respondTask, key: taskId)
+  }
+
+  private func rollbackSession(_ session: MLXChatSession,
+                               toMessages messages: [Chat.Message],
+                               timestamps: [Date],
+                               initialMessageCount: Int,
+                               initialTimestampCount: Int) {
+    if session.messages.count > initialMessageCount && !session.messages.isEmpty {
+      session.messages.removeLast()
+    }
+
+    if session.timestamps.count > initialTimestampCount && !session.timestamps.isEmpty {
+      session.timestamps.removeLast()
+    }
+
+    session.messages = messages
+    session.timestamps = timestamps
   }
 
   func getHistory(forSession sessionId: String,
