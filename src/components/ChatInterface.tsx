@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useMlxChat, ChatTurn } from "../hooks/useMlxChat";
+import { useMlxChat } from "../hooks/useMlxChat";
+import type { ChatTurn } from "../types/chat";
 
 export default function ChatInterface() {
   const [inputText, setInputText] = useState("");
@@ -30,6 +31,7 @@ export default function ChatInterface() {
     currentResponse,
     downloadStatus,
     downloadProgress,
+    backend,
     send,
     reset,
     isDownloading,
@@ -129,7 +131,13 @@ export default function ChatInterface() {
           <View>
             <Text className="text-xl font-bold text-gray-900 dark:text-white">AI Chat Assistant v2</Text>
             <Text className="text-xs text-gray-500 dark:text-gray-400">
-              {isReady ? "Ready • Fetch API" : downloadStatus === "error" ? "Initialization error" : "Initializing..."}
+              {isReady
+                ? backend === "native"
+                  ? "Ready • MLX Native"
+                  : "Ready • Secure Cloud"
+                : downloadStatus === "error"
+                  ? "Initialization error"
+                  : "Initializing..."}
             </Text>
           </View>
           <Pressable onPress={handleReset} className="bg-red-500 rounded-full px-4 py-2 active:opacity-70">

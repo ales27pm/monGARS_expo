@@ -96,6 +96,8 @@ export default function ChatScreen() {
   } = useMlxChat({
     maxTokens: settings.maxTokens,
     temperature: settings.temperature,
+    mode: "cloud-only",
+    allowCloudFallback: false,
   });
 
   // Load settings on mount
@@ -123,11 +125,13 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (chatMode === "native" && llm) {
-      configureSemanticMemoryEmbedding({ type: "on-device", llm })
-        .catch((error) => console.error("[ChatScreen] Failed to enable on-device semantic memory:", error));
+      configureSemanticMemoryEmbedding({ type: "on-device", llm }).catch((error) =>
+        console.error("[ChatScreen] Failed to enable on-device semantic memory:", error),
+      );
     } else if (chatMode === "cloud") {
-      configureSemanticMemoryEmbedding({ type: "cloud" })
-        .catch((error) => console.error("[ChatScreen] Failed to enable cloud semantic memory:", error));
+      configureSemanticMemoryEmbedding({ type: "cloud" }).catch((error) =>
+        console.error("[ChatScreen] Failed to enable cloud semantic memory:", error),
+      );
     }
   }, [chatMode, llm]);
 
@@ -246,10 +250,7 @@ export default function ChatScreen() {
       try {
         await configureSemanticMemoryEmbedding({ type: "on-device", llm: llmInstance });
       } catch (configurationError) {
-        console.error(
-          "[ChatScreen] Failed to configure semantic memory for on-device mode:",
-          configurationError,
-        );
+        console.error("[ChatScreen] Failed to configure semantic memory for on-device mode:", configurationError);
       }
       return llmInstance;
     } catch (error) {
@@ -261,10 +262,7 @@ export default function ChatScreen() {
         try {
           await configureSemanticMemoryEmbedding({ type: "cloud" });
         } catch (configurationError) {
-          console.error(
-            "[ChatScreen] Failed to configure semantic memory for cloud fallback:",
-            configurationError,
-          );
+          console.error("[ChatScreen] Failed to configure semantic memory for cloud fallback:", configurationError);
         }
 
         if (!fallbackActivated) {
@@ -355,7 +353,6 @@ export default function ChatScreen() {
       } catch {
         return; // loadLLM will show error modal
       }
-
     }
 
     if (!llmInstance) {
