@@ -4,14 +4,54 @@ import { vectorStore } from "../utils/vector-store";
 import { ContextEngineer } from "../services/contextEngineer";
 import type { Message as ContextMessage } from "../utils/context-management";
 
+jest.mock("../utils/on-device-llm", () => {
+  class MockLLM {
+    getModelInfo() {
+      return { isInitialized: false, modelPath: null, modelConfig: null };
+    }
+
+    async embed(): Promise<number[]> {
+      throw new Error("Mock embed not implemented");
+    }
+  }
+
+  let currentLLM: unknown | null = null;
+
+  return {
+    getGlobalLLM: () => {
+      if (!currentLLM) {
+        currentLLM = new MockLLM();
+      }
+      return currentLLM;
+    },
+    setGlobalLLM: (instance: unknown) => {
+      currentLLM = instance;
+    },
+  };
+});
+
 describe("ContextEngineer", () => {
   let memory: SemanticMemory;
+  const deterministicEmbedding = async (text: string): Promise<number[]> => {
+    const lower = text.toLowerCase();
+    const vector = new Array(8).fill(0);
+    vector[0] = lower.includes("wifi") ? 1 : 0;
+    vector[1] = lower.includes("network") ? 1 : 0;
+    vector[2] = lower.includes("scan") ? 1 : 0;
+    vector[3] = lower.includes("ios") ? 1 : 0;
+    vector[4] = lower.includes("corewlan") ? 1 : 0;
+    vector[5] = lower.includes("battery") ? 1 : 0;
+    vector[6] = lower.length / 100;
+    vector[7] = 1;
+    return vector;
+  };
 
   beforeEach(async () => {
     setGlobalLLM(null);
     await vectorStore.waitUntilReady();
     vectorStore.clearAll();
     memory = await createSemanticMemory();
+    memory.setEmbeddingFunction(deterministicEmbedding);
   });
 
   afterEach(() => {
@@ -39,8 +79,8 @@ describe("ContextEngineer", () => {
     });
 
     expect(result.messages[0].role).toBe("system");
-    expect(result.messages[0].content).toContain("Relevant information");
     expect(result.contextEntries.length).toBeGreaterThan(0);
+    expect(result.messages[0].content.toLowerCase()).toContain("relevant information");
     expect(result.messages[result.messages.length - 1].content).toContain("WiFi");
   });
 });

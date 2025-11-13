@@ -1,7 +1,36 @@
-import type { OnDeviceLLM } from "../on-device-llm";
-import { setGlobalLLM } from "../on-device-llm";
 import { createSemanticMemory } from "../semantic-memory";
 import { vectorStore } from "../vector-store";
+
+type MockOnDeviceLLM = {
+  getModelInfo: () => { isInitialized: boolean; modelPath: string | null; modelConfig: unknown };
+  embed: (text: string) => Promise<number[]>;
+};
+
+jest.mock("../on-device-llm", () => {
+  class MockLLM {
+    getModelInfo() {
+      return { isInitialized: false, modelPath: null, modelConfig: null };
+    }
+
+    async embed(): Promise<number[]> {
+      throw new Error("Mock embed not implemented");
+    }
+  }
+
+  let currentLLM: unknown | null = null;
+
+  return {
+    getGlobalLLM: () => {
+      if (!currentLLM) {
+        currentLLM = new MockLLM();
+      }
+      return currentLLM;
+    },
+    setGlobalLLM: (instance: unknown) => {
+      currentLLM = instance;
+    },
+  };
+});
 
 const FALLBACK_LENGTH = 384;
 
@@ -30,6 +59,8 @@ class ToggleLLM {
 }
 
 describe("SemanticMemory", () => {
+  const { setGlobalLLM } = jest.requireMock("../on-device-llm");
+
   beforeEach(async () => {
     setGlobalLLM(null);
     await vectorStore.waitUntilReady();
@@ -46,7 +77,7 @@ describe("SemanticMemory", () => {
       embed: async () => {
         throw new Error("embed should not be called when model is unavailable");
       },
-    } as unknown as OnDeviceLLM;
+    } as unknown as MockOnDeviceLLM;
 
     setGlobalLLM(unavailableLLM);
 
@@ -68,7 +99,7 @@ describe("SemanticMemory", () => {
     const warnSpy = jest.spyOn(console, "warn");
 
     const llm = new ToggleLLM(createUnitVector());
-    setGlobalLLM(llm as unknown as OnDeviceLLM);
+    setGlobalLLM(llm as unknown as MockOnDeviceLLM);
 
     const memory = await createSemanticMemory();
 

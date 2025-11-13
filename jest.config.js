@@ -8,5 +8,9 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
     "^expo-file-system$": "<rootDir>/__mocks__/expo-file-system.ts",
+    "^expo-device$": "<rootDir>/__mocks__/expo-device.ts",
+    "^expo-crypto$": "<rootDir>/__mocks__/expo-crypto.ts",
+    "^expo-secure-store$": "<rootDir>/__mocks__/expo-secure-store.ts",
+    "^react-native$": "<rootDir>/__mocks__/react-native.ts",
   },
 };
