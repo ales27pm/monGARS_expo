@@ -28,7 +28,8 @@ function parseArgs(argv) {
 }
 
 function bumpVersion(version, releaseType) {
-  const parts = version.split(".").map((part) => Number.parseInt(part, 10));
+  const coreVersion = version.split("-")[0];
+  const parts = coreVersion.split(".").map((part) => Number.parseInt(part, 10));
   if (parts.length !== 3 || parts.some(Number.isNaN)) {
     throw new Error(`Unsupported version format: ${version}`);
   }
