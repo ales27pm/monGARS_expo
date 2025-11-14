@@ -63,7 +63,10 @@ function redactSecretPreview(secret) {
   return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
 }
 
-const ANSI_ESCAPE_PATTERN = /\u001B\[[0-?]*[ -\/]*[@-~]/g;
+const ANSI_ESCAPE_PATTERN = new RegExp(
+  `${String.fromCharCode(27)}\\[[0-?]*[ -\\/]*[@-~]`,
+  "g",
+);
 
 function stripAnsiCodes(value) {
   if (typeof value !== "string" || value.length === 0) {
