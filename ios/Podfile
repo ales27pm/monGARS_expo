@@ -61,21 +61,14 @@ target 'MonGARS' do
       end
     end
 
-    %w[
-      expo-dev-menu
-      expo-dev-menu-Main
-      expo-dev-menu-ReactNativeCompatibles
-      expo-dev-menu-SafeAreaView
-      expo-dev-menu-Vendored
-    ].each do |target_name|
-      target = installer.pods_project.targets.find { |pods_target| pods_target.name == target_name }
-      next unless target
+    installer.pods_project.targets.each do |target|
+      if target.name.start_with?('expo-dev-menu')
+        target.build_configurations.each do |config|
+          next if config.build_settings['DEFINES_MODULE'] == 'YES'
 
-      target.build_configurations.each do |config|
-        next if config.build_settings['DEFINES_MODULE'] == 'YES'
-
-        Pod::UI.puts "Setting DEFINES_MODULE=YES for #{target_name} to keep CocoaPods xcconfig in sync."
-        config.build_settings['DEFINES_MODULE'] = 'YES'
+          Pod::UI.puts "Setting DEFINES_MODULE=YES for #{target.name} to keep CocoaPods xcconfig in sync."
+          config.build_settings['DEFINES_MODULE'] = 'YES'
+        end
       end
     end
   end
