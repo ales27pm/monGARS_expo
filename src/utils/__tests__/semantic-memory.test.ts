@@ -1,4 +1,5 @@
 import { createSemanticMemory } from "../semantic-memory";
+import { setGlobalLLM } from "../on-device-llm";
 import { vectorStore } from "../vector-store";
 
 type MockOnDeviceLLM = {
@@ -59,16 +60,16 @@ class ToggleLLM {
 }
 
 describe("SemanticMemory", () => {
-  const { setGlobalLLM } = jest.requireMock("../on-device-llm");
+  const setGlobalLLMMock = setGlobalLLM as unknown as (instance: unknown) => void;
 
   beforeEach(async () => {
-    setGlobalLLM(null);
+    setGlobalLLMMock(null);
     await vectorStore.waitUntilReady();
     vectorStore.clearAll();
   });
 
   afterEach(() => {
-    setGlobalLLM(null);
+    setGlobalLLMMock(null);
   });
 
   it("falls back to hash embeddings when on-device model is unavailable", async () => {
@@ -79,7 +80,7 @@ describe("SemanticMemory", () => {
       },
     } as unknown as MockOnDeviceLLM;
 
-    setGlobalLLM(unavailableLLM);
+    setGlobalLLMMock(unavailableLLM);
 
     const memory = await createSemanticMemory();
 
@@ -99,7 +100,7 @@ describe("SemanticMemory", () => {
     const warnSpy = jest.spyOn(console, "warn");
 
     const llm = new ToggleLLM(createUnitVector());
-    setGlobalLLM(llm as unknown as MockOnDeviceLLM);
+    setGlobalLLMMock(llm as unknown as MockOnDeviceLLM);
 
     const memory = await createSemanticMemory();
 
