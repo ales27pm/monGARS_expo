@@ -3,7 +3,7 @@
     "name": "monGARS",
     "slug": "offllm-app-store-fixer",
     "scheme": "mongars",
-    "version": "1.0.5",
+    "version": "1.0.10",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
