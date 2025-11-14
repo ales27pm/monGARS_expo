@@ -63,6 +63,27 @@ function redactSecretPreview(secret) {
   return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
 }
 
+const ANSI_ESCAPE_PATTERN = /\u001B\[[0-?]*[ -\/]*[@-~]/g;
+
+function stripAnsiCodes(value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return value;
+  }
+  return value.replace(ANSI_ESCAPE_PATTERN, "");
+}
+
+function looksLikeJson(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trimStart();
+  if (!trimmed) {
+    return false;
+  }
+  const firstChar = trimmed[0];
+  return firstChar === "{" || firstChar === "[";
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -217,23 +238,35 @@ function buildExpoAuthEnv(token) {
 }
 
 function parseEasWhoamiText(output) {
-  const lines = output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length === 0) {
+  if (!output) {
     return null;
   }
 
-  const match = lines[0].match(/^(?<username>[A-Za-z0-9._-]+)(?:\s*\(owner:\s*(?<owner>[A-Za-z0-9._-]+)\))?/i);
-  if (!match?.groups?.username) {
+  const normalized = stripAnsiCodes(output)
+    .replace(/\uFEFF/g, "")
+    .trim();
+  if (!normalized) {
     return null;
   }
 
-  return {
-    username: match.groups.username,
-    ownerSlug: match.groups.owner ?? null,
-  };
+  const ownerMatch = normalized.match(/owner\s*[:=]\s*([A-Za-z0-9._-]+)/i);
+  const patterns = [
+    /Logged in as\s+([A-Za-z0-9._-]+)/i,
+    /^User\s*[:=]\s*([A-Za-z0-9._-]+)/im,
+    /^([A-Za-z0-9._-]+)(?:\s|\(|$)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (match?.[1]) {
+      return {
+        username: match[1],
+        ownerSlug: ownerMatch?.[1] ?? null,
+      };
+    }
+  }
+
+  return null;
 }
 
 async function validateExpoToken() {
@@ -252,37 +285,52 @@ async function validateExpoToken() {
     const { stdout } = await runEasCommand(["whoami", "--json", "--non-interactive"], {
       env: buildExpoAuthEnv(tokenInfo.value),
     });
-    const trimmed = stdout?.trim() ?? "";
-    if (!trimmed) {
+    const trimmed = stdout ?? "";
+    const sanitized = stripAnsiCodes(trimmed).trim();
+    if (!sanitized) {
       throw new Error("`eas whoami --json` returned no output.");
     }
 
-    try {
-      const info = JSON.parse(trimmed);
-      const username = info?.user?.username ?? "unknown user";
-      const ownerSlug = info?.user?.ownerSlug ?? null;
-      console.log(`✅ Authenticated as ${username}`);
-      if (ownerSlug) {
-        console.log(`   Owner: ${ownerSlug}`);
-      }
-      return true;
-    } catch (parseError) {
-      const fallback = parseEasWhoamiText(trimmed);
-      if (fallback) {
-        console.warn("⚠️  `eas whoami --json` produced non-JSON output. Parsed fallback text format from CLI.");
-        console.log(`✅ Authenticated as ${fallback.username}`);
-        if (fallback.ownerSlug) {
-          console.log(`   Owner: ${fallback.ownerSlug}`);
+    if (looksLikeJson(sanitized)) {
+      try {
+        const info = JSON.parse(sanitized);
+        const username = info?.user?.username ?? "unknown user";
+        const ownerSlug = info?.user?.ownerSlug ?? null;
+        console.log(`✅ Authenticated as ${username}`);
+        if (ownerSlug) {
+          console.log(`   Owner: ${ownerSlug}`);
         }
         return true;
-      }
+      } catch (parseError) {
+        const fallback = parseEasWhoamiText(sanitized);
+        if (fallback) {
+          console.warn("⚠️  `eas whoami --json` produced malformed JSON. Parsed fallback text format from CLI output.");
+          console.log(`✅ Authenticated as ${fallback.username}`);
+          if (fallback.ownerSlug) {
+            console.log(`   Owner: ${fallback.ownerSlug}`);
+          }
+          return true;
+        }
 
-      const error = new SyntaxError(
-        `Failed to parse JSON from \`eas whoami --json\`. Raw output: ${trimmed.slice(0, 200)}`,
-      );
-      error.cause = parseError;
-      throw error;
+        const error = new SyntaxError(
+          `Failed to parse JSON from \`eas whoami --json\`. Raw output: ${sanitized.slice(0, 200)}`,
+        );
+        error.cause = parseError;
+        throw error;
+      }
     }
+
+    const fallback = parseEasWhoamiText(sanitized);
+    if (fallback) {
+      console.warn("⚠️  `eas whoami --json` returned plain-text output. Parsed CLI response.");
+      console.log(`✅ Authenticated as ${fallback.username}`);
+      if (fallback.ownerSlug) {
+        console.log(`   Owner: ${fallback.ownerSlug}`);
+      }
+      return true;
+    }
+
+    throw new Error(`Unrecognized output from \`eas whoami --json\`: ${sanitized.slice(0, 200)}`);
   } catch (error) {
     console.error("⚠️  Failed to verify EXPO_TOKEN with `eas whoami`. Trying direct API request...");
     logErrorDetails("   CLI error: ", error);
