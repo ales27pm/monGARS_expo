@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { execFile as execFileCb } from "node:child_process";
-import { promisify } from "node:util";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
 import crypto from "node:crypto";
+import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
 
@@ -33,6 +36,19 @@ async function runEasCommand(args, options = {}) {
         ...options,
         env: mergedEnv,
       });
+    }
+    throw error;
+  }
+}
+
+async function runOpenssl(args, options = {}) {
+  try {
+    return await execFile("openssl", args, options);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error(
+        "The `openssl` binary is not available in PATH. Install OpenSSL so the P12 certificate can be inspected.",
+      );
     }
     throw error;
   }
@@ -245,6 +261,209 @@ async function validateAscAppId(jwt) {
   }
 }
 
+function parseCertificateDetails(rawOutput) {
+  const details = {};
+  for (const line of rawOutput.split(/\r?\n/)) {
+    if (!line) {
+      continue;
+    }
+    const [key, ...rest] = line.split("=");
+    if (!key || rest.length === 0) {
+      continue;
+    }
+    const value = rest.join("=").trim();
+    switch (key.trim().toLowerCase()) {
+      case "subject":
+        details.subject = value;
+        break;
+      case "issuer":
+        details.issuer = value;
+        break;
+      case "serial":
+        details.serial = value.toUpperCase();
+        break;
+      case "notafter":
+        details.notAfter = value;
+        break;
+      default:
+        break;
+    }
+  }
+  return details;
+}
+
+function extractTeamIdFromSubject(subject) {
+  if (!subject) {
+    return null;
+  }
+  const match = subject.match(/\(([A-Z0-9]{10})\)/);
+  return match ? match[1] : null;
+}
+
+async function extractP12CertificateInfo(p12Base64, password) {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "validate-p12-"));
+  const p12Path = path.join(tempDir, "certificate.p12");
+  const passwordPath = path.join(tempDir, "password.txt");
+  const certPath = path.join(tempDir, "certificate.pem");
+
+  try {
+    const normalized = p12Base64.replace(/\s+/g, "");
+    const buffer = Buffer.from(normalized, "base64");
+    if (!buffer.length) {
+      throw new Error("Decoded P12 certificate is empty. Confirm the base64 string is valid.");
+    }
+
+    await writeFile(p12Path, buffer);
+    await writeFile(passwordPath, password ?? "");
+
+    await runOpenssl([
+      "pkcs12",
+      "-in",
+      p12Path,
+      "-passin",
+      `file:${passwordPath}`,
+      "-clcerts",
+      "-nokeys",
+      "-out",
+      certPath,
+    ]);
+
+    const { stdout } = await runOpenssl([
+      "x509",
+      "-in",
+      certPath,
+      "-noout",
+      "-subject",
+      "-issuer",
+      "-serial",
+      "-enddate",
+    ]);
+
+    return parseCertificateDetails(stdout);
+  } catch (error) {
+    if (error?.stderr) {
+      console.error(error.stderr);
+    }
+    throw error;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function validateP12Certificate(apiKeyResult) {
+  logSection("Checking iOS Distribution Certificate (P12)");
+  const p12Info = getFirstValue([
+    "APPLE_CERTIFICATE",
+    "IOS_P12_BASE64",
+    "EXPO_IOS_DIST_P12",
+    "EXPO_IOS_DIST_P12_BASE64",
+  ]);
+  const passwordInfo = getFirstValue(["APPLE_CERTIFICATE_PASSWORD", "IOS_P12_PASSWORD", "EXPO_IOS_DIST_P12_PASSWORD"]);
+
+  if (!p12Info && !passwordInfo) {
+    console.log("ℹ️  No P12 certificate secrets provided.");
+    return { ok: false, provided: false };
+  }
+
+  if (!p12Info || !passwordInfo) {
+    console.error("❌ Provide both the base64-encoded P12 certificate and its password.");
+    return { ok: false, provided: true };
+  }
+
+  if (!apiKeyResult?.jwt) {
+    console.error(
+      "❌ Cannot verify the P12 certificate with App Store Connect because API key credentials are missing or invalid.",
+    );
+    return { ok: false, provided: true };
+  }
+
+  try {
+    const certificate = await extractP12CertificateInfo(p12Info.value, passwordInfo.value);
+    const serial = certificate.serial?.replace(/^serial=/i, "")?.replace(/:/g, "");
+    if (!serial) {
+      console.error("❌ Unable to read the certificate serial number from the P12 file.");
+      return { ok: false, provided: true };
+    }
+
+    const expiryString = certificate.notAfter;
+    if (!expiryString) {
+      console.error("❌ Unable to determine the certificate expiration date.");
+      return { ok: false, provided: true };
+    }
+
+    const expiryDate = new Date(expiryString);
+    if (Number.isNaN(expiryDate.getTime())) {
+      console.error(`❌ Failed to parse certificate expiration date: ${expiryString}`);
+      return { ok: false, provided: true };
+    }
+
+    const now = new Date();
+    if (expiryDate <= now) {
+      console.error(`❌ Certificate expired on ${expiryDate.toUTCString()}.`);
+      return { ok: false, provided: true };
+    }
+
+    const daysUntilExpiry = Math.round((expiryDate - now) / (1000 * 60 * 60 * 24));
+    const subject = certificate.subject?.replace(/^subject=/i, "");
+    const teamId = extractTeamIdFromSubject(subject ?? "");
+    console.log(
+      `✅ Extracted certificate serial ${serial.toUpperCase()} (team ${teamId ?? "unknown"}) valid until ${expiryDate.toUTCString()} (${daysUntilExpiry} day(s) remaining).`,
+    );
+
+    const url = new URL("https://api.appstoreconnect.apple.com/v1/certificates");
+    url.searchParams.set("filter[serialNumber]", serial.toUpperCase());
+    url.searchParams.set("limit", "1");
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKeyResult.jwt}`,
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(
+        `❌ App Store Connect request for certificate serial ${serial.toUpperCase()} failed with status ${response.status}.`,
+      );
+      if (body) {
+        console.error(body);
+      }
+      return { ok: false, provided: true };
+    }
+
+    const json = await response.json();
+    const certificates = Array.isArray(json?.data) ? json.data : [];
+    if (certificates.length === 0) {
+      console.error(
+        `❌ No App Store Connect certificate with serial ${serial.toUpperCase()} was found. Upload the correct certificate to ASC.`,
+      );
+      return { ok: false, provided: true };
+    }
+
+    const certificateRecord = certificates[0];
+    const attributes = certificateRecord?.attributes ?? {};
+    console.log(
+      `✅ App Store Connect recognizes the certificate as "${attributes.name ?? "unknown"}" (${attributes.certificateType ?? "unknown type"}).`,
+    );
+
+    if (attributes.expirationDate) {
+      const ascExpiry = new Date(attributes.expirationDate);
+      if (Number.isNaN(ascExpiry.getTime())) {
+        console.warn(`⚠️  App Store Connect returned an unparseable expiration date: ${attributes.expirationDate}.`);
+      } else if (ascExpiry <= now) {
+        console.error(`❌ App Store Connect reports the certificate expired on ${ascExpiry.toUTCString()}.`);
+        return { ok: false, provided: true };
+      }
+    }
+
+    return { ok: true, provided: true };
+  } catch (error) {
+    console.error("❌ Failed to validate the P12 certificate with App Store Connect.");
+    console.error(error.message ?? error);
+    return { ok: false, provided: true };
+  }
+}
+
 async function main() {
   let overallSuccess = true;
 
@@ -254,9 +473,8 @@ async function main() {
     process.chdir(env.GITHUB_WORKSPACE);
   }
 
-  const fs = await import("node:fs/promises");
   try {
-    await fs.access("eas.json");
+    await access("eas.json");
     console.log("✅ eas.json found.");
   } catch {
     console.error("❌ eas.json not found.");
@@ -286,6 +504,11 @@ async function main() {
   const appIdResult = await validateAscAppId(apiKeyResult.jwt);
   if (appIdResult.provided) {
     overallSuccess &&= appIdResult.ok;
+  }
+
+  const p12Result = await validateP12Certificate(apiKeyResult);
+  if (p12Result.provided) {
+    overallSuccess &&= p12Result.ok;
   }
 
   console.log("\n==========================================");
