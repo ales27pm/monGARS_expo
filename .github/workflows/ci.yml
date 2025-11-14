@@ -131,22 +131,46 @@ jobs:
           - Bun cache: ${cache_status}
           SUMMARY
 
-          should_fail=false
-          for outcome in "$LINT_OUTCOME" "$TYPECHECK_OUTCOME" "$TEST_OUTCOME"; do
-            if [ "$outcome" != "success" ]; then
-              should_fail=true
-              break
-            fi
-          done
+          should_fail="false"
+          failing_checks=""
 
-          if [ "$should_fail" = true ]; then
-            echo "should_fail=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_fail=false" >> "$GITHUB_OUTPUT"
+          track_failure() {
+            local label="$1"
+            local outcome="$2"
+
+            case "$outcome" in
+              success|skipped)
+                return 0
+                ;;
+            esac
+
+            should_fail="true"
+            if [ -z "$failing_checks" ]; then
+              failing_checks="$label"
+            else
+              failing_checks="$failing_checks, $label"
+            fi
+          }
+
+          track_failure "Lint" "$LINT_OUTCOME"
+          track_failure "Typecheck" "$TYPECHECK_OUTCOME"
+          track_failure "Tests" "$TEST_OUTCOME"
+
+          printf 'should_fail=%s\n' "$should_fail" >> "$GITHUB_OUTPUT"
+          printf 'CI_SHOULD_FAIL=%s\n' "$should_fail" >> "$GITHUB_ENV"
+
+          if [ -n "$failing_checks" ]; then
+            printf 'failed_checks=%s\n' "$failing_checks" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Mark workflow as failed when gates break
-        if: ${{ steps.summarise.outputs.should_fail == 'true' }}
+        if: ${{ fromJSON(steps.summarise.outputs.should_fail) }}
+        env:
+          FAILED_CHECKS: ${{ steps.summarise.outputs.failed_checks }}
         run: |
-          echo "::error::One or more quality checks failed. See the summary above for details."
+          if [ -n "$FAILED_CHECKS" ]; then
+            echo "::error::One or more quality checks failed (${FAILED_CHECKS}). See the summary above for details."
+          else
+            echo "::error::One or more quality checks failed. See the summary above for details."
+          fi
           exit 1
