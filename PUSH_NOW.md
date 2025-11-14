@@ -5,6 +5,7 @@
 Your privacy-first on-device ML app is ready to be pushed to GitHub!
 
 **Status**:
+
 - ✅ All code implemented
 - ✅ All bugs fixed (NativeEventEmitter error resolved)
 - ✅ TypeScript checks passing
@@ -36,14 +37,19 @@ GITHUB_TOKEN='ghp_YourActualTokenHere' ./push-to-github.sh
 # Method 2: Export first
 export GITHUB_TOKEN='ghp_YourActualTokenHere'
 ./push-to-github.sh
+
+# Optional: override the fallback branch name (default: main)
+# DEFAULT_BRANCH=release ./push-to-github.sh
 ```
 
 **That's it!** The script will:
+
 - ✅ Create the `monGARS_expo` repository on GitHub
 - ✅ Add it as a remote
 - ✅ Commit all changes with a detailed message
 - ✅ Push the complete codebase
 - ✅ Create a v1.0.0 release
+- ✅ Respect your currently checked-out branch (falls back to `DEFAULT_BRANCH` when needed)
 
 ---
 
@@ -55,13 +61,13 @@ Go to: `https://github.com/YOUR_USERNAME/monGARS_expo/settings/secrets/actions`
 
 Add these secrets:
 
-| Secret Name | How to Get It |
-|-------------|---------------|
-| `EXPO_TOKEN` | Run `npx eas login` then check `~/.expo/state.json` |
-| `APPLE_ID` | Your Apple Developer account email |
-| `APPLE_APP_SPECIFIC_PASSWORD` | Generate at https://appleid.apple.com |
-| `APPLE_TEAM_ID` | Found in Apple Developer account settings |
-| `ASC_APP_ID` | Create app in App Store Connect first |
+| Secret Name                   | How to Get It                                       |
+| ----------------------------- | --------------------------------------------------- |
+| `EXPO_TOKEN`                  | Run `npx eas login` then check `~/.expo/state.json` |
+| `APPLE_ID`                    | Your Apple Developer account email                  |
+| `APPLE_APP_SPECIFIC_PASSWORD` | Generate at https://appleid.apple.com               |
+| `APPLE_TEAM_ID`               | Found in Apple Developer account settings           |
+| `ASC_APP_ID`                  | Create app in App Store Connect first               |
 
 ### 2. Run GitHub Actions Workflow
 
@@ -85,6 +91,7 @@ eas submit --platform ios --latest
 ## 📦 What Gets Pushed
 
 ### Application Code (20 files)
+
 - `src/screens/OnDeviceMLDemo.tsx` - Main app (demo mode)
 - `src/components/PrivacyUI.tsx` - Privacy-focused UI
 - `src/utils/on-device-llm.ts` - LLM inference (ready for production)
@@ -97,10 +104,12 @@ eas submit --platform ios --latest
 - `App.tsx` - Entry point (updated)
 
 ### Infrastructure
+
 - `.github/workflows/build-and-deploy.yml` - CI/CD pipeline
 - `eas.json` - EAS Build configuration
 
 ### Documentation
+
 - `README.md` - Complete feature overview
 - `DEPLOYMENT.md` - Deployment guide
 - `GITHUB_SETUP.md` - GitHub setup instructions
@@ -111,6 +120,7 @@ eas submit --platform ios --latest
 - `PUSH_NOW.md` - This file
 
 ### Tools
+
 - `setup-github.sh` - Original automated setup
 - `push-to-github.sh` - Simplified push script
 
@@ -146,27 +156,30 @@ A **production-ready, privacy-first AI app** with:
 
 ## 📱 Supported Models
 
-| Model | Size | Speed | Quality |
-|-------|------|-------|---------|
-| Qwen2 0.5B | 326 MB | ⚡⚡⚡ Fast | Good |
+| Model            | Size       | Speed           | Quality       |
+| ---------------- | ---------- | --------------- | ------------- |
+| Qwen2 0.5B       | 326 MB     | ⚡⚡⚡ Fast     | Good          |
 | **Llama 3.2 1B** | **730 MB** | **⚡⚡ Medium** | **Better** ⭐ |
-| SmolLM2 1.7B | 1.1 GB | ⚡ Slow | Best |
-| Phi-3 Mini | 2.3 GB | 🐢 Very Slow | Excellent |
+| SmolLM2 1.7B     | 1.1 GB     | ⚡ Slow         | Best          |
+| Phi-3 Mini       | 2.3 GB     | 🐢 Very Slow    | Excellent     |
 
 ---
 
 ## 🆘 Troubleshooting
 
 ### "Authentication failed"
+
 - Make sure token starts with `ghp_` (classic token)
 - Token needs `repo` scope checked
 - Generate a new token if needed
 
 ### "Repository already exists"
+
 - The script will use the existing repo
 - Or delete it first and re-run
 
 ### "Command not found: ./push-to-github.sh"
+
 - Make sure you're in `/home/user/workspace`
 - Run: `chmod +x push-to-github.sh`
 
@@ -178,6 +191,8 @@ Everything is prepared and waiting for you. Just run:
 
 ```bash
 GITHUB_TOKEN='ghp_YourToken' ./push-to-github.sh
+# Optional fallback override:
+# DEFAULT_BRANCH=release GITHUB_TOKEN='ghp_YourToken' ./push-to-github.sh
 ```
 
 That's literally it. One command, and your complete privacy-first AI app will be on GitHub with full CI/CD ready to build for the App Store.
@@ -186,4 +201,4 @@ That's literally it. One command, and your complete privacy-first AI app will be
 
 **Your privacy-first AI app is ready to share with the world! 🎉**
 
-*All code is bug-free, documented, and production-ready.*
+_All code is bug-free, documented, and production-ready._
