@@ -225,6 +225,68 @@ jobs:
           # Share the resolved path with subsequent steps (non-sensitive)
           echo "SIGNING_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
+      - name: 🛡️ Install Apple signing certificate chain
+        shell: bash
+        env:
+          KEYCHAIN_PATH: ${{ steps.resolve_keychain.outputs.path }}
+          KEYCHAIN_PASSWORD: ${{ steps.import_certs.outputs['keychain-password'] }}
+        run: |
+          set -euo pipefail
+          IFS=$'\n\t'
+
+          if [ -z "${KEYCHAIN_PATH:-}" ]; then
+            echo "::error::Signing keychain path missing."
+            exit 1
+          fi
+
+          if [ ! -f "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain $KEYCHAIN_PATH not found."
+            exit 1
+          fi
+
+          if [ -n "${KEYCHAIN_PASSWORD:-}" ]; then
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          fi
+
+          import_certificate() {
+            local url="$1"
+            local name="$2"
+
+            if security find-certificate -c "$name" "$KEYCHAIN_PATH" >/dev/null 2>&1; then
+              echo "Certificate '$name' already present; skipping download."
+              return 0
+            fi
+
+            local tmp
+            tmp=$(mktemp)
+
+            if ! curl -fsSL "$url" -o "$tmp"; then
+              echo "::warning::Failed to download certificate '$name' from $url"
+              rm -f "$tmp"
+              return 0
+            fi
+
+            if ! security import "$tmp" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security >/dev/null 2>&1; then
+              echo "::warning::security import reported an issue while adding '$name'"
+              security import "$tmp" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security || true
+            fi
+
+            rm -f "$tmp"
+          }
+
+          certificates=(
+            "https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer|Apple Worldwide Developer Relations Certification Authority G4"
+            "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer|Apple Worldwide Developer Relations Certification Authority G3"
+            "https://www.apple.com/certificateauthority/AppleWWDRCA.cer|Apple Worldwide Developer Relations Certification Authority"
+            "https://www.apple.com/appleca/AppleIncRootCertificate.cer|Apple Inc. Root Certificate"
+          )
+
+          for entry in "${certificates[@]}"; do
+            url="${entry%%|*}"
+            name="${entry#*|}"
+            import_certificate "$url" "$name"
+          done
+
       - name: 🔍 Verify signing keychain
         shell: bash
         run: |
