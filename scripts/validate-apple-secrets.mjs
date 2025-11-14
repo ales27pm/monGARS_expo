@@ -10,6 +10,212 @@ const execFile = promisify(execFileCb);
 
 const env = process.env;
 
+function formatErrorDetails(error) {
+  if (!error || typeof error !== "object") {
+    return String(error);
+  }
+
+  const fragments = [];
+  if (error.name && error.message) {
+    fragments.push(`${error.name}: ${error.message}`);
+  } else if (error.message) {
+    fragments.push(error.message);
+  } else if (error.toString !== Object.prototype.toString) {
+    fragments.push(String(error));
+  }
+
+  if (error.code) {
+    fragments.push(`code=${error.code}`);
+  }
+  if (error.signal) {
+    fragments.push(`signal=${error.signal}`);
+  }
+  if (error.status) {
+    fragments.push(`status=${error.status}`);
+  }
+  if (error.cause) {
+    fragments.push(`cause=${formatErrorDetails(error.cause)}`);
+  }
+
+  if (error.stack) {
+    fragments.push(`stack=${error.stack}`);
+  }
+
+  return fragments.join(" | ");
+}
+
+function logErrorDetails(prefix, error) {
+  const message = formatErrorDetails(error);
+  if (message) {
+    console.error(`${prefix}${message.includes("\n") ? "\n" : ""}${message}`);
+  } else {
+    console.error(prefix);
+  }
+}
+
+function redactSecretPreview(secret) {
+  if (typeof secret !== "string" || secret.length === 0) {
+    return "(empty)";
+  }
+  if (secret.length <= 8) {
+    return `${secret[0]}***${secret[secret.length - 1]}`;
+  }
+  return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
+}
+
+const ANSI_ESCAPE_PATTERN = new RegExp(
+  `${String.fromCharCode(27)}\\[[0-?]*[ -\\/]*[@-~]`,
+  "g",
+);
+
+function stripAnsiCodes(value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return value;
+  }
+  return value.replace(ANSI_ESCAPE_PATTERN, "");
+}
+
+function looksLikeJson(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trimStart();
+  if (!trimmed) {
+    return false;
+  }
+  const firstChar = trimmed[0];
+  return firstChar === "{" || firstChar === "[";
+}
+
+function extractFirstJsonBlock(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const startIndex = value.search(/[\[{]/);
+  if (startIndex === -1) {
+    return null;
+  }
+
+  const stack = [];
+  let inString = false;
+  let escaping = false;
+
+  for (let i = startIndex; i < value.length; i += 1) {
+    const char = value[i];
+
+    if (inString) {
+      if (escaping) {
+        escaping = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaping = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      stack.push(char === "{" ? "}" : "]");
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      const expected = stack.pop();
+      if (!expected || char !== expected) {
+        return null;
+      }
+      if (stack.length === 0) {
+        return value.slice(startIndex, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+function createJsonParseError(raw, cause) {
+  const preview = raw.slice(0, 200);
+  const error = new SyntaxError(`Failed to parse JSON from \`eas whoami --json\`. Raw output preview: ${preview}`);
+  if (cause) {
+    error.cause = cause;
+  }
+  return error;
+}
+
+function tryParseWhoamiJson(raw) {
+  if (typeof raw !== "string") {
+    return { result: null, error: null };
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { result: null, error: null };
+  }
+
+  const candidateSet = new Set();
+  if (looksLikeJson(trimmed)) {
+    candidateSet.add(trimmed);
+  }
+
+  const extracted = extractFirstJsonBlock(trimmed);
+  if (extracted) {
+    candidateSet.add(extracted.trim());
+  }
+
+  for (const line of trimmed.split(/\r?\n+/)) {
+    const lineTrimmed = line.trim();
+    if (!lineTrimmed) {
+      continue;
+    }
+    if (looksLikeJson(lineTrimmed)) {
+      candidateSet.add(lineTrimmed);
+    }
+  }
+
+  let lastError = null;
+  for (const candidate of candidateSet) {
+    try {
+      return { result: JSON.parse(candidate), error: null };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    return { result: null, error: createJsonParseError(trimmed, lastError) };
+  }
+
+  return { result: null, error: null };
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function logSection(title) {
   console.log("\n==========================================");
   console.log(title);
@@ -37,6 +243,13 @@ async function runEasCommand(args, options = {}) {
         env: mergedEnv,
       });
     }
+    if (error?.stderr) {
+      console.error(error.stderr);
+    }
+    if (error?.stdout) {
+      console.error(error.stdout);
+    }
+    logErrorDetails(`❌ Failed to execute eas ${args.join(" ")}: `, error);
     throw error;
   }
 }
@@ -89,7 +302,7 @@ function createAscJwt({ keyId, issuerId, privateKey }) {
 
 async function fetchExpoWhoami(token) {
   try {
-    const response = await fetch("https://exp.host/--/api/v2/auth/whoami", {
+    const response = await fetchWithTimeout("https://exp.host/--/api/v2/auth/whoami", {
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "application/json",
@@ -97,8 +310,19 @@ async function fetchExpoWhoami(token) {
     });
 
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+      const contentType = response.headers.get("content-type") ?? "unknown";
+      let bodyText = "";
+      try {
+        bodyText = await response.text();
+      } catch (bodyError) {
+        bodyText = `<<failed to read body: ${formatErrorDetails(bodyError)}>>`;
+      }
+      const summary = bodyText ? bodyText.slice(0, 500) : "(no body)";
+      const error = new Error(
+        `HTTP ${response.status} while calling Expo whoami. content-type=${contentType}. body=${summary}`,
+      );
+      error.status = response.status;
+      throw error;
     }
 
     const json = await response.json();
@@ -127,6 +351,54 @@ function buildExpoAuthEnv(token) {
   };
 }
 
+function parseEasWhoamiText(output) {
+  if (!output) {
+    return null;
+  }
+
+  const sanitized = stripAnsiCodes(output).replace(/\uFEFF/g, "");
+  const trimmed = sanitized.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const lines = trimmed
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const plainTextLines = lines.filter((line) => !looksLikeJson(line));
+  if (plainTextLines.length === 0) {
+    return null;
+  }
+
+  const combined = plainTextLines.join("\n");
+  const ownerMatch = combined.match(/owner(?:\s+slug)?\s*[:=]\s*([A-Za-z0-9._-]+)/i);
+  const patterns = [
+    /Logged in as\s+([A-Za-z0-9._-]+)/i,
+    /Authenticated(?:\s+successfully)?\s+as\s+([A-Za-z0-9._-]+)/i,
+    /Signed in as\s+([A-Za-z0-9._-]+)/i,
+    /^User\s*[:=]\s*([A-Za-z0-9._-]+)/im,
+    /^Account\s*[:=]\s*([A-Za-z0-9._-]+)/im,
+    /^([A-Za-z0-9._-]+)(?:\s|\(|$)/m,
+  ];
+
+  for (const pattern of patterns) {
+    const match = combined.match(pattern);
+    if (match?.[1]) {
+      return {
+        username: match[1],
+        ownerSlug: ownerMatch?.[1] ?? null,
+      };
+    }
+  }
+
+  return null;
+}
+
 async function validateExpoToken() {
   logSection("Checking Expo (EAS) authentication");
   const tokenInfo = getFirstValue(["EXPO_TOKEN", "EAS_ACCESS_TOKEN", "EXPO_CLI_TOKEN"]);
@@ -135,24 +407,51 @@ async function validateExpoToken() {
     return false;
   }
 
+  console.log(
+    `ℹ️  Using ${tokenInfo.name} (length=${tokenInfo.value.length}, preview=${redactSecretPreview(tokenInfo.value)}).`,
+  );
+
   try {
     const { stdout } = await runEasCommand(["whoami", "--json", "--non-interactive"], {
       env: buildExpoAuthEnv(tokenInfo.value),
     });
-    const info = JSON.parse(stdout);
-    console.log(`✅ Authenticated as ${info?.user?.username ?? "unknown user"}`);
-    if (info?.user?.ownerSlug) {
-      console.log(`   Owner: ${info.user.ownerSlug}`);
+    const trimmed = stdout ?? "";
+    const sanitized = stripAnsiCodes(trimmed).replace(/\uFEFF/g, "");
+    const normalized = sanitized.trim();
+    if (!normalized) {
+      throw new Error("`eas whoami --json` returned no output.");
     }
-    return true;
+
+    const { result: jsonResult, error: jsonError } = tryParseWhoamiJson(normalized);
+    if (jsonResult) {
+      const user = jsonResult?.user ?? jsonResult?.data?.user ?? null;
+      const username = user?.username ?? jsonResult?.username ?? "unknown user";
+      const ownerSlug = user?.ownerSlug ?? jsonResult?.ownerSlug ?? null;
+      console.log(`✅ Authenticated as ${username}`);
+      if (ownerSlug) {
+        console.log(`   Owner: ${ownerSlug}`);
+      }
+      return true;
+    }
+
+    const fallback = parseEasWhoamiText(sanitized);
+    if (fallback) {
+      console.warn("⚠️  `eas whoami --json` returned plain-text output. Parsed CLI response.");
+      console.log(`✅ Authenticated as ${fallback.username}`);
+      if (fallback.ownerSlug) {
+        console.log(`   Owner: ${fallback.ownerSlug}`);
+      }
+      return true;
+    }
+
+    if (jsonError) {
+      throw jsonError;
+    }
+
+    throw new Error(`Unrecognized output from \`eas whoami --json\`: ${normalized.slice(0, 200)}`);
   } catch (error) {
     console.error("⚠️  Failed to verify EXPO_TOKEN with `eas whoami`. Trying direct API request...");
-    if (error?.stdout) {
-      console.error(error.stdout);
-    }
-    if (error?.stderr) {
-      console.error(error.stderr);
-    }
+    logErrorDetails("   CLI error: ", error);
   }
 
   try {
@@ -164,7 +463,12 @@ async function validateExpoToken() {
     return true;
   } catch (apiError) {
     console.error("❌ Failed to verify EXPO_TOKEN with both EAS CLI and Expo API.");
-    console.error(apiError.message ?? apiError);
+    logErrorDetails("   API error: ", apiError);
+    if (apiError?.status === 404) {
+      console.error(
+        "   The Expo API returned 404. Ensure the token is an active EAS access token and not scoped to a deleted account.",
+      );
+    }
     return false;
   }
 }
