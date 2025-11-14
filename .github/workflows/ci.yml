@@ -1,0 +1,200 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+  FORCE_COLOR: "1"
+  BUN_INSTALL_CACHE_DIR: ~/.cache/bun
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Restore Bun cache
+        id: cache-bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bun
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run lint
+        id: lint
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          bun run lint | tee lint.log
+
+      - name: Run typecheck
+        id: typecheck
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          bun run typecheck | tee typecheck.log
+
+      - name: Run tests
+        id: test
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          bun run test -- --ci --reporters=default --runInBand | tee test.log
+
+      - name: Upload logs on failure
+        if: ${{ steps.lint.outcome != 'success' || steps.typecheck.outcome != 'success' || steps.test.outcome != 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs
+          path: |
+            lint.log
+            typecheck.log
+            test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Summarise results
+        id: summarise
+        if: always()
+        env:
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          CACHE_HIT: ${{ steps.cache-bun.outputs.cache-hit }}
+        run: |
+          describe_outcome() {
+            case "$1" in
+              success)
+                printf '✅'
+                ;;
+              cancelled|skipped)
+                printf '⚠️'
+                ;;
+              *)
+                printf '❌'
+                ;;
+            esac
+          }
+
+          lint_icon="$(describe_outcome "$LINT_OUTCOME")"
+          typecheck_icon="$(describe_outcome "$TYPECHECK_OUTCOME")"
+          test_icon="$(describe_outcome "$TEST_OUTCOME")"
+
+          cache_status='miss'
+          if [ "$CACHE_HIT" = 'true' ]; then
+            cache_status='hit'
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          ## 🧪 CI results
+          - Lint: ${lint_icon} (${LINT_OUTCOME})
+          - Typecheck: ${typecheck_icon} (${TYPECHECK_OUTCOME})
+          - Tests: ${test_icon} (${TEST_OUTCOME})
+          - Bun cache: ${cache_status}
+          SUMMARY
+
+          should_fail="false"
+          failing_checks=""
+
+          track_failure() {
+            local label="$1"
+            local outcome="$2"
+
+            case "$outcome" in
+              success|skipped)
+                return 0
+                ;;
+            esac
+
+            should_fail="true"
+            if [ -z "$failing_checks" ]; then
+              failing_checks="$label"
+            else
+              failing_checks="$failing_checks, $label"
+            fi
+          }
+
+          track_failure "Lint" "$LINT_OUTCOME"
+          track_failure "Typecheck" "$TYPECHECK_OUTCOME"
+          track_failure "Tests" "$TEST_OUTCOME"
+
+          printf 'should_fail=%s\n' "$should_fail" >> "$GITHUB_OUTPUT"
+          printf 'CI_SHOULD_FAIL=%s\n' "$should_fail" >> "$GITHUB_ENV"
+
+          printf 'failed_checks=%s\n' "$failing_checks" >> "$GITHUB_OUTPUT"
+
+      - name: Mark workflow as failed when gates break
+        if: ${{ steps.lint.outcome != 'success' || steps.typecheck.outcome != 'success' || steps.test.outcome != 'success' }}
+        env:
+          FAILED_CHECKS: ${{ steps.summarise.outputs.failed_checks }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+        run: |
+          failing_checks="$FAILED_CHECKS"
+
+          append_failure() {
+            local label="$1"
+            local outcome="$2"
+
+            case "$outcome" in
+              success|skipped)
+                return 0
+                ;;
+            esac
+
+            if [ -z "$failing_checks" ]; then
+              failing_checks="$label"
+            else
+              failing_checks="$failing_checks, $label"
+            fi
+          }
+
+          append_failure "Lint" "$LINT_OUTCOME"
+          append_failure "Typecheck" "$TYPECHECK_OUTCOME"
+          append_failure "Tests" "$TEST_OUTCOME"
+
+          if [ -n "$failing_checks" ]; then
+            echo "::error::One or more quality checks failed (${failing_checks}). See the summary above for details."
+          else
+            echo "::error::One or more quality checks failed. See the summary above for details."
+          fi
+          exit 1
