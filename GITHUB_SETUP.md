@@ -24,14 +24,20 @@ export GITHUB_TOKEN='ghp_YourActualTokenHere'
 # Run the setup script
 cd /home/user/workspace
 ./setup-github.sh
+
+# Optional: override the fallback branch name if HEAD is detached
+# DEFAULT_BRANCH=release ./setup-github.sh
 ```
 
 The script will:
+
 - ✅ Create the `monGARS_expo` repository on GitHub
 - ✅ Add it as a remote named `github`
 - ✅ Commit all changes
 - ✅ Push the complete codebase
 - ✅ Create an initial release (v1.0.0)
+
+> **Branch tip:** The automation keeps your current branch name. If you're in a detached `HEAD`, set `DEFAULT_BRANCH` before running the script to choose the fallback branch.
 
 ---
 
@@ -79,10 +85,11 @@ Features:
 
 ```bash
 # Push to GitHub
-git push -u github main
+CURRENT_BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD)"
+git push -u github "${CURRENT_BRANCH:-main}"
 
-# If you get an error about divergent branches, use:
-git push -u github main --force
+# If you get an error about divergent branches, use the safer force variant:
+git push -u github "${CURRENT_BRANCH:-main}" --force-with-lease
 ```
 
 ---
@@ -110,13 +117,13 @@ Go to your repository on GitHub:
 
 Add these secrets:
 
-| Secret Name | Description | How to Get |
-|-------------|-------------|------------|
-| `EXPO_TOKEN` | Expo authentication token | Run `npx eas login` then copy from `~/.expo/state.json` |
-| `APPLE_ID` | Your Apple ID email | Your Apple Developer account email |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password | Generate at https://appleid.apple.com/account/manage |
-| `APPLE_TEAM_ID` | Apple Developer Team ID | Found in Apple Developer account settings |
-| `ASC_APP_ID` | App Store Connect App ID | Create app in App Store Connect first |
+| Secret Name                   | Description               | How to Get                                              |
+| ----------------------------- | ------------------------- | ------------------------------------------------------- |
+| `EXPO_TOKEN`                  | Expo authentication token | Run `npx eas login` then copy from `~/.expo/state.json` |
+| `APPLE_ID`                    | Your Apple ID email       | Your Apple Developer account email                      |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password     | Generate at https://appleid.apple.com/account/manage    |
+| `APPLE_TEAM_ID`               | Apple Developer Team ID   | Found in Apple Developer account settings               |
+| `ASC_APP_ID`                  | App Store Connect App ID  | Create app in App Store Connect first                   |
 
 ### 2. Run GitHub Actions Workflow
 
@@ -130,6 +137,7 @@ Add these secrets:
 5. Click "Run workflow"
 
 The workflow will:
+
 - Download the selected model from HuggingFace
 - Bundle it with the app
 - Build the iOS binary with EAS Build
@@ -182,6 +190,7 @@ Or let the GitHub Actions workflow handle it automatically if you selected produ
 After pushing, your repository will contain:
 
 ### Core Application
+
 - `App.tsx` - Entry point
 - `src/screens/OnDeviceMLDemo.tsx` - Main app screen
 - `src/components/PrivacyUI.tsx` - Privacy-focused UI components
@@ -193,12 +202,14 @@ After pushing, your repository will contain:
 - `src/utils/vector-math.ts` - Vector operations
 
 ### CI/CD & Configuration
+
 - `.github/workflows/build-and-deploy.yml` - GitHub Actions workflow
 - `eas.json` - EAS Build configuration
 - `app.json` - Expo configuration
 - `package.json` - Dependencies
 
 ### Documentation
+
 - `README.md` - Complete feature overview
 - `DEPLOYMENT.md` - Deployment guide
 - `VIBECODE_REQUIRED_PACKAGES.md` - Package requirements for Vibecode

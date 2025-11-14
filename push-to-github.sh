@@ -2,12 +2,28 @@
 # Quick GitHub Push Script
 # Run this with: GITHUB_TOKEN='your_token' ./push-to-github.sh
 
-set -e
+set -euo pipefail
+IFS=$'\n\t'
 
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 
-if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ]; then
+resolve_current_branch() {
+    local branch
+    branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || \
+        git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+    if [[ -z "$branch" || "$branch" == "HEAD" ]]; then
+        echo ""
+        return
+    fi
+
+    echo "$branch"
+}
+
+CURRENT_BRANCH="$(resolve_current_branch)"
+
+if [[ -z "$CURRENT_BRANCH" ]]; then
+    echo "⚠ Could not determine the active branch. Falling back to '${DEFAULT_BRANCH}'."
     CURRENT_BRANCH="$DEFAULT_BRANCH"
 fi
 
@@ -76,17 +92,22 @@ echo ""
 
 # Configure git remote
 echo "→ Configuring git remote for branch '${CURRENT_BRANCH}'..."
-if git remote get-url github 2>/dev/null; then
-    git remote remove github
+REMOTE_URL="https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${REPO_NAME}.git"
+if git remote get-url github >/dev/null 2>&1; then
+    echo "  Updating existing 'github' remote URL..."
+    git remote set-url github "$REMOTE_URL"
+else
+    echo "  Adding new 'github' remote..."
+    git remote add github "$REMOTE_URL"
 fi
-git remote add github "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${REPO_NAME}.git"
 echo "✓ Remote configured"
 echo ""
 
 # Commit changes
 echo "→ Committing changes..."
-git add -A
-if [ -n "$(git status --porcelain)" ]; then
+CHANGES="$(git status --porcelain)"
+if [[ -n "$CHANGES" ]]; then
+    git add -A
     git commit -m "Complete privacy-first on-device ML app
 
 ✨ Features:
@@ -126,7 +147,7 @@ echo ""
 
 # Push to GitHub
 echo "→ Pushing to GitHub (branch: ${CURRENT_BRANCH})..."
-git push -u github "$CURRENT_BRANCH" --force
+git push -u github "$CURRENT_BRANCH" --force-with-lease
 echo "✓ Code pushed successfully!"
 echo ""
 
