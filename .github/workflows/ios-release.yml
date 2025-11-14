@@ -104,7 +104,7 @@ jobs:
           fi
 
       - name: Bump iOS version and build number
-        run: node scripts/bump-ios-version.js --type patch
+        run: node scripts/bump-ios-version.js --type ${{ github.event.inputs.bump_type || 'patch' }}
 
       # ---------- CocoaPods: only if Podfile exists ----------
       - name: Install CocoaPods (if Podfile exists)
