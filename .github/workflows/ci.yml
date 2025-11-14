@@ -92,6 +92,7 @@ jobs:
           retention-days: 7
 
       - name: Summarise results
+        id: summarise
         if: always()
         env:
           LINT_OUTCOME: ${{ steps.lint.outcome }}
@@ -132,19 +133,20 @@ jobs:
 
           should_fail=false
           for outcome in "$LINT_OUTCOME" "$TYPECHECK_OUTCOME" "$TEST_OUTCOME"; do
-            if [ "$outcome" = "failure" ]; then
+            if [ "$outcome" != "success" ]; then
               should_fail=true
+              break
             fi
           done
 
           if [ "$should_fail" = true ]; then
-            echo "CI_SHOULD_FAIL=true" >> "$GITHUB_ENV"
+            echo "should_fail=true" >> "$GITHUB_OUTPUT"
           else
-            echo "CI_SHOULD_FAIL=false" >> "$GITHUB_ENV"
+            echo "should_fail=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Mark workflow as failed when gates break
-        if: ${{ env.CI_SHOULD_FAIL == 'true' }}
+        if: ${{ steps.summarise.outputs.should_fail == 'true' }}
         run: |
           echo "::error::One or more quality checks failed. See the summary above for details."
           exit 1
