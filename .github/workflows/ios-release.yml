@@ -126,6 +126,64 @@ jobs:
           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
 
+      - name: Resolve signing keychain
+        id: resolve_keychain
+        shell: bash
+        env:
+          RAW_KEYCHAIN_PATH: ${{ steps.import_certs.outputs['keychain-path'] }}
+          RAW_KEYCHAIN_PASSWORD: ${{ steps.import_certs.outputs['keychain-password'] }}
+        run: |
+          set -euo pipefail
+          IFS=$'\n\t'
+
+          KEYCHAIN_PATH="${RAW_KEYCHAIN_PATH:-}"
+          KEYCHAIN_PASSWORD="${RAW_KEYCHAIN_PASSWORD:-}"
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "No keychain path reported by import step; probing common locations"
+            for candidate in \
+              "$HOME/Library/Keychains/signing_temp.keychain-db" \
+              "$HOME/Library/Keychains/signing_temp.keychain" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain-db" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain"
+            do
+              if [ -z "$KEYCHAIN_PATH" ] && [ -f "$candidate" ]; then
+                KEYCHAIN_PATH="$candidate"
+                echo "Discovered signing keychain at $KEYCHAIN_PATH"
+              fi
+            done
+          fi
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "::error::Unable to determine signing keychain path."
+            security list-keychains -d user || true
+            exit 1
+          fi
+
+          if [ ! -f "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain $KEYCHAIN_PATH does not exist."
+            ls -la "$HOME/Library/Keychains" || true
+            exit 1
+          fi
+
+          if [ -n "$KEYCHAIN_PASSWORD" ]; then
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          fi
+
+          declare -a DESIRED
+          DESIRED=("$KEYCHAIN_PATH")
+          while IFS= read -r raw; do
+            item=$(printf '%s' "$raw" | sed -E 's/^[[:space:]]*"(.+)"$/\1/')
+            if [ -n "$item" ] && [ "$item" != "$KEYCHAIN_PATH" ]; then
+              DESIRED+=("$item")
+            fi
+          done < <(security list-keychains -d user || true)
+
+          security list-keychains -d user -s "${DESIRED[@]}"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+          echo "path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
+
       - name: Install provisioning profile
         id: install_profile
         shell: bash
@@ -178,63 +236,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          KEYCHAIN_PATH="${{ steps.import_certs.outputs['keychain-path'] }}"
+          KEYCHAIN_PATH="${{ steps.resolve_keychain.outputs.path }}"
 
           if [ -z "$KEYCHAIN_PATH" ]; then
-            echo "No keychain path reported by import step; probing common locations"
-            for candidate in \
-              "$HOME/Library/Keychains/signing_temp.keychain-db" \
-              "$HOME/Library/Keychains/signing_temp.keychain" \
-              "/Users/runner/Library/Keychains/signing_temp.keychain-db" \
-              "/Users/runner/Library/Keychains/signing_temp.keychain"
-            do
-              if [ -z "$KEYCHAIN_PATH" ] && [ -f "$candidate" ]; then
-                KEYCHAIN_PATH="$candidate"
-                echo "Discovered signing keychain at $KEYCHAIN_PATH"
-              fi
-            done
+            echo "::error::Signing keychain path missing."
+            exit 1
           fi
 
-          LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
-          if [ ! -f "$LOGIN_KEYCHAIN" ]; then
-            LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain"
+          if [ ! -f "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain $KEYCHAIN_PATH not found."
+            exit 1
           fi
 
-          STATUS=0
-          if [ -n "$KEYCHAIN_PATH" ]; then
-            echo "Ensuring keychain search list prioritises $KEYCHAIN_PATH"
-            security list-keychains -d user -s "$KEYCHAIN_PATH" "$LOGIN_KEYCHAIN"
-            echo "Inspecting codesigning identities in $KEYCHAIN_PATH"
-            set +e
-            IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1)
-            STATUS=$?
-            set -euo pipefail
-          else
-            echo "Falling back to default keychain search list"
-            set +e
-            IDENTITY=$(security find-identity -v -p codesigning | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1)
-            STATUS=$?
-            set -euo pipefail
+          KEYCHAIN_PASSWORD="${{ steps.import_certs.outputs['keychain-password'] }}"
+          if [ -n "$KEYCHAIN_PASSWORD" ]; then
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           fi
 
-          if [ "${STATUS:-0}" -ne 0 ]; then
-            IDENTITY=""
+          echo "Inspecting codesigning identities in $KEYCHAIN_PATH"
+          set +e
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1)
+          STATUS=$?
+          set -euo pipefail
+
+          if [ "${STATUS:-0}" -ne 0 ] || [ -z "${IDENTITY:-}" ]; then
+            echo "::error::No signing identity found after importing certificates."
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+            exit 1
           fi
 
-          if [ -z "$IDENTITY" ]; then
-            echo "::warning::No signing identity found after importing certificates."
-            if [ -n "$KEYCHAIN_PATH" ]; then
-              security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
-            else
-              security find-identity -v -p codesigning || true
-            fi
-            echo "identity=" >> "$GITHUB_OUTPUT"
-            echo "style=automatic" >> "$GITHUB_OUTPUT"
-          else
-            echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
-            echo "style=manual" >> "$GITHUB_OUTPUT"
-            echo "Using signing identity: $IDENTITY"
-          fi
+          echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
+          echo "style=manual" >> "$GITHUB_OUTPUT"
+          echo "Using signing identity: $IDENTITY"
+          echo "SIGNING_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       # ---------- Discover workspace/project automatically ----------
       - name: Discover Xcode workspace/project
