@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.vibecode.offllmappstorefixer-iz6sup",
-      "buildNumber": "1763089000",
+      "buildNumber": "13",
       "deploymentTarget": "16.0",
       "appStoreId": "6754946066",
       "infoPlist": {
