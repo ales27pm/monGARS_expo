@@ -178,7 +178,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          KEYCHAIN_PATH="${{ steps.import_certs.outputs.keychain-path }}"
+          KEYCHAIN_PATH="${{ steps.import_certs.outputs['keychain-path'] }}"
           STATUS=0
           if [ -n "$KEYCHAIN_PATH" ]; then
             echo "Inspecting codesigning identities in $KEYCHAIN_PATH"
