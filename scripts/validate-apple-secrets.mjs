@@ -183,7 +183,9 @@ async function fetchExpoWhoami(token) {
         bodyText = `<<failed to read body: ${formatErrorDetails(bodyError)}>>`;
       }
       const summary = bodyText ? bodyText.slice(0, 500) : "(no body)";
-      const error = new Error(`HTTP ${response.status} while calling Expo whoami. content-type=${contentType}. body=${summary}`);
+      const error = new Error(
+        `HTTP ${response.status} while calling Expo whoami. content-type=${contentType}. body=${summary}`,
+      );
       error.status = response.status;
       throw error;
     }
@@ -214,6 +216,26 @@ function buildExpoAuthEnv(token) {
   };
 }
 
+function parseEasWhoamiText(output) {
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const match = lines[0].match(/^(?<username>[A-Za-z0-9._-]+)(?:\s*\(owner:\s*(?<owner>[A-Za-z0-9._-]+)\))?/i);
+  if (!match?.groups?.username) {
+    return null;
+  }
+
+  return {
+    username: match.groups.username,
+    ownerSlug: match.groups.owner ?? null,
+  };
+}
+
 async function validateExpoToken() {
   logSection("Checking Expo (EAS) authentication");
   const tokenInfo = getFirstValue(["EXPO_TOKEN", "EAS_ACCESS_TOKEN", "EXPO_CLI_TOKEN"]);
@@ -230,12 +252,37 @@ async function validateExpoToken() {
     const { stdout } = await runEasCommand(["whoami", "--json", "--non-interactive"], {
       env: buildExpoAuthEnv(tokenInfo.value),
     });
-    const info = JSON.parse(stdout);
-    console.log(`✅ Authenticated as ${info?.user?.username ?? "unknown user"}`);
-    if (info?.user?.ownerSlug) {
-      console.log(`   Owner: ${info.user.ownerSlug}`);
+    const trimmed = stdout?.trim() ?? "";
+    if (!trimmed) {
+      throw new Error("`eas whoami --json` returned no output.");
     }
-    return true;
+
+    try {
+      const info = JSON.parse(trimmed);
+      const username = info?.user?.username ?? "unknown user";
+      const ownerSlug = info?.user?.ownerSlug ?? null;
+      console.log(`✅ Authenticated as ${username}`);
+      if (ownerSlug) {
+        console.log(`   Owner: ${ownerSlug}`);
+      }
+      return true;
+    } catch (parseError) {
+      const fallback = parseEasWhoamiText(trimmed);
+      if (fallback) {
+        console.warn("⚠️  `eas whoami --json` produced non-JSON output. Parsed fallback text format from CLI.");
+        console.log(`✅ Authenticated as ${fallback.username}`);
+        if (fallback.ownerSlug) {
+          console.log(`   Owner: ${fallback.ownerSlug}`);
+        }
+        return true;
+      }
+
+      const error = new SyntaxError(
+        `Failed to parse JSON from \`eas whoami --json\`. Raw output: ${trimmed.slice(0, 200)}`,
+      );
+      error.cause = parseError;
+      throw error;
+    }
   } catch (error) {
     console.error("⚠️  Failed to verify EXPO_TOKEN with `eas whoami`. Trying direct API request...");
     logErrorDetails("   CLI error: ", error);
@@ -252,7 +299,9 @@ async function validateExpoToken() {
     console.error("❌ Failed to verify EXPO_TOKEN with both EAS CLI and Expo API.");
     logErrorDetails("   API error: ", apiError);
     if (apiError?.status === 404) {
-      console.error("   The Expo API returned 404. Ensure the token is an active EAS access token and not scoped to a deleted account.");
+      console.error(
+        "   The Expo API returned 404. Ensure the token is an active EAS access token and not scoped to a deleted account.",
+      );
     }
     return false;
   }
