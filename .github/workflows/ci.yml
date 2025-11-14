@@ -159,17 +159,41 @@ jobs:
           printf 'should_fail=%s\n' "$should_fail" >> "$GITHUB_OUTPUT"
           printf 'CI_SHOULD_FAIL=%s\n' "$should_fail" >> "$GITHUB_ENV"
 
-          if [ -n "$failing_checks" ]; then
-            printf 'failed_checks=%s\n' "$failing_checks" >> "$GITHUB_OUTPUT"
-          fi
+          printf 'failed_checks=%s\n' "$failing_checks" >> "$GITHUB_OUTPUT"
 
       - name: Mark workflow as failed when gates break
-        if: ${{ fromJSON(steps.summarise.outputs.should_fail) }}
+        if: ${{ steps.lint.outcome != 'success' || steps.typecheck.outcome != 'success' || steps.test.outcome != 'success' }}
         env:
           FAILED_CHECKS: ${{ steps.summarise.outputs.failed_checks }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
         run: |
-          if [ -n "$FAILED_CHECKS" ]; then
-            echo "::error::One or more quality checks failed (${FAILED_CHECKS}). See the summary above for details."
+          failing_checks="$FAILED_CHECKS"
+
+          append_failure() {
+            local label="$1"
+            local outcome="$2"
+
+            case "$outcome" in
+              success|skipped)
+                return 0
+                ;;
+            esac
+
+            if [ -z "$failing_checks" ]; then
+              failing_checks="$label"
+            else
+              failing_checks="$failing_checks, $label"
+            fi
+          }
+
+          append_failure "Lint" "$LINT_OUTCOME"
+          append_failure "Typecheck" "$TYPECHECK_OUTCOME"
+          append_failure "Tests" "$TEST_OUTCOME"
+
+          if [ -n "$failing_checks" ]; then
+            echo "::error::One or more quality checks failed (${failing_checks}). See the summary above for details."
           else
             echo "::error::One or more quality checks failed. See the summary above for details."
           fi
