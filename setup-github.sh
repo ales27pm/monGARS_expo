@@ -4,6 +4,13 @@
 
 set -e  # Exit on error
 
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ]; then
+    CURRENT_BRANCH="$DEFAULT_BRANCH"
+fi
+
 REPO_NAME="monGARS_expo"
 REPO_DESCRIPTION="Privacy-First On-Device ML App - 100% Offline AI with Semantic Memory and RAG"
 
@@ -77,7 +84,7 @@ fi
 echo ""
 
 # Step 4: Add GitHub remote
-echo "→ Configuring git remote..."
+echo "→ Configuring git remote for branch '${CURRENT_BRANCH}'..."
 if git remote get-url github 2>/dev/null; then
     echo "  Removing existing 'github' remote..."
     git remote remove github
@@ -121,8 +128,8 @@ fi
 echo ""
 
 # Step 6: Push to GitHub
-echo "→ Pushing to GitHub..."
-git push -u github main --force
+echo "→ Pushing to GitHub (branch: ${CURRENT_BRANCH})..."
+git push -u github "$CURRENT_BRANCH" --force
 echo "✓ Code pushed successfully!"
 echo ""
 

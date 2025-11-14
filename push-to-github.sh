@@ -4,6 +4,13 @@
 
 set -e
 
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ]; then
+    CURRENT_BRANCH="$DEFAULT_BRANCH"
+fi
+
 REPO_NAME="monGARS_expo"
 
 echo "================================================"
@@ -68,7 +75,7 @@ fi
 echo ""
 
 # Configure git remote
-echo "→ Configuring git remote..."
+echo "→ Configuring git remote for branch '${CURRENT_BRANCH}'..."
 if git remote get-url github 2>/dev/null; then
     git remote remove github
 fi
@@ -118,8 +125,8 @@ fi
 echo ""
 
 # Push to GitHub
-echo "→ Pushing to GitHub..."
-git push -u github main --force
+echo "→ Pushing to GitHub (branch: ${CURRENT_BRANCH})..."
+git push -u github "$CURRENT_BRANCH" --force
 echo "✓ Code pushed successfully!"
 echo ""
 
