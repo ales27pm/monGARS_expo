@@ -103,6 +103,9 @@ jobs:
             npm install --no-audit --fund=false
           fi
 
+      - name: Bump iOS version and build number
+        run: node scripts/bump-ios-version.js --type ${{ github.event.inputs.bump_type || 'patch' }}
+
       # ---------- CocoaPods: only if Podfile exists ----------
       - name: Install CocoaPods (if Podfile exists)
         shell: bash
@@ -268,7 +271,7 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store</string>
-            <key>manageAppVersionAndBuildNumber</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
             <key>signingStyle</key><string>${STYLE_LOWER}</string>
             <key>stripSwiftSymbols</key><true/>
             <key>thinning</key><string>&lt;none&gt;</string>
@@ -285,19 +288,6 @@ jobs:
             fi
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" exportOptions.plist
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:${BUNDLE_ID} string ${PROFILE_SPECIFIER}" exportOptions.plist
-          fi
-
-      - name: Auto-increment build number (best-effort)
-        shell: bash
-        run: |
-          set -e
-          INFO_PLIST=$(find . -name "*-Info.plist" | head -n 1 || true)
-          if [ -n "$INFO_PLIST" ]; then
-            NEW_BUILD=$((1000 + GITHUB_RUN_NUMBER))
-            echo "Setting CFBundleVersion to $NEW_BUILD on $INFO_PLIST"
-            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$INFO_PLIST" || true
-          else
-            echo "No Info.plist found for bump — continuing."
           fi
 
       - name: Xcode archive
