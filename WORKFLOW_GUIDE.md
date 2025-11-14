@@ -1,229 +1,96 @@
-# Vibecode Optimized Workflow Guide
+# GitHub Actions Workflow Guide
 
-This guide shows you how to use GitHub Actions to download ML models and then build/submit from Vibecode.
+This repository now ships with two maintained workflows:
 
-## Why This Approach?
+1. **CI (`.github/workflows/ci.yml`)** — runs automatically on pushes and pull
+   requests. It installs dependencies with Bun, restores caches, and runs
+   linting, type-checking, and Jest with rich summaries and log artifacts.
+2. **Manual EAS Build (`.github/workflows/manual-eas-build.yml`)** — triggered
+   from the Actions tab when you need a release build. It verifies secrets,
+   optionally downloads Hugging Face models, and performs the EAS build. iOS
+   builds can be submitted directly to App Store Connect once credentials are
+   configured.
 
-**Benefits:**
-- ✅ Faster: No EAS build in GitHub (saves 20-30 minutes)
-- ✅ Cheaper: No EAS build minutes used in GitHub Actions
-- ✅ More control: Build and submit directly from Vibecode
-- ✅ Smaller uploads: Models downloaded on GitHub, not uploaded
-- ✅ Same result: Final .ipa file for App Store submission
+## 1. Continuous Integration (CI)
 
-**Note:** Native iOS modules (llama.rn, MMKV, etc.) are compiled on **EAS's macOS runners**, not GitHub Actions. The GitHub Actions runner (ubuntu) only downloads models and commits them to your repo. The actual iOS build with Xcode happens when you run `eas build` from Vibecode, which triggers EAS's cloud infrastructure.
+- **Trigger:** `push` to `main`, any `pull_request`.
+- **Runner:** `ubuntu-latest`.
+- **Key upgrades:**
+  - Concurrency control cancels superseded runs automatically.
+  - Bun and `node_modules` caches accelerate repeat installs.
+  - Lint, type-check, and Jest run with `tee` so logs are preserved even on
+    failure.
+  - A final summary posts pass/fail status for each check to the workflow
+    summary and fails the job if any gate breaks.
+  - When any gate fails, the captured logs are uploaded as an artifact for easy
+    download.
+- **Secrets:** none required.
+- **Failure handling:** even when one of the quality gates fails the workflow
+  continues long enough to upload logs and produce a human-readable summary,
+  then exits non-zero so the PR status reflects the failure.
 
-## Architecture Overview
+## 2. Manual EAS Build
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  GitHub Actions (ubuntu-latest) - CHEAP                 │
-│  ├─ Download models from HuggingFace (5 min)           │
-│  ├─ Commit to repository                                │
-│  └─ Total cost: ~$0.04 per run                         │
-└─────────────────────────────────────────────────────────┘
-                         ↓ git push
-┌─────────────────────────────────────────────────────────┐
-│  Vibecode (Your Terminal)                               │
-│  ├─ git pull (get models)                               │
-│  ├─ eas build (trigger EAS)                             │
-│  └─ eas submit (submit to App Store)                    │
-└─────────────────────────────────────────────────────────┘
-                         ↓ eas build
-┌─────────────────────────────────────────────────────────┐
-│  EAS Build Cloud (macOS with Xcode) - HANDLES NATIVE   │
-│  ├─ Receive code from Vibecode                          │
-│  ├─ Install dependencies (bun install)                  │
-│  ├─ Install CocoaPods (pod install)                     │
-│  ├─ Compile native modules (llama.rn, MMKV, etc.)      │
-│  ├─ Build iOS app with Xcode (25 min)                  │
-│  ├─ Sign with Apple certificates                        │
-│  └─ Upload .ipa to EAS servers                         │
-└─────────────────────────────────────────────────────────┘
-```
+- **Trigger:** `workflow_dispatch` (run it manually from the Actions tab).
+- **Inputs:**
+  - `platform`: `ios` or `android` (default `ios`).
+  - `profile`: EAS profile to use (default `production`).
+  - `release_channel`: optional release channel name.
+  - `models`: comma separated list of model IDs (`qwen2-0.5b`,
+    `llama-3.2-1b`, `smollm2-1.7b`, `phi-3-mini`, `all`, or `none`).
+  - `submit_to_store`: boolean to submit the latest iOS build with `eas submit`.
+- **Optional secrets:**
+  - `HUGGINGFACE_TOKEN` — enables authenticated model downloads when private or
+    rate-limited models are required. Anonymous downloads still work for public
+    models, but the workflow now surfaces whether the token was provided in the
+    preflight summary.
+- **Secrets:**
+  - `EXPO_TOKEN` (required for any build).
+  - `APPLE_ID` and `APPLE_APP_SPECIFIC_PASSWORD` (only if submitting to the App
+    Store).
+- **Flow:**
+  1. **Preflight validation** — checks secrets and prints a summary before any
+     expensive work. Missing values cause the workflow to stop immediately.
+  2. **Dependencies** — restores Bun and Hugging Face caches, installs
+     JavaScript dependencies, and bootstraps Python with `huggingface-hub` when
+     models are requested.
+  3. **Model download (optional)** — runs `python scripts/download_models.py`
+     with `--skip-existing`. The script now reads Hugging Face tokens from the
+     `HUGGINGFACE_TOKEN`/`HF_TOKEN` environment variables automatically.
+  4. **EAS build** — calls `eas build --wait` for the specified platform and
+     profile.
+  5. **Submission (optional)** — runs `eas submit --latest` for iOS when
+     `submit_to_store` is enabled and credentials are present.
+  6. **Summary** — writes a concise report to the workflow summary tab,
+     including whether a Hugging Face token was supplied.
 
-This architecture ensures native modules are compiled properly on macOS while keeping GitHub Actions costs low.
+### Downloading Models Locally
 
-## Complete Workflow
-
-### Step 1: Download Models via GitHub Actions
-
-1. Go to your GitHub repository
-2. Click **Actions** tab
-3. Select **Download ML Models (No Build)** workflow
-4. Click **Run workflow**
-5. Choose options:
-   - Model: `qwen2-0.5b` (fastest) or `llama-3.2-1b` (best quality)
-   - Commit to repo: ✅ **YES** (checked)
-6. Click **Run workflow**
-7. Wait 2-5 minutes for download to complete
-
-### Step 2: Pull Updated Repository in Vibecode
-
-In Vibecode terminal:
-
-```bash
-# Pull the models from GitHub
-git pull origin main
-
-# Verify models are downloaded
-ls -lh ./assets/models/
-
-# You should see .gguf files (300MB-2GB each)
-```
-
-### Step 3: Build iOS App from Vibecode
+The workflow uses `scripts/download_models.py`. You can reuse the same helper
+locally:
 
 ```bash
-# Build production iOS app with EAS
-eas build --platform ios --profile production --non-interactive
-
-# Wait for build to complete (20-30 minutes)
-# You'll get a build URL - save this
+python scripts/download_models.py --models "qwen2-0.5b"
 ```
 
-**Important:** This triggers EAS Build cloud service, which:
-- Uses macOS runners with Xcode installed
-- Compiles all native modules (llama.rn, MMKV, etc.)
-- Handles code signing automatically
-- Creates the final .ipa file
-
-The `eas build` command just uploads your code to EAS - the actual iOS compilation happens on EAS's macOS infrastructure, not your local machine.
-
-### Step 4: Submit to App Store from Vibecode
+Provide multiple models with commas:
 
 ```bash
-# Submit the latest build to App Store
-eas submit --platform ios --latest --non-interactive
-
-# Or submit a specific build URL
-eas submit --platform ios --url YOUR_BUILD_URL
+python scripts/download_models.py --models "qwen2-0.5b,phi-3-mini"
 ```
 
-## Required Secrets (Set in GitHub)
+Use `--skip-existing` to avoid re-downloading files that already exist. You can
+also pass `--token` or rely on `HUGGINGFACE_TOKEN`/`HF_TOKEN` environment
+variables, and `--list` to print the catalogue without downloading anything.
 
-For the workflow to work, add these in **Settings → Secrets → Actions**:
+### Troubleshooting
 
-- `EXPO_TOKEN` - Your Expo access token (get from `eas whoami`)
+- **Missing secrets:** The preflight job will fail fast and note missing values
+  in the run summary.
+- **Hugging Face rate limits:** Use `--skip-existing` when rerunning builds to
+  reduce unnecessary downloads.
+- **Expo CLI errors:** Check the uploaded `eas-build-debug` artifact for logs if
+  the build fails.
 
-For App Store submission (optional, can do manually):
-- `APPLE_ID` - Your Apple ID email
-- `APPLE_APP_SPECIFIC_PASSWORD` - App-specific password from appleid.apple.com
-- `APPLE_TEAM_ID` - Your team ID from developer.apple.com
-
-## Alternative: Skip GitHub Actions Entirely
-
-If you have fast internet in Vibecode, you can download models directly:
-
-```bash
-# Install Python dependencies
-pip3 install huggingface-hub
-
-# Download a model
-python3 -c "
-from huggingface_hub import hf_hub_download
-hf_hub_download(
-    repo_id='Qwen/Qwen2-0.5B-Instruct-GGUF',
-    filename='qwen2-0_5b-instruct-q4_k_m.gguf',
-    local_dir='./assets/models',
-    local_dir_use_symlinks=False
-)
-"
-
-# Then build and submit as normal
-eas build --platform ios --profile production
-eas submit --platform ios --latest
-```
-
-## Comparison: Old vs New Workflow
-
-### Old Workflow (build-and-deploy.yml)
-```
-GitHub Actions:
-1. Download models (5 min)
-2. Build iOS with EAS (25 min)
-3. Submit to App Store (5 min)
-Total: 35 minutes in GitHub Actions
-```
-
-### New Workflow (download-models-only.yml)
-```
-GitHub Actions:
-1. Download models (5 min)
-2. Commit to repo (1 min)
-Total: 6 minutes in GitHub Actions
-
-Vibecode:
-3. Pull repo (30 sec)
-4. Build iOS with EAS (25 min)
-5. Submit to App Store (5 min)
-Total: 31 minutes (but you control timing)
-```
-
-## Troubleshooting
-
-**"Models not found after git pull"**
-```bash
-# Check if models were committed
-git log --stat | grep models
-
-# Force pull
-git fetch origin main
-git reset --hard origin/main
-```
-
-**"EAS build failed - archive too large"**
-```bash
-# The .easignore file should exclude node_modules
-# Verify it exists
-cat .easignore
-
-# If missing, it should contain:
-# node_modules/
-# .expo/
-# *.log
-```
-
-**"Need to download different model"**
-```bash
-# Run the GitHub Action again with different model
-# Or download manually with Python command above
-```
-
-## Cost Comparison
-
-**GitHub Actions Minutes Used:**
-- Old workflow: ~35 minutes per build
-- New workflow: ~6 minutes per build
-- **Savings: 83% fewer GitHub Actions minutes**
-
-**EAS Build Minutes:**
-- Same in both workflows (25 minutes)
-- You pay for this either way
-- But with new workflow, you control when it runs
-
-## Which Workflow Should You Use?
-
-**Use new workflow (download-models-only.yml) if:**
-- ✅ You want more control over build timing
-- ✅ You want to test the app before building
-- ✅ You want to save GitHub Actions minutes
-- ✅ You need to make changes after downloading models
-
-**Use old workflow (build-and-deploy.yml) if:**
-- ✅ You want fully automated pipeline
-- ✅ You don't need to test before building
-- ✅ You're okay with longer GitHub Actions runs
-- ✅ You want "one-click" deployment
-
-## Tips
-
-1. **Start with small model**: Use `qwen2-0.5b` (326MB) for testing
-2. **Use production profile**: Only production builds can be submitted to App Store
-3. **Save build URLs**: Keep track of successful builds for future reference
-4. **Test locally first**: Make sure app works in Vibecode before building
-5. **Check .easignore**: Ensure it excludes node_modules to avoid upload errors
-
----
-
-**Need help?** Check [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed EAS Build and App Store submission instructions.
+With these workflows you get reliable CI on every change and a predictable path
+for manual releases without brittle git pushes from automation.

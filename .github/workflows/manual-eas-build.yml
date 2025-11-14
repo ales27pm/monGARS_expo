@@ -1,0 +1,221 @@
+name: Manual EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build"
+        type: choice
+        options:
+          - ios
+          - android
+        default: ios
+      profile:
+        description: "EAS profile"
+        type: string
+        default: production
+      release_channel:
+        description: "Optional EAS release channel"
+        type: string
+        default: ""
+      models:
+        description: "Comma separated model identifiers to download (qwen2-0.5b, llama-3.2-1b, smollm2-1.7b, phi-3-mini, all, none)"
+        type: string
+        default: none
+      submit_to_store:
+        description: "Submit the resulting build to the app store"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  FORCE_COLOR: "1"
+
+jobs:
+  preflight:
+    name: Verify configuration
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - name: Check required secrets
+        id: check
+        run: |
+          missing=0
+          summary="## 🔐 Preflight checks\n"
+
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            summary+="\n- ❌ Missing EXPO_TOKEN secret"
+            missing=1
+          else
+            summary+="\n- ✅ EXPO_TOKEN available"
+          fi
+
+          if [ "${{ inputs.submit_to_store }}" = "true" ]; then
+            if [ -z "${{ secrets.APPLE_ID }}" ] || [ -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
+              summary+="\n- ❌ App Store credentials missing (APPLE_ID and/or APPLE_APP_SPECIFIC_PASSWORD)"
+              missing=1
+            else
+              summary+="\n- ✅ App Store credentials available"
+            fi
+          fi
+
+          models_input="${{ inputs.models }}"
+          if [ -n "$models_input" ] && [ "$models_input" != "none" ]; then
+            if [ -n "${{ secrets.HUGGINGFACE_TOKEN }}" ]; then
+              summary+="\n- ✅ Hugging Face token available"
+            else
+              summary+="\n- ⚠️  No Hugging Face token configured (anonymous download)"
+            fi
+          fi
+
+          echo -e "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ $missing -ne 0 ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build with EAS
+    needs: preflight
+    runs-on: ubuntu-latest
+    if: needs.preflight.outputs.proceed == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Restore Bun cache
+        id: cache-bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bun
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Python
+        if: ${{ inputs.models != 'none' && inputs.models != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore Hugging Face cache
+        if: ${{ inputs.models != 'none' && inputs.models != '' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-hf-${{ hashFiles('scripts/download_models.py') }}-${{ inputs.models }}
+          restore-keys: |
+            ${{ runner.os }}-hf-
+
+      - name: Install model tooling
+        if: ${{ inputs.models != 'none' && inputs.models != '' }}
+        run: pip install --upgrade huggingface-hub tqdm
+
+      - name: Download requested models
+        if: ${{ inputs.models != 'none' && inputs.models != '' }}
+        env:
+          HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+          HF_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+        run: |
+          python scripts/download_models.py \
+            --directory assets/models \
+            --models "${{ inputs.models }}" \
+            --skip-existing
+
+      - name: Configure Expo credentials
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Run EAS build
+        id: eas-build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          extra_args=""
+          if [ -n "${{ inputs.release_channel }}" ]; then
+            extra_args="${extra_args} --release-channel ${{ inputs.release_channel }}"
+          fi
+
+          echo "🚀 Starting EAS build for ${{ inputs.platform }} (profile: ${{ inputs.profile }})"
+          eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive --wait ${extra_args}
+
+      - name: Upload build context on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-build-debug
+          path: |
+            **/*.log
+            .expo
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Submit build to app store
+        if: ${{ inputs.submit_to_store && inputs.platform == 'ios' }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_ID: ${{ secrets.APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "📤 Submitting latest iOS build to App Store Connect"
+          eas submit --platform ios --latest --non-interactive
+
+      - name: Summarise run
+        if: always()
+        run: |
+          channel="${{ inputs.release_channel }}"
+          if [ -z "$channel" ]; then
+            channel="default"
+          fi
+
+          submitted="No"
+          if [ "${{ inputs.submit_to_store }}" = "true" ] && [ "${{ inputs.platform }}" = "ios" ]; then
+            if [ -n "${{ secrets.APPLE_ID }}" ] && [ -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
+              submitted="Yes"
+            else
+              submitted="No (missing Apple credentials)"
+            fi
+          fi
+
+          hf_status="Not provided"
+          if [ -n "${{ secrets.HUGGINGFACE_TOKEN }}" ]; then
+            hf_status="Provided"
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          ## ✅ EAS build summary
+          - Platform: ${{ inputs.platform }}
+          - Profile: ${{ inputs.profile }}
+          - Release channel: ${channel}
+          - Models requested: ${{ inputs.models }}
+          - Hugging Face token: ${hf_status}
+          - Submitted to store: ${submitted}
+          SUMMARY
