@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">=16.26.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -16,13 +16,16 @@
     },
     "production": {
       "env": {},
-      "autoIncrement": true,
+      "hooks": {
+        "pre-build": "node scripts/set-ios-build-number.cjs"
+      },
       "ios": {
         "distribution": "store",
         "buildConfiguration": "Release",
         "simulator": false,
         "resourceClass": "m-medium",
-        "image": "latest"
+        "image": "latest",
+        "autoIncrement": true
       },
       "android": {
         "distribution": "store"
