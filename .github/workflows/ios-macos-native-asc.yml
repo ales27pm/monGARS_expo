@@ -158,10 +158,48 @@ jobs:
 
       # ---- Import signing assets (.p12 + .mobileprovision) ----
       - name: 🔐 Import signing certificate (.p12)
+        id: import_certs
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: 🔍 Verify signing keychain
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="${{ steps.import_certs.outputs['keychain-path'] }}"
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "No keychain path reported by import step; probing common locations"
+            for candidate in \
+              "$HOME/Library/Keychains/signing_temp.keychain-db" \
+              "$HOME/Library/Keychains/signing_temp.keychain" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain-db" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain"
+            do
+              if [ -z "$KEYCHAIN_PATH" ] && [ -f "$candidate" ]; then
+                KEYCHAIN_PATH="$candidate"
+                echo "Discovered signing keychain at $KEYCHAIN_PATH"
+              fi
+            done
+          fi
+
+          LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
+          if [ ! -f "$LOGIN_KEYCHAIN" ]; then
+            LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain"
+          fi
+
+          if [ -n "$KEYCHAIN_PATH" ]; then
+            echo "Ensuring keychain search list prioritises $KEYCHAIN_PATH"
+            security list-keychains -d user -s "$KEYCHAIN_PATH" "$LOGIN_KEYCHAIN"
+            echo "Available signing identities:"
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+          else
+            echo "::warning::Unable to resolve signing keychain path; dumping default keychains"
+            security list-keychains -d user
+            security find-identity -v -p codesigning || true
+          fi
 
       - name: 📄 Install provisioning profile
         env:
