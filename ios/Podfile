@@ -53,11 +53,29 @@ target 'MonGARS' do
     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results
-      .each do |pod_name, target_installation_result|
+      .each do |_pod_name, target_installation_result|
       target_installation_result.resource_bundle_targets.each do |resource_bundle_target|
         resource_bundle_target.build_configurations.each do |config|
           config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
+      end
+    end
+
+    %w[
+      expo-dev-menu
+      expo-dev-menu-Main
+      expo-dev-menu-ReactNativeCompatibles
+      expo-dev-menu-SafeAreaView
+      expo-dev-menu-Vendored
+    ].each do |target_name|
+      target = installer.pods_project.targets.find { |pods_target| pods_target.name == target_name }
+      next unless target
+
+      target.build_configurations.each do |config|
+        next if config.build_settings['DEFINES_MODULE'] == 'YES'
+
+        Pod::UI.puts "Setting DEFINES_MODULE=YES for #{target_name} to keep CocoaPods xcconfig in sync."
+        config.build_settings['DEFINES_MODULE'] = 'YES'
       end
     end
   end
