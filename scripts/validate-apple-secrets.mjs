@@ -10,6 +10,77 @@ const execFile = promisify(execFileCb);
 
 const env = process.env;
 
+function formatErrorDetails(error) {
+  if (!error || typeof error !== "object") {
+    return String(error);
+  }
+
+  const fragments = [];
+  if (error.name && error.message) {
+    fragments.push(`${error.name}: ${error.message}`);
+  } else if (error.message) {
+    fragments.push(error.message);
+  } else if (error.toString !== Object.prototype.toString) {
+    fragments.push(String(error));
+  }
+
+  if (error.code) {
+    fragments.push(`code=${error.code}`);
+  }
+  if (error.signal) {
+    fragments.push(`signal=${error.signal}`);
+  }
+  if (error.status) {
+    fragments.push(`status=${error.status}`);
+  }
+  if (error.cause) {
+    fragments.push(`cause=${formatErrorDetails(error.cause)}`);
+  }
+
+  if (error.stack) {
+    fragments.push(`stack=${error.stack}`);
+  }
+
+  return fragments.join(" | ");
+}
+
+function logErrorDetails(prefix, error) {
+  const message = formatErrorDetails(error);
+  if (message) {
+    console.error(`${prefix}${message.includes("\n") ? "\n" : ""}${message}`);
+  } else {
+    console.error(prefix);
+  }
+}
+
+function redactSecretPreview(secret) {
+  if (typeof secret !== "string" || secret.length === 0) {
+    return "(empty)";
+  }
+  if (secret.length <= 8) {
+    return `${secret[0]}***${secret[secret.length - 1]}`;
+  }
+  return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function logSection(title) {
   console.log("\n==========================================");
   console.log(title);
@@ -37,6 +108,13 @@ async function runEasCommand(args, options = {}) {
         env: mergedEnv,
       });
     }
+    if (error?.stderr) {
+      console.error(error.stderr);
+    }
+    if (error?.stdout) {
+      console.error(error.stdout);
+    }
+    logErrorDetails(`❌ Failed to execute eas ${args.join(" ")}: `, error);
     throw error;
   }
 }
@@ -89,7 +167,7 @@ function createAscJwt({ keyId, issuerId, privateKey }) {
 
 async function fetchExpoWhoami(token) {
   try {
-    const response = await fetch("https://exp.host/--/api/v2/auth/whoami", {
+    const response = await fetchWithTimeout("https://exp.host/--/api/v2/auth/whoami", {
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "application/json",
@@ -97,8 +175,17 @@ async function fetchExpoWhoami(token) {
     });
 
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+      const contentType = response.headers.get("content-type") ?? "unknown";
+      let bodyText = "";
+      try {
+        bodyText = await response.text();
+      } catch (bodyError) {
+        bodyText = `<<failed to read body: ${formatErrorDetails(bodyError)}>>`;
+      }
+      const summary = bodyText ? bodyText.slice(0, 500) : "(no body)";
+      const error = new Error(`HTTP ${response.status} while calling Expo whoami. content-type=${contentType}. body=${summary}`);
+      error.status = response.status;
+      throw error;
     }
 
     const json = await response.json();
@@ -135,6 +222,10 @@ async function validateExpoToken() {
     return false;
   }
 
+  console.log(
+    `ℹ️  Using ${tokenInfo.name} (length=${tokenInfo.value.length}, preview=${redactSecretPreview(tokenInfo.value)}).`,
+  );
+
   try {
     const { stdout } = await runEasCommand(["whoami", "--json", "--non-interactive"], {
       env: buildExpoAuthEnv(tokenInfo.value),
@@ -147,12 +238,7 @@ async function validateExpoToken() {
     return true;
   } catch (error) {
     console.error("⚠️  Failed to verify EXPO_TOKEN with `eas whoami`. Trying direct API request...");
-    if (error?.stdout) {
-      console.error(error.stdout);
-    }
-    if (error?.stderr) {
-      console.error(error.stderr);
-    }
+    logErrorDetails("   CLI error: ", error);
   }
 
   try {
@@ -164,7 +250,10 @@ async function validateExpoToken() {
     return true;
   } catch (apiError) {
     console.error("❌ Failed to verify EXPO_TOKEN with both EAS CLI and Expo API.");
-    console.error(apiError.message ?? apiError);
+    logErrorDetails("   API error: ", apiError);
+    if (apiError?.status === 404) {
+      console.error("   The Expo API returned 404. Ensure the token is an active EAS access token and not scoped to a deleted account.");
+    }
     return false;
   }
 }
