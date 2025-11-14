@@ -11,6 +11,9 @@ clarity.
 - Restores Bun and dependency caches before installing dependencies.
 - Runs linting, TypeScript checks, and Jest tests sequentially while teeing
   output to log files that are uploaded if anything fails.
+- Always publishes a consolidated summary before marking the job as failed when
+  any gate reports a hard error, so contributors can read the results even on
+  red runs.
 - Requires no secrets, cancels superseded runs automatically, and writes a
   detailed summary covering each gate.
 

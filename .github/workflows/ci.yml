@@ -99,19 +99,23 @@ jobs:
           TEST_OUTCOME: ${{ steps.test.outcome }}
           CACHE_HIT: ${{ steps.cache-bun.outputs.cache-hit }}
         run: |
-          lint_icon='✅'
-          typecheck_icon='✅'
-          test_icon='✅'
+          describe_outcome() {
+            case "$1" in
+              success)
+                printf '✅'
+                ;;
+              cancelled|skipped)
+                printf '⚠️'
+                ;;
+              *)
+                printf '❌'
+                ;;
+            esac
+          }
 
-          if [ "$LINT_OUTCOME" != "success" ]; then
-            lint_icon='❌'
-          fi
-          if [ "$TYPECHECK_OUTCOME" != "success" ]; then
-            typecheck_icon='❌'
-          fi
-          if [ "$TEST_OUTCOME" != "success" ]; then
-            test_icon='❌'
-          fi
+          lint_icon="$(describe_outcome "$LINT_OUTCOME")"
+          typecheck_icon="$(describe_outcome "$TYPECHECK_OUTCOME")"
+          test_icon="$(describe_outcome "$TEST_OUTCOME")"
 
           cache_status='miss'
           if [ "$CACHE_HIT" = 'true' ]; then
@@ -126,11 +130,21 @@ jobs:
           - Bun cache: ${cache_status}
           SUMMARY
 
-          exit_code=0
+          should_fail=false
           for outcome in "$LINT_OUTCOME" "$TYPECHECK_OUTCOME" "$TEST_OUTCOME"; do
-            if [ "$outcome" != "success" ]; then
-              exit_code=1
+            if [ "$outcome" = "failure" ]; then
+              should_fail=true
             fi
           done
 
-          exit $exit_code
+          if [ "$should_fail" = true ]; then
+            echo "CI_SHOULD_FAIL=true" >> "$GITHUB_ENV"
+          else
+            echo "CI_SHOULD_FAIL=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Mark workflow as failed when gates break
+        if: ${{ env.CI_SHOULD_FAIL == 'true' }}
+        run: |
+          echo "::error::One or more quality checks failed. See the summary above for details."
+          exit 1
