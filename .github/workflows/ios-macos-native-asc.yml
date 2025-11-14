@@ -260,8 +260,25 @@ jobs:
           fi
 
           COUNT=$(printf '%s\n' "$IDENTITIES_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+
           if [ "${COUNT:-0}" -le 0 ]; then
-            echo "::error::No signing identities available in $KEYCHAIN_PATH after import."
+            echo "No usable identities reported in $KEYCHAIN_PATH; checking default keychain search list…"
+            set +e
+            FALLBACK_OUTPUT=$(security find-identity -v -p codesigning)
+            FALLBACK_STATUS=$?
+            set -euo pipefail
+            printf '%s\n' "$FALLBACK_OUTPUT"
+
+            if [ "${FALLBACK_STATUS:-0}" -ne 0 ]; then
+              echo "::error::security find-identity failed when inspecting default keychain search list"
+              exit "$FALLBACK_STATUS"
+            fi
+
+            COUNT=$(printf '%s\n' "$FALLBACK_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+          fi
+
+          if [ "${COUNT:-0}" -le 0 ]; then
+            echo "::error::No signing identities available after importing certificates."
             exit 1
           fi
 

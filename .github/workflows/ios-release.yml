@@ -255,13 +255,44 @@ jobs:
 
           echo "Inspecting codesigning identities in $KEYCHAIN_PATH"
           set +e
-          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/^.*"\(.*\)"$/\1/p' | head -n 1)
+          IDENTITIES_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
           STATUS=$?
           set -euo pipefail
 
-          if [ "${STATUS:-0}" -ne 0 ] || [ -z "${IDENTITY:-}" ]; then
+          printf '%s\n' "$IDENTITIES_OUTPUT"
+
+          if [ "${STATUS:-0}" -ne 0 ]; then
+            echo "::error::security find-identity failed for $KEYCHAIN_PATH"
+            exit "$STATUS"
+          fi
+
+          IDENTITY=$(printf '%s\n' "$IDENTITIES_OUTPUT" | awk -F'"' '/"[^"]+"/ {print $2; exit}')
+          COUNT=$(printf '%s\n' "$IDENTITIES_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+
+          if [ -z "${IDENTITY:-}" ] || [ "${COUNT:-0}" -le 0 ]; then
+            echo "No usable identity found in $KEYCHAIN_PATH; checking default keychain search list…"
+            set +e
+            FALLBACK_OUTPUT=$(security find-identity -v -p codesigning)
+            FALLBACK_STATUS=$?
+            set -euo pipefail
+            printf '%s\n' "$FALLBACK_OUTPUT"
+
+            if [ "${FALLBACK_STATUS:-0}" -ne 0 ]; then
+              echo "::error::security find-identity failed when inspecting default keychain search list"
+              exit "$FALLBACK_STATUS"
+            fi
+
+            if [ -z "${IDENTITY:-}" ]; then
+              IDENTITY=$(printf '%s\n' "$FALLBACK_OUTPUT" | awk -F'"' '/"[^"]+"/ {print $2; exit}')
+            fi
+
+            if [ "${COUNT:-0}" -le 0 ]; then
+              COUNT=$(printf '%s\n' "$FALLBACK_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+            fi
+          fi
+
+          if [ -z "${IDENTITY:-}" ] || [ "${COUNT:-0}" -le 0 ]; then
             echo "::error::No signing identity found after importing certificates."
-            security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
             exit 1
           fi
 
