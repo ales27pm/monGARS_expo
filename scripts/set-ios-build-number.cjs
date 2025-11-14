@@ -16,8 +16,11 @@ function fail(message, error) {
 }
 
 try {
-  if (process.env.EAS_BUILD !== "true") {
-    log("Not running inside an EAS build. Skipping automatic iOS build number update.");
+  const easBuildFlag = String(process.env.EAS_BUILD ?? "").toLowerCase();
+  const isEasBuild = easBuildFlag === "true" || easBuildFlag === "1" || process.env.CI === "true";
+
+  if (!isEasBuild && !process.env.FORCE_IOS_BUILD_NUMBER_UPDATE) {
+    log("Not running inside an EAS/CI environment. Skipping automatic iOS build number update.");
     process.exit(0);
   }
 
@@ -46,7 +49,23 @@ try {
 
   const nowSeconds = Math.floor(Date.now() / 1000);
   const previous = Number.parseInt(appJson.expo.ios.buildNumber ?? "0", 10);
-  const nextBuildNumber = Number.isFinite(previous) && previous >= nowSeconds ? previous + 1 : nowSeconds;
+  const minimumFromEnv = Number.parseInt(process.env.IOS_BUILD_NUMBER_MIN ?? "0", 10);
+
+  if (Number.isFinite(previous)) {
+    log(`Previous expo.ios.buildNumber detected in app.json: ${previous}`);
+  } else {
+    log("No numeric expo.ios.buildNumber detected in app.json; treating as 0.");
+  }
+
+  if (Number.isFinite(minimumFromEnv) && minimumFromEnv > 0) {
+    log(`Respecting IOS_BUILD_NUMBER_MIN environment override: ${minimumFromEnv}`);
+  }
+
+  const baseline = Math.max(
+    Number.isFinite(previous) ? previous + 1 : 0,
+    Number.isFinite(minimumFromEnv) ? minimumFromEnv : 0,
+  );
+  const nextBuildNumber = Math.max(nowSeconds, baseline);
   const nextBuildNumberString = String(nextBuildNumber);
 
   appJson.expo.ios.buildNumber = nextBuildNumberString;
