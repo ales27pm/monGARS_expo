@@ -24,7 +24,8 @@
         "buildConfiguration": "Release",
         "simulator": false,
         "resourceClass": "m-medium",
-        "image": "latest"
+        "image": "latest",
+        "autoIncrement": true
       },
       "android": {
         "distribution": "store"
