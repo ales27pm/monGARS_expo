@@ -1,22 +1,22 @@
-type Primitive = string | number | boolean;
+import type { Configuration as NativeMMKVConfiguration } from "react-native-mmkv";
 
-export interface MMKVConfiguration {
-  id?: string;
-}
+type Primitive = string | number | boolean | ArrayBuffer | Uint8Array;
+
+export type MMKVConfiguration = Partial<NativeMMKVConfiguration>;
 
 export interface MMKVLike {
   set(key: string, value: Primitive): void;
-  getString(key: string): string | null;
-  getNumber(key: string): number | null;
-  getBoolean(key: string): boolean | null;
+  getString(key: string): string | undefined;
+  getNumber(key: string): number | undefined;
+  getBoolean(key: string): boolean | undefined;
   contains(key: string): boolean;
   delete(key: string): void;
   clearAll(): void;
   getAllKeys(): string[];
-  recrypt(key: string): void;
+  recrypt(key?: string): void;
 }
 
-type MMKVConstructor = new (configuration?: MMKVConfiguration) => MMKVLike;
+type MMKVConstructor = new (configuration?: NativeMMKVConfiguration) => MMKVLike;
 
 let NativeMMKV: MMKVConstructor | null = null;
 let lastFallbackLog: number | null = null;
@@ -54,19 +54,19 @@ class InMemoryMMKV implements MMKVLike {
     this.store.set(key, value);
   }
 
-  getString(key: string): string | null {
+  getString(key: string): string | undefined {
     const value = this.store.get(key);
-    return typeof value === "string" ? value : null;
+    return typeof value === "string" ? value : undefined;
   }
 
-  getNumber(key: string): number | null {
+  getNumber(key: string): number | undefined {
     const value = this.store.get(key);
-    return typeof value === "number" ? value : null;
+    return typeof value === "number" ? value : undefined;
   }
 
-  getBoolean(key: string): boolean | null {
+  getBoolean(key: string): boolean | undefined {
     const value = this.store.get(key);
-    return typeof value === "boolean" ? value : null;
+    return typeof value === "boolean" ? value : undefined;
   }
 
   contains(key: string): boolean {
@@ -99,9 +99,25 @@ function getInMemoryStore(id?: string): InMemoryMMKV {
   return inMemoryStores.get(id)!;
 }
 
+function normalizeConfiguration(configuration: MMKVConfiguration): NativeMMKVConfiguration | undefined {
+  const { id, path, encryptionKey, mode } = configuration;
+
+  if (id === undefined && path === undefined && encryptionKey === undefined && mode === undefined) {
+    return undefined;
+  }
+
+  return {
+    id: id ?? "mmkv.default",
+    ...(path !== undefined ? { path } : {}),
+    ...(encryptionKey !== undefined ? { encryptionKey } : {}),
+    ...(mode !== undefined ? { mode } : {}),
+  } satisfies NativeMMKVConfiguration;
+}
+
 export function createMMKVInstance(configuration: MMKVConfiguration = {}): MMKVLike {
   if (NativeMMKV) {
-    return new NativeMMKV(configuration);
+    const normalized = normalizeConfiguration(configuration);
+    return normalized ? new NativeMMKV(normalized) : new NativeMMKV();
   }
 
   if (!lastFallbackLog || Date.now() - lastFallbackLog > 60_000) {
