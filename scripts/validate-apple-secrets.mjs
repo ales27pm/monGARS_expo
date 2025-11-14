@@ -87,17 +87,57 @@ function createAscJwt({ keyId, issuerId, privateKey }) {
   return `${signingInput}.${signature}`;
 }
 
+async function fetchExpoWhoami(token) {
+  try {
+    const response = await fetch("https://exp.host/--/api/v2/auth/whoami", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+    }
+
+    const json = await response.json();
+    const user = json?.data?.user ?? json?.user ?? null;
+    if (!user) {
+      throw new Error("Response did not include user information.");
+    }
+
+    return {
+      username: user.username ?? "unknown user",
+      ownerSlug: user.ownerSlug ?? user.username ?? null,
+    };
+  } catch (error) {
+    throw new Error(`Expo whoami API request failed: ${error.message ?? error}`);
+  }
+}
+
+function buildExpoAuthEnv(token) {
+  if (!token) {
+    return {};
+  }
+  return {
+    EXPO_TOKEN: token,
+    EAS_ACCESS_TOKEN: token,
+    EXPO_CLI_TOKEN: token,
+  };
+}
+
 async function validateExpoToken() {
   logSection("Checking Expo (EAS) authentication");
-  const tokenInfo = getFirstValue(["EXPO_TOKEN"]);
+  const tokenInfo = getFirstValue(["EXPO_TOKEN", "EAS_ACCESS_TOKEN", "EXPO_CLI_TOKEN"]);
   if (!tokenInfo) {
     console.error("❌ EXPO_TOKEN is missing.");
     return false;
   }
 
   try {
-    const { stdout } = await runEasCommand(["whoami", "--json"], {
-      env: { EXPO_TOKEN: tokenInfo.value },
+    const { stdout } = await runEasCommand(["whoami", "--json", "--non-interactive"], {
+      env: buildExpoAuthEnv(tokenInfo.value),
     });
     const info = JSON.parse(stdout);
     console.log(`✅ Authenticated as ${info?.user?.username ?? "unknown user"}`);
@@ -106,13 +146,25 @@ async function validateExpoToken() {
     }
     return true;
   } catch (error) {
-    console.error("❌ Failed to verify EXPO_TOKEN with `eas whoami`.");
+    console.error("⚠️  Failed to verify EXPO_TOKEN with `eas whoami`. Trying direct API request...");
     if (error?.stdout) {
       console.error(error.stdout);
     }
     if (error?.stderr) {
       console.error(error.stderr);
     }
+  }
+
+  try {
+    const info = await fetchExpoWhoami(tokenInfo.value);
+    console.log(`✅ Authenticated as ${info.username}`);
+    if (info.ownerSlug) {
+      console.log(`   Owner: ${info.ownerSlug}`);
+    }
+    return true;
+  } catch (apiError) {
+    console.error("❌ Failed to verify EXPO_TOKEN with both EAS CLI and Expo API.");
+    console.error(apiError.message ?? apiError);
     return false;
   }
 }
