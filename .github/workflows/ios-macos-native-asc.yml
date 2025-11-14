@@ -158,10 +158,129 @@ jobs:
 
       # ---- Import signing assets (.p12 + .mobileprovision) ----
       - name: 🔐 Import signing certificate (.p12)
+        id: import_certs
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: 🔎 Resolve signing keychain
+        id: resolve_keychain
+        shell: bash
+        env:
+          RAW_KEYCHAIN_PATH: ${{ steps.import_certs.outputs['keychain-path'] }}
+          RAW_KEYCHAIN_PASSWORD: ${{ steps.import_certs.outputs['keychain-password'] }}
+        run: |
+          set -euo pipefail
+          IFS=$'\n\t'
+
+          KEYCHAIN_PATH="${RAW_KEYCHAIN_PATH:-}"
+          KEYCHAIN_PASSWORD="${RAW_KEYCHAIN_PASSWORD:-}"
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "No keychain path reported by import step; probing common locations"
+            for candidate in \
+              "$HOME/Library/Keychains/signing_temp.keychain-db" \
+              "$HOME/Library/Keychains/signing_temp.keychain" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain-db" \
+              "/Users/runner/Library/Keychains/signing_temp.keychain"
+            do
+              if [ -z "$KEYCHAIN_PATH" ] && [ -f "$candidate" ]; then
+                KEYCHAIN_PATH="$candidate"
+                echo "Discovered signing keychain at $KEYCHAIN_PATH"
+              fi
+            done
+          fi
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "::error::Unable to determine signing keychain path."
+            security list-keychains -d user || true
+            exit 1
+          fi
+
+          if [ ! -f "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain $KEYCHAIN_PATH does not exist."
+            ls -la "$HOME/Library/Keychains" || true
+            exit 1
+          fi
+
+          if [ -n "$KEYCHAIN_PASSWORD" ]; then
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          fi
+
+          declare -a DESIRED
+          DESIRED=("$KEYCHAIN_PATH")
+          while IFS= read -r raw; do
+            item=$(printf '%s' "$raw" | sed -E 's/^[[:space:]]*"(.+)"$/\1/')
+            if [ -n "$item" ] && [ "$item" != "$KEYCHAIN_PATH" ]; then
+              DESIRED+=("$item")
+            fi
+          done < <(security list-keychains -d user || true)
+
+          security list-keychains -d user -s "${DESIRED[@]}"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+          echo "path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
+
+          # Share the resolved path with subsequent steps (non-sensitive)
+          echo "SIGNING_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: 🔍 Verify signing keychain
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="${{ steps.resolve_keychain.outputs.path }}"
+
+          if [ -z "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain path missing."
+            exit 1
+          fi
+
+          if [ ! -f "$KEYCHAIN_PATH" ]; then
+            echo "::error::Signing keychain $KEYCHAIN_PATH not found."
+            exit 1
+          fi
+
+          KEYCHAIN_PASSWORD="${{ steps.import_certs.outputs['keychain-password'] }}"
+          if [ -n "$KEYCHAIN_PASSWORD" ]; then
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          fi
+
+          echo "Available signing identities in $KEYCHAIN_PATH:"
+          set +e
+          IDENTITIES_OUTPUT=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH")
+          STATUS=$?
+          set -euo pipefail
+
+          printf '%s\n' "$IDENTITIES_OUTPUT"
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::security find-identity failed for $KEYCHAIN_PATH"
+            exit $STATUS
+          fi
+
+          COUNT=$(printf '%s\n' "$IDENTITIES_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+
+          if [ "${COUNT:-0}" -le 0 ]; then
+            echo "No usable identities reported in $KEYCHAIN_PATH; checking default keychain search list…"
+            set +e
+            FALLBACK_OUTPUT=$(security find-identity -v -p codesigning)
+            FALLBACK_STATUS=$?
+            set -euo pipefail
+            printf '%s\n' "$FALLBACK_OUTPUT"
+
+            if [ "${FALLBACK_STATUS:-0}" -ne 0 ]; then
+              echo "::error::security find-identity failed when inspecting default keychain search list"
+              exit "$FALLBACK_STATUS"
+            fi
+
+            COUNT=$(printf '%s\n' "$FALLBACK_OUTPUT" | grep -E '^[[:space:]]*[0-9]+\)' | wc -l | tr -d ' ')
+          fi
+
+          if [ "${COUNT:-0}" -le 0 ]; then
+            echo "::error::No signing identities available after importing certificates."
+            exit 1
+          fi
 
       - name: 📄 Install provisioning profile
         env:
