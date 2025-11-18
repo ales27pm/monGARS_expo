@@ -3,7 +3,7 @@
  * Showcases privacy-first AI capabilities
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +20,8 @@ import { RECOMMENDED_MODELS, ModelConfig, ModelDownloadProgress as DownloadProgr
 
 import { vectorStore } from "../utils/vector-store";
 import { useModelStore } from "../state/modelStore";
+import type { OnDeviceLLM } from "../utils/on-device-llm";
+import { createConversationId } from "../utils/conversation";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -27,7 +29,7 @@ interface CustomModalProps {
   title: string;
   message: string;
   onClose: () => void;
-  onConfirm?: () => void;
+  onConfirm?: () => void | Promise<void>;
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
@@ -43,8 +45,41 @@ function CustomModal({
   cancelText = "Cancel",
   isDestructive = false,
 }: CustomModalProps) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleConfirmPress = useCallback(() => {
+    if (!onConfirm) {
+      onClose();
+      return;
+    }
+
+    try {
+      const maybePromise = onConfirm();
+      if (maybePromise && typeof (maybePromise as PromiseLike<void>).then === "function") {
+        setIsConfirming(true);
+        Promise.resolve(maybePromise)
+          .catch((error: unknown) => console.warn("[OnDeviceMLDemo] Modal confirm failed", error))
+          .finally(() => {
+            setIsConfirming(false);
+            onClose();
+          });
+      } else {
+        onClose();
+      }
+    } catch (error) {
+      console.error("[OnDeviceMLDemo] Modal confirm threw", error);
+      onClose();
+    }
+  }, [onClose, onConfirm]);
+
+  const handleCancelPress = useCallback(() => {
+    if (!isConfirming) {
+      onClose();
+    }
+  }, [isConfirming, onClose]);
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 bg-black/50 justify-center items-center px-6">
         <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
           <Text className="text-xl font-bold text-gray-900 mb-2">{title}</Text>
@@ -52,20 +87,24 @@ function CustomModal({
 
           <View className="flex-row gap-3">
             {onConfirm && (
-              <Pressable onPress={onClose} className="flex-1 bg-gray-200 py-3 rounded-lg items-center">
+              <Pressable
+                onPress={handleCancelPress}
+                disabled={isConfirming}
+                className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
+              >
                 <Text className="text-gray-700 font-semibold">{cancelText}</Text>
               </Pressable>
             )}
             <Pressable
-              onPress={() => {
-                if (onConfirm) {
-                  onConfirm();
-                }
-                onClose();
-              }}
+              onPress={handleConfirmPress}
+              disabled={isConfirming}
               className={`flex-1 py-3 rounded-lg items-center ${isDestructive ? "bg-red-500" : "bg-blue-500"}`}
             >
-              <Text className="text-white font-semibold">{confirmText}</Text>
+              {isConfirming ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white font-semibold">{confirmText}</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -85,6 +124,27 @@ export default function OnDeviceMLDemo() {
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const conversationIdRef = useRef<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  const resetConversationState = useCallback(() => {
+    setMessages([]);
+    setInputText("");
+    setIsGenerating(false);
+    conversationIdRef.current = null;
+    setActiveConversationId(null);
+  }, []);
+
+  const ensureConversationId = useCallback(() => {
+    if (!conversationIdRef.current) {
+      const seed = selectedModel?.filename ?? selectedModel?.repo ?? undefined;
+      const generatedId = createConversationId(seed);
+      conversationIdRef.current = generatedId;
+      setActiveConversationId(generatedId);
+    }
+
+    return conversationIdRef.current as string;
+  }, [selectedModel]);
 
   // Memory state
   const [memoryStats, setMemoryStats] = useState({
@@ -98,8 +158,10 @@ export default function OnDeviceMLDemo() {
     visible: boolean;
     title: string;
     message: string;
-    onConfirm?: () => void;
+    onConfirm?: () => void | Promise<void>;
     isDestructive?: boolean;
+    confirmText?: string;
+    cancelText?: string;
   }>({
     visible: false,
     title: "",
@@ -114,7 +176,25 @@ export default function OnDeviceMLDemo() {
   const checkDownloadedModels = useModelStore((s) => s.checkDownloadedModels);
 
   // LLM instance - lazy loaded only when needed
-  const [llm, setLlm] = useState<any>(null);
+  const [llm, setLlm] = useState<OnDeviceLLM | null>(null);
+  const llmRef = useRef<OnDeviceLLM | null>(null);
+
+  const ensureLlmInstance = useCallback(async (): Promise<OnDeviceLLM> => {
+    if (llmRef.current) {
+      return llmRef.current;
+    }
+
+    try {
+      const { getGlobalLLM } = await import("../utils/on-device-llm");
+      const llmInstance = getGlobalLLM();
+      llmRef.current = llmInstance;
+      setLlm(llmInstance);
+      return llmInstance;
+    } catch (error) {
+      console.error("[OnDeviceMLDemo] Failed to load on-device LLM module", error);
+      throw error;
+    }
+  }, [setLlm]);
 
   // Check network status - disabled to avoid NativeEventEmitter error
   // NetInfo requires native module initialization
@@ -122,6 +202,20 @@ export default function OnDeviceMLDemo() {
     // Network detection is disabled for now
     // Will be re-enabled when NetInfo native module is properly initialized
     setIsOffline(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const instance = llmRef.current;
+      if (!instance) {
+        return;
+      }
+
+      llmRef.current = null;
+      void instance
+        .release()
+        .catch((error) => console.debug("[OnDeviceMLDemo] Failed to release model on unmount", error));
+    };
   }, []);
 
   // Load memory stats
@@ -187,7 +281,7 @@ export default function OnDeviceMLDemo() {
       setModal({
         visible: true,
         title: "Download Failed",
-        message: `Failed to download ${model.name}: ${error}`,
+        message: `Failed to download ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
       setIsDownloading(false);
@@ -207,27 +301,22 @@ export default function OnDeviceMLDemo() {
         return;
       }
 
-      // Lazy-load the OnDeviceLLM class only when needed
-      if (!llm) {
-        try {
-          const { getGlobalLLM } = await import("../utils/on-device-llm");
-          const llmInstance = getGlobalLLM();
-          setLlm(llmInstance);
-        } catch (error) {
-          console.error("[OnDeviceMLDemo] Failed to load on-device LLM module", error);
-          setModal({
-            visible: true,
-            title: "Module Not Available",
-            message:
-              "On-device LLM module is not available in this environment. It will work after building with EAS Build.",
-          });
-          return;
-        }
+      let instance: OnDeviceLLM;
+      try {
+        instance = await ensureLlmInstance();
+      } catch {
+        setModal({
+          visible: true,
+          title: "Module Not Available",
+          message:
+            "On-device LLM module is not available in this environment. It will work after building with EAS Build.",
+        });
+        return;
       }
 
       // Release any currently loaded model
-      if (isModelLoaded && llm) {
-        await llm.release();
+      if (isModelLoaded) {
+        await instance.release();
         setIsModelLoaded(false);
       }
 
@@ -239,7 +328,7 @@ export default function OnDeviceMLDemo() {
       });
 
       // Initialize the model
-      await llm.initializeModel(model, {
+      await instance.initializeModel(model, {
         gpuLayers: 99, // Use GPU acceleration
         contextSize: 2048,
         useMemoryLock: true,
@@ -253,11 +342,12 @@ export default function OnDeviceMLDemo() {
         title: "Model Loaded",
         message: `${model.name} is ready for inference! Start chatting below.`,
       });
+      resetConversationState();
     } catch (error) {
       setModal({
         visible: true,
         title: "Load Failed",
-        message: `Failed to load ${model.name}: ${error}`,
+        message: `Failed to load ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
       });
       setIsModelLoaded(false);
     }
@@ -272,10 +362,12 @@ export default function OnDeviceMLDemo() {
       onConfirm: async () => {
         try {
           // Release model if it's currently loaded
-          if (isModelLoaded && selectedModel?.filename === model.filename) {
-            await llm.release();
+          const instance = llmRef.current;
+          if (instance && isModelLoaded && selectedModel?.filename === model.filename) {
+            await instance.release();
             setIsModelLoaded(false);
             setSelectedModel(null);
+            resetConversationState();
           }
 
           await deleteModelFromStore(model);
@@ -289,7 +381,7 @@ export default function OnDeviceMLDemo() {
           setModal({
             visible: true,
             title: "Delete Failed",
-            message: `Failed to delete ${model.name}: ${error}`,
+            message: `Failed to delete ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
           });
         }
       },
@@ -298,7 +390,8 @@ export default function OnDeviceMLDemo() {
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
-    if (!isModelLoaded || !llm) {
+    const instance = llmRef.current;
+    if (!isModelLoaded || !instance) {
       setModal({
         visible: true,
         title: "No Model Loaded",
@@ -314,7 +407,7 @@ export default function OnDeviceMLDemo() {
 
     try {
       // Get response from on-device LLM
-      const response = await llm.chat(
+      const response = await instance.chat(
         [
           ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
           { role: "user" as const, content: userMessage },
@@ -330,8 +423,9 @@ export default function OnDeviceMLDemo() {
       // Store in vector memory for RAG
       try {
         // Generate embeddings for the conversation
-        const userEmbedding = await llm.embed(userMessage);
-        const assistantEmbedding = await llm.embed(response);
+        const userEmbedding = await instance.embed(userMessage);
+        const assistantEmbedding = await instance.embed(response);
+        const conversationId = ensureConversationId();
 
         // Store both in vector store
         await vectorStore.addEmbedding({
@@ -340,7 +434,7 @@ export default function OnDeviceMLDemo() {
           timestamp: Date.now(),
           metadata: {
             role: "user",
-            conversationId: Date.now().toString(),
+            conversationId,
           },
         });
 
@@ -350,21 +444,30 @@ export default function OnDeviceMLDemo() {
           timestamp: Date.now(),
           metadata: {
             role: "assistant",
-            conversationId: Date.now().toString(),
+            conversationId,
           },
         });
       } catch (embeddingError) {
         // Silently fail if embeddings don't work - chat still works
-        console.log("Failed to generate embeddings:", embeddingError);
+        console.warn("Failed to generate embeddings:", embeddingError);
       }
     } catch (error) {
       setModal({
         visible: true,
         title: "Generation Failed",
-        message: `Failed to generate response: ${error}`,
+        message: `Failed to generate response: ${error instanceof Error ? error.message : String(error)}`,
       });
       // Remove the user message if generation failed
-      setMessages((prev) => prev.slice(0, -1));
+      setMessages((prev) => {
+        if (prev.length === 0) {
+          return prev;
+        }
+        const next = [...prev];
+        if (next[next.length - 1]?.role === "user") {
+          next.pop();
+        }
+        return next;
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -378,6 +481,7 @@ export default function OnDeviceMLDemo() {
       isDestructive: true,
       onConfirm: async () => {
         try {
+          resetConversationState();
           await vectorStore.waitUntilReady();
           vectorStore.clearAll();
           setMemoryStats({
@@ -394,6 +498,24 @@ export default function OnDeviceMLDemo() {
           });
         }
       },
+    });
+  };
+
+  const handleNewConversationPress = () => {
+    if (messages.length === 0) {
+      resetConversationState();
+      return;
+    }
+
+    setModal({
+      visible: true,
+      title: "Start New Conversation",
+      message:
+        "This clears the on-screen chat history and starts a fresh semantic memory thread. Previously saved embeddings remain accessible.",
+      onConfirm: () => {
+        resetConversationState();
+      },
+      confirmText: "Start Fresh",
     });
   };
 
@@ -451,7 +573,23 @@ export default function OnDeviceMLDemo() {
         {/* Chat Interface */}
         {isModelLoaded && (
           <View className="mb-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">Offline Chat</Text>
+            <View className="flex-row items-center justify-between mb-3">
+              <View>
+                <Text className="text-lg font-semibold text-gray-900">Offline Chat</Text>
+                {activeConversationId && (
+                  <Text className="text-xs text-gray-500" selectable>
+                    Conversation ID: {activeConversationId}
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                onPress={handleNewConversationPress}
+                className="flex-row items-center bg-gray-200 px-3 py-2 rounded-lg"
+              >
+                <Ionicons name="refresh" size={16} color="#1d4ed8" />
+                <Text className="text-sm text-blue-700 font-semibold ml-2">New Chat</Text>
+              </Pressable>
+            </View>
 
             <View className="bg-white rounded-lg border border-gray-200 p-4 mb-3 min-h-[200px]">
               {messages.length === 0 ? (
@@ -542,6 +680,8 @@ export default function OnDeviceMLDemo() {
         onClose={() => setModal({ ...modal, visible: false })}
         onConfirm={modal.onConfirm}
         isDestructive={modal.isDestructive}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </SafeAreaView>
   );
