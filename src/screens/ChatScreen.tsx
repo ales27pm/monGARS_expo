@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useModelStore } from "../state/modelStore";
 import { useMlxChat } from "../hooks/useMlxChat";
 import { isNativeModuleUnavailableError } from "../utils/nativeModuleError";
+import { getErrorMessage } from "../utils/errors";
 import { configureSemanticMemoryEmbedding, getGlobalMemory, SemanticMemory } from "../utils/semantic-memory";
 import { ContextEngineer } from "../services/contextEngineer";
 import { PROMPT_TEMPLATES, type Message as ContextMessage } from "../utils/context-management";
@@ -206,7 +207,7 @@ export default function ChatScreen() {
       scrollToBottom();
       return response.trim();
     } catch (error) {
-      const message = (error as Error | null | undefined)?.message ?? String(error);
+      const message = getErrorMessage(error);
       setModal({
         visible: true,
         title: "Generation Failed",
@@ -420,7 +421,7 @@ export default function ChatScreen() {
       // Store in semantic memory for RAG
       await persistConversation(response, "native");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       setModal({
         visible: true,
         title: "Generation Failed",

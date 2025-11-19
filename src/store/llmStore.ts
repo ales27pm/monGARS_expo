@@ -4,6 +4,7 @@
  */
 
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errors";
 
 const generateId = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -209,7 +210,7 @@ const useLLMStore = create<LLMStoreState>((set, get) => ({
       addMessage({ role: "assistant", content: text });
       return text;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       addMessage({ role: "assistant", content: `Error: ${message}` });
       throw error;
     } finally {

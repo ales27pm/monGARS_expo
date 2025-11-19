@@ -1,4 +1,5 @@
 import * as CustomModules from "../native-modules";
+import { getErrorMessage } from "../utils/errors";
 
 /**
  * Advanced AI Agent with Enhanced Reasoning and Vector Memory
@@ -439,7 +440,7 @@ export class AdvancedAIAgent {
 
       return decision;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       console.error("Reasoning failed:", errorMessage);
 
       this.context.sessionMetadata.errorCount++;
@@ -710,7 +711,7 @@ ${deviceState.availableMemoryMB < 500 ? "⚠️ LOW MEMORY - Avoid ML models" : 
         };
       } catch (error: unknown) {
         retries++;
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
 
         if (retries > maxRetries) {
           this.context.sessionMetadata.errorCount++;

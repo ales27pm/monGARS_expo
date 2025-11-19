@@ -1,4 +1,5 @@
 import type { Configuration as NativeMMKVConfiguration } from "react-native-mmkv";
+import { getErrorMessage } from "./errors";
 
 type Primitive = string | number | boolean | ArrayBuffer | Uint8Array;
 
@@ -40,7 +41,7 @@ function ensureNativeModuleLoading(): void {
       lastFallbackLog = Date.now();
       console.warn(
         "[MMKVAdapter] Falling back to in-memory storage. react-native-mmkv is unavailable in this environment.",
-        error instanceof Error ? error.message : error,
+        getErrorMessage(error),
       );
     });
 }

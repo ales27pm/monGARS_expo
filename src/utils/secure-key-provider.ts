@@ -1,4 +1,5 @@
 import { Buffer } from "buffer";
+import { getErrorMessage } from "./errors";
 
 type SecureStoreModule = typeof import("expo-secure-store");
 type CryptoModule = typeof import("expo-crypto");
@@ -40,7 +41,7 @@ async function resolveSecureStore(): Promise<SecureStoreLike> {
         if (!loggedSecureFallback) {
           console.warn(
             "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
-            error instanceof Error ? error.message : error,
+            getErrorMessage(error),
           );
           loggedSecureFallback = true;
         }
@@ -66,7 +67,7 @@ async function resolveSecureStore(): Promise<SecureStoreLike> {
         if (!loggedSecureFallback) {
           console.warn(
             "[SecureKeyProvider] expo-secure-store unavailable. Using in-memory fallback; keys will reset between sessions.",
-            error instanceof Error ? error.message : error,
+            getErrorMessage(error),
           );
           loggedSecureFallback = true;
         }
@@ -100,7 +101,7 @@ async function resolveCryptoModule(): Promise<CryptoModule | null> {
         if (!loggedCryptoFallback) {
           console.warn(
             "[SecureKeyProvider] expo-crypto unavailable. Falling back to global crypto APIs for randomness.",
-            error instanceof Error ? error.message : error,
+            getErrorMessage(error),
           );
           loggedCryptoFallback = true;
         }
@@ -142,10 +143,7 @@ async function getRandomBytes(size: number): Promise<Uint8Array> {
         return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
       }
     } catch (error) {
-      console.warn(
-        "[SecureKeyProvider] Node crypto.randomBytes unavailable:",
-        error instanceof Error ? error.message : error,
-      );
+      console.warn("[SecureKeyProvider] Node crypto.randomBytes unavailable:", getErrorMessage(error));
     }
   }
 
