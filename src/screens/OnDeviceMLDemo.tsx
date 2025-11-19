@@ -22,6 +22,7 @@ import { vectorStore } from "../utils/vector-store";
 import { useModelStore } from "../state/modelStore";
 import type { OnDeviceLLM } from "../utils/on-device-llm";
 import { createConversationId } from "../utils/conversation";
+import { getErrorMessage } from "../utils/errors";
 
 // Custom Modal Component
 interface CustomModalProps {
@@ -33,7 +34,13 @@ interface CustomModalProps {
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
+  backdropClassName?: string;
+  containerClassName?: string;
+  confirmButtonClassName?: string;
+  cancelButtonClassName?: string;
 }
+
+const mergeClassNames = (...classes: (string | undefined)[]) => classes.filter(Boolean).join(" ");
 
 function CustomModal({
   visible,
@@ -44,8 +51,19 @@ function CustomModal({
   confirmText = "OK",
   cancelText = "Cancel",
   isDestructive = false,
+  backdropClassName,
+  containerClassName,
+  confirmButtonClassName,
+  cancelButtonClassName,
 }: CustomModalProps) {
   const [isConfirming, setIsConfirming] = useState(false);
+  const backdropClasses = mergeClassNames("flex-1 bg-black/50 justify-center items-center px-6", backdropClassName);
+  const containerClasses = mergeClassNames("bg-white rounded-2xl p-6 w-full max-w-sm", containerClassName);
+  const cancelClasses = mergeClassNames("flex-1 bg-gray-200 py-3 rounded-lg items-center", cancelButtonClassName);
+  const confirmClasses = mergeClassNames(
+    `flex-1 py-3 rounded-lg items-center ${isDestructive ? "bg-red-500" : "bg-blue-500"}`,
+    confirmButtonClassName,
+  );
 
   const handleConfirmPress = useCallback(() => {
     if (!onConfirm) {
@@ -80,26 +98,18 @@ function CustomModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-center items-center px-6">
-        <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+      <View className={backdropClasses}>
+        <View className={containerClasses}>
           <Text className="text-xl font-bold text-gray-900 mb-2">{title}</Text>
           <Text className="text-gray-600 mb-6">{message}</Text>
 
           <View className="flex-row gap-3">
             {onConfirm && (
-              <Pressable
-                onPress={handleCancelPress}
-                disabled={isConfirming}
-                className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
-              >
+              <Pressable onPress={handleCancelPress} disabled={isConfirming} className={cancelClasses}>
                 <Text className="text-gray-700 font-semibold">{cancelText}</Text>
               </Pressable>
             )}
-            <Pressable
-              onPress={handleConfirmPress}
-              disabled={isConfirming}
-              className={`flex-1 py-3 rounded-lg items-center ${isDestructive ? "bg-red-500" : "bg-blue-500"}`}
-            >
+            <Pressable onPress={handleConfirmPress} disabled={isConfirming} className={confirmClasses}>
               {isConfirming ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -281,7 +291,7 @@ export default function OnDeviceMLDemo() {
       setModal({
         visible: true,
         title: "Download Failed",
-        message: `Failed to download ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Failed to download ${model.name}: ${getErrorMessage(error)}`,
       });
     } finally {
       setIsDownloading(false);
@@ -347,7 +357,7 @@ export default function OnDeviceMLDemo() {
       setModal({
         visible: true,
         title: "Load Failed",
-        message: `Failed to load ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Failed to load ${model.name}: ${getErrorMessage(error)}`,
       });
       setIsModelLoaded(false);
     }
@@ -381,7 +391,7 @@ export default function OnDeviceMLDemo() {
           setModal({
             visible: true,
             title: "Delete Failed",
-            message: `Failed to delete ${model.name}: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to delete ${model.name}: ${getErrorMessage(error)}`,
           });
         }
       },
@@ -389,7 +399,8 @@ export default function OnDeviceMLDemo() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    const trimmedInput = inputText.trim();
+    if (!trimmedInput) return;
     const instance = llmRef.current;
     if (!isModelLoaded || !instance) {
       setModal({
@@ -400,7 +411,9 @@ export default function OnDeviceMLDemo() {
       return;
     }
 
-    const userMessage = inputText.trim();
+    const userMessage = trimmedInput;
+    const conversationIdAtSend = ensureConversationId();
+    const isCurrentConversation = () => conversationIdRef.current === conversationIdAtSend;
     setInputText("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsGenerating(true);
@@ -418,14 +431,24 @@ export default function OnDeviceMLDemo() {
         },
       );
 
+      if (!isCurrentConversation()) {
+        console.info("[OnDeviceMLDemo] Dropping assistant response for stale conversation", conversationIdAtSend);
+        return;
+      }
+
       setMessages((prev) => [...prev, { role: "assistant", content: response }]);
 
       // Store in vector memory for RAG
       try {
-        // Generate embeddings for the conversation
-        const userEmbedding = await instance.embed(userMessage);
-        const assistantEmbedding = await instance.embed(response);
-        const conversationId = ensureConversationId();
+        const [userEmbedding, assistantEmbedding] = await Promise.all([
+          instance.embed(userMessage),
+          instance.embed(response),
+        ]);
+
+        if (!isCurrentConversation()) {
+          console.info("[OnDeviceMLDemo] Skipping memory persistence for stale conversation", conversationIdAtSend);
+          return;
+        }
 
         // Store both in vector store
         await vectorStore.addEmbedding({
@@ -434,7 +457,7 @@ export default function OnDeviceMLDemo() {
           timestamp: Date.now(),
           metadata: {
             role: "user",
-            conversationId,
+            conversationId: conversationIdAtSend,
           },
         });
 
@@ -444,7 +467,7 @@ export default function OnDeviceMLDemo() {
           timestamp: Date.now(),
           metadata: {
             role: "assistant",
-            conversationId,
+            conversationId: conversationIdAtSend,
           },
         });
       } catch (embeddingError) {
@@ -452,10 +475,15 @@ export default function OnDeviceMLDemo() {
         console.warn("Failed to generate embeddings:", embeddingError);
       }
     } catch (error) {
+      if (!isCurrentConversation()) {
+        console.info("[OnDeviceMLDemo] Ignoring failure for stale conversation", conversationIdAtSend);
+        return;
+      }
+
       setModal({
         visible: true,
         title: "Generation Failed",
-        message: `Failed to generate response: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Failed to generate response: ${getErrorMessage(error)}`,
       });
       // Remove the user message if generation failed
       setMessages((prev) => {
@@ -469,7 +497,9 @@ export default function OnDeviceMLDemo() {
         return next;
       });
     } finally {
-      setIsGenerating(false);
+      if (isCurrentConversation()) {
+        setIsGenerating(false);
+      }
     }
   };
 

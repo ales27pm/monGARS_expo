@@ -1,4 +1,5 @@
 import * as CustomModules from "../native-modules";
+import { getErrorMessage } from "../utils/errors";
 
 /**
  * AI Agent with Native iOS Capabilities
@@ -134,7 +135,7 @@ export class AIAgent {
           result,
         });
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         results.push({
           tool: toolUse.tool,
           success: false,

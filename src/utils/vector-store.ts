@@ -16,6 +16,7 @@ import {
 import { compressVector, topKSimilar } from "./vector-math";
 import { getOrCreateVectorStoreKey } from "./secure-key-provider";
 import { createMMKVInstance } from "./mmkv-adapter";
+import { toErrorWithMessage } from "./errors";
 
 // MMKV storage for fast vector operations
 const vectorStorage = createMMKVInstance({
@@ -46,7 +47,7 @@ export class VectorStore {
         this.readyResolved = true;
       })
       .catch((error) => {
-        const err = error instanceof Error ? error : new Error(String(error ?? "Unknown error"));
+        const err = toErrorWithMessage(error);
         this.initializationError = err;
         console.error("Failed to initialize secure vector storage:", err);
         throw err;
@@ -68,7 +69,7 @@ export class VectorStore {
     try {
       await this.ready;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error ?? "Unknown error"));
+      const err = toErrorWithMessage(error);
       this.initializationError = err;
       throw err;
     }

@@ -29,4 +29,10 @@ describe("conversation id utilities", () => {
   it("handles empty or whitespace seeds gracefully", () => {
     expect(createConversationId("   ")).toMatch(/^conv-[a-z0-9]+-[a-z0-9]+$/);
   });
+
+  it("truncates overly long seeds to keep ids concise", () => {
+    const id = createConversationId("x".repeat(120));
+    const segments = id.split("-");
+    expect(segments[1]).toHaveLength(32);
+  });
 });

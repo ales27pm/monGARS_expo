@@ -15,6 +15,7 @@ import { chunkText, TextChunk } from "./text-chunking";
 import { EmbeddingStorageStats, SemanticSearchOptions } from "../types/embeddings";
 import { getGlobalLLM } from "./on-device-llm";
 import { extractErrorMessage, isNativeModuleUnavailableError } from "./nativeModuleError";
+import { toErrorWithMessage } from "./errors";
 
 const DEFAULT_CLOUD_EMBEDDING_MODEL = "text-embedding-3-small";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
@@ -284,7 +285,7 @@ function createResilientEmbeddingFunction(
 
         if (!shouldFallbackToHashEmbeddings(error)) {
           console.error("[SemanticMemory] Unexpected embedding failure:", error);
-          throw error instanceof Error ? error : new Error(message || "Unknown embedding error");
+          throw toErrorWithMessage(error, message || "Unknown embedding error");
         }
 
         if (!hasLoggedNativeFallback) {

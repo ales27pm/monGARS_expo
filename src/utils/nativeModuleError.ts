@@ -1,27 +1,12 @@
+import { getErrorMessage } from "./errors";
+
 export function extractErrorMessage(error: unknown): string {
   if (!error) {
     return "";
   }
 
-  if (typeof error === "string") {
-    return error;
-  }
-
-  if (typeof error === "object" && "message" in (error as Record<string, unknown>)) {
-    const messageValue = (error as { message?: unknown }).message;
-    if (typeof messageValue === "string") {
-      return messageValue;
-    }
-    if (messageValue != null) {
-      return String(messageValue);
-    }
-  }
-
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
+  const message = getErrorMessage(error, "");
+  return message;
 }
 
 export function isNativeModuleUnavailableError(error: unknown): boolean {
