@@ -1,153 +1,61 @@
-# GitHub Actions Workflow Fixes
+# GitHub Actions Workflow Refresh
 
-## Problems Fixed
+## Overview
 
-### 1. Authentication Error
-**Error:** `fatal: could not read Username for 'https://github.com': terminal prompts disabled`
+All legacy workflows attempted to commit large Hugging Face models back into the
+repository. Those steps routinely failed because GitHub blocks files larger than
+100 MB and branch protection prevented automated pushes. The new automation set
+replaces that brittle approach with two focused workflows and a reusable
+model-downloader script.
 
-**Root Cause:** The workflow was explicitly passing `token: ${{ secrets.GITHUB_TOKEN }}` which was being masked as `***`, causing authentication to fail.
+## New Workflows
 
-**Solution:** Removed explicit token parameter. `actions/checkout@v4` automatically uses `GITHUB_TOKEN` with proper permissions when the job has `permissions: contents: write`.
+### 1. `ci.yml`
 
-### 2. Artifacts Upload Warning
-**Error:** `No files were found with the provided path: ~/.expo/ *.log`
+- Runs on every push to `main` and each pull request.
+- Restores Bun and dependency caches, then runs linting, type-checking, and
+  Jest while teeing output to log files.
+- Provides fast feedback without requiring Expo credentials and publishes a
+  detailed summary plus artifacts whenever a gate fails.
 
-**Root Cause:** Invalid path pattern using `~` (home directory) and space-separated patterns.
+### 2. `manual-eas-build.yml`
 
-**Solution:** Changed to relative paths with proper YAML multiline format:
-```yaml
-path: |
-  **/*.log
-  .expo/
-if-no-files-found: warn
-```
+- Manually triggered from the Actions tab.
+- Validates secrets up front (including whether an optional Hugging Face token
+  is configured) and clearly reports what is missing.
+- Restores Bun and Hugging Face caches before installing dependencies to keep
+  reruns fast.
+- Optionally downloads Hugging Face models into `assets/models/` using
+  `scripts/download_models.py` for the duration of the build.
+- Executes `eas build` for iOS or Android and, when configured, submits the
+  latest iOS build to App Store Connect.
+- Uploads logs as artifacts if the build fails to aid debugging.
 
-### 3. Large File Size Error (NEW)
-**Error:** `File assets/models/qwen2-0_5b-instruct-q4_k_m.gguf is 379.38 MB; this exceeds GitHub's file size limit of 100.00 MB`
+## Key Fixes
 
-**Root Cause:** ML model files (.gguf) are too large for regular Git commits. GitHub has a 100MB file size limit.
+| Problem                                                    | Resolution                                                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Workflows failed while trying to commit >100 MB GGUF files | Model downloads now stay within the runner workspace—no more repository pushes from CI.         |
+| Jobs crashed late due to missing Expo/Apple secrets        | A preflight job validates secrets and stops early with a clear summary.                         |
+| Hugging Face throttled anonymous downloads                 | Optional `HUGGINGFACE_TOKEN` support and cache restoration reduce re-downloads and rate limits. |
+| Quality gates provided little context on failure           | CI now uploads logs and publishes a detailed summary covering lint, typecheck, and tests.       |
+| Duplicated shell snippets across many workflow files       | Centralised logic in `scripts/download_models.py` and removed redundant workflows.              |
 
-**Solution:** Implemented Git LFS (Large File Storage) to handle large model files:
-- Created `.gitattributes` to track `*.gguf` files with LFS
-- Added LFS setup and tracking in all workflows
-- Updated commit/push steps to use `git lfs push`
+## Local Usage
 
-### 4. Monolithic Workflow Structure
-**Problem:** Large, single-job workflows that are hard to debug and maintain.
+You can reuse the downloader locally:
 
-**Solution:** Created modular workflow structure with separate, focused jobs.
-
-## New Workflow Structure
-
-### 1. Reusable Workflow: `download-models.yml`
-- Focused solely on downloading ML models
-- Can be called by other workflows
-- Returns output about whether models were committed
-
-### 2. Main Workflow: `deploy-modular.yml`
-- Orchestrates the entire deployment
-- Uses the reusable download-models workflow
-- Separate jobs for:
-  - Model downloads
-  - iOS build
-  - App Store submission (optional)
-  - Summary generation
-
-### 3. Updated Legacy Workflows
-- Fixed authentication in `deploy-macos-native.yml`
-- Fixed authentication in `build-for-vibecode.yml`
-- Fixed artifact upload paths in both
-
-## How to Use
-
-### Option 1: Use New Modular Workflow (Recommended)
 ```bash
-# Go to GitHub Actions tab
-# Select "Deploy to iOS (Modular)" workflow
-# Click "Run workflow"
-# Choose options:
-#   - Model: qwen2-0.5b, llama-3.2-1b, etc.
-#   - Platform: eas-cloud or macos-local
-#   - Submit to App Store: true/false
+python scripts/download_models.py --models qwen2-0.5b
 ```
 
-### Option 2: Use Legacy Workflows
-The old workflows (`deploy-macos-native.yml` and `build-for-vibecode.yml`) have been fixed and will continue to work.
-
-## Benefits of Modular Structure
-
-1. **Better Error Isolation** - If model download fails, you know exactly where
-2. **Easier Debugging** - Each job is focused and simple
-3. **Reusability** - The download-models workflow can be used by multiple workflows
-4. **Parallel Execution** - Jobs can run in parallel when dependencies allow
-5. **Cleaner Logs** - Each job has its own log section
-6. **Conditional Steps** - Easy to skip App Store submission or use different platforms
-
-## Permissions
-
-Each job now has minimal required permissions:
-- `download-models`: `contents: write` (to commit models)
-- `build-ios`: `contents: read` (read-only)
-- `submit-to-app-store`: `contents: read` (read-only)
-
-This follows the principle of least privilege for better security.
+Add `--skip-existing` to avoid re-downloading files you already have. Use
+`--list` to inspect available identifiers or provide a Hugging Face token via
+`--token`/`HUGGINGFACE_TOKEN` when you need authenticated access.
 
 ## Next Steps
 
-1. Test the new `deploy-modular.yml` workflow
-2. Once confirmed working, consider deprecating the old workflows
-3. Add more reusable workflows as needed (e.g., `run-tests.yml`, `lint.yml`)
-
-## Troubleshooting
-
-If you still see authentication errors:
-1. Check that the repository is not private, or
-2. Ensure `GITHUB_TOKEN` has proper permissions in repository settings
-3. For private repos, you may need a Personal Access Token (PAT)
-
-### Git LFS Setup
-
-**Important:** Git LFS is now required for this repository due to large ML model files.
-
-**GitHub LFS Quotas:**
-- Free accounts: 1 GB storage, 1 GB/month bandwidth
-- Pro accounts: 50 GB storage, 100 GB/month bandwidth
-- Large files are only downloaded when needed (not on every clone)
-
-**Local Setup (if you need to work with models locally):**
-```bash
-# Install Git LFS (one-time setup)
-# macOS
-brew install git-lfs
-
-# Ubuntu/Debian
-sudo apt-get install git-lfs
-
-# Windows
-# Download from https://git-lfs.github.com/
-
-# Initialize LFS in your repo
-git lfs install
-
-# Clone or pull the repository
-git pull
-
-# LFS files will be automatically downloaded
-```
-
-**Files Tracked by LFS:**
-- `*.gguf` - ML model files (GGUF format)
-- `*.bin` - Binary model files
-- `*.h5` - Keras/TensorFlow models
-- `*.pb` - Protocol buffer models
-- `*.onnx` - ONNX models
-- `*.safetensors` - SafeTensors format
-
-**Checking LFS Status:**
-```bash
-# See which files are tracked by LFS
-git lfs ls-files
-
-# See LFS bandwidth usage
-git lfs env
-```
+- Set the `EXPO_TOKEN` secret (and Apple credentials if you plan to submit
+  builds automatically).
+- Trigger **Manual EAS Build** from the Actions tab once secrets are in place.
+- Monitor the **CI** workflow to keep the main branch healthy.
